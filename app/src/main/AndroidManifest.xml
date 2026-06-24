@@ -429,6 +429,41 @@
                 android:name="android.content.SyncAdapter"
                 android:resource="@xml/syncadapter_files" />
         </service>
+
+        <!-- Souvera Workspace: CardDAV / CalDAV sync adapters -->
+        <service
+            android:name="com.souvera.workspace.dav.ContactsSyncService"
+            android:exported="true"
+            tools:ignore="ExportedService">
+            <intent-filter>
+                <action android:name="android.content.SyncAdapter" />
+            </intent-filter>
+            <meta-data
+                android:name="android.content.SyncAdapter"
+                android:resource="@xml/contacts_syncadapter" />
+            <meta-data
+                android:name="android.provider.CONTACTS_STRUCTURE"
+                android:resource="@xml/contacts_structure" />
+        </service>
+        <service
+            android:name="com.souvera.workspace.dav.CalendarSyncService"
+            android:exported="true"
+            tools:ignore="ExportedService">
+            <intent-filter>
+                <action android:name="android.content.SyncAdapter" />
+            </intent-filter>
+            <meta-data
+                android:name="android.content.SyncAdapter"
+                android:resource="@xml/calendar_syncadapter" />
+        </service>
+
+        <!-- Souvera Workspace: native calendar screen -->
+        <activity
+            android:name="com.souvera.workspace.calendar.CalendarActivity"
+            android:exported="false"
+            android:label="@string/drawer_item_calendar"
+            android:theme="@style/Theme.ownCloud.Toolbar" />
+
         <service
             android:name="com.nextcloud.client.widget.DashboardWidgetService"
             android:exported="true"

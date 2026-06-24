@@ -1526,4 +1526,14 @@
     <string name="sync_conflict_notification_description">Upload conflicts detected. Open uploads to resolve.</string>
     <string name="sync_conflict_notification_action_title">Resolve conflicts</string>
     <string name="extension_cannot_be_changed">Extension cannot be changed</string>
+
+    <!-- Souvera Workspace -->
+    <string name="drawer_item_calendar">Calendar</string>
+    <string name="souvera_events_header">Events</string>
+    <string name="souvera_no_events">No events for this day</string>
+    <string name="souvera_all_day">All day</string>
+    <string name="souvera_sync_action">Sync now</string>
+    <string name="souvera_sync_started">Syncing contacts &amp; calendar…</string>
+    <string name="souvera_no_account">No Souvera account found</string>
+    <string name="souvera_company" translatable="false">Souvera is a brand of Host-On Service Provider GmbH</string>
 </resources>

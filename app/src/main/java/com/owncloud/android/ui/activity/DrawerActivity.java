@@ -632,6 +632,9 @@ public abstract class DrawerActivity extends ToolbarActivity
         } else if (itemId == R.id.nav_assistant) {
             resetOnlyPersonalAndOnDevice();
             startAssistantScreen();
+        } else if (itemId == R.id.nav_calendar) {
+            resetOnlyPersonalAndOnDevice();
+            startActivity(new Intent(this, com.souvera.workspace.calendar.CalendarActivity.class));
         } else if (itemId == R.id.nav_groupfolders) {
             resetOnlyPersonalAndOnDevice();
             Intent intent = new Intent(getApplicationContext(), FileDisplayActivity.class);

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Souvera Workspace - Android Client
+  ~ SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+<ContactsSource xmlns:android="http://schemas.android.com/apk/res/android">
+    <ContactsDataKind
+        android:detailColumn="data3"
+        android:icon="@mipmap/ic_launcher"
+        android:mimeType="vnd.android.cursor.item/vnd.souvera.contact"
+        android:summaryColumn="data2" />
+</ContactsSource>

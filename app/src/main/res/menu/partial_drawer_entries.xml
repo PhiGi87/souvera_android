@@ -77,6 +77,11 @@
             android:icon="@drawable/selector_assistant"
             android:orderInCategory="1"
             android:title="@string/drawer_item_assistant" />
+        <item
+            android:id="@+id/nav_calendar"
+            android:icon="@drawable/ic_souvera_calendar"
+            android:orderInCategory="1"
+            android:title="@string/drawer_item_calendar" />
     </group>
 
     <!--
