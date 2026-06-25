@@ -65,9 +65,17 @@ val versionPatch = 0
 val versionBuild = 50 // 0-50=Alpha / 51-98=RC / 90-99=stable
 
 val ndkEnv = buildMap {
-    file("${project.rootDir}/ndk.env").readLines().forEach {
-        val (key, value) = it.split("=")
-        put(key, value)
+    // Defaults so the build also works when ndk.env is absent (e.g. excluded by .gitignore)
+    put("NDK_VERSION", "29.0.14206865")
+    put("CMAKE_VERSION", "4.1.2")
+    val ndkEnvFile = file("${project.rootDir}/ndk.env")
+    if (ndkEnvFile.exists()) {
+        ndkEnvFile.readLines().forEach {
+            if (it.contains("=")) {
+                val (key, value) = it.split("=")
+                put(key, value)
+            }
+        }
     }
 }
 

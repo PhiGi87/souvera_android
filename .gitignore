@@ -95,6 +95,7 @@ jacoco/
 **/__pycache__/
 /gradle/verification-keyring.gpg
 *.env
+!ndk.env
 credentials.json
 *.key
 .credentials
