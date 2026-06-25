@@ -116,7 +116,8 @@ android {
         compileSdk = 37
 
         ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
+            // OpenSSL prefab dependency only provides these two ABIs; do not add others.
+            abiFilters += listOf("arm64-v8a", "x86_64")
         }
 
         buildConfigField("boolean", "CI", ciBuild.toString())
