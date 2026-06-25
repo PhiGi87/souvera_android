@@ -24,6 +24,7 @@ tests/local.properties
 
 # Signing & secrets
 *.jks
+!app/souvera-demo.jks
 *.keystore
 keystore.properties
 release.properties

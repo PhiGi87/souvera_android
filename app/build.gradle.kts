@@ -138,6 +138,20 @@ android {
 
         flavorDimensions += "default"
 
+        signingConfigs {
+            // Stable key for demo builds so each CI build installs over the previous one
+            // (avoids "App not installed" signature mismatch). Demo use only, not for Play Store.
+            create("souveraDemo") {
+                val demoKeystore = file("souvera-demo.jks")
+                if (demoKeystore.exists()) {
+                    storeFile = demoKeystore
+                    storePassword = "souverademo"
+                    keyAlias = "souvera"
+                    keyPassword = "souverademo"
+                }
+            }
+        }
+
         buildTypes {
             release {
                 buildConfigField("String", "NC_TEST_SERVER_DATA_STRING", "\"\"")
@@ -147,6 +161,9 @@ android {
                 enableUnitTestCoverage = project.hasProperty("coverage")
                 enableAndroidTestCoverage = project.hasProperty("coverage")
                 resConfigs("xxxhdpi")
+                if (file("souvera-demo.jks").exists()) {
+                    signingConfig = signingConfigs.getByName("souveraDemo")
+                }
             }
         }
 
