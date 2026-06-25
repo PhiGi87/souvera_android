@@ -116,7 +116,7 @@ android {
         compileSdk = 37
 
         ndk {
-            abiFilters += listOf("arm64-v8a", "x86_64")
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
         }
 
         buildConfigField("boolean", "CI", ciBuild.toString())

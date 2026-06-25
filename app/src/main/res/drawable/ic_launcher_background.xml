@@ -10,20 +10,19 @@
     android:viewportHeight="1344">
     <path
         android:fillType="evenOdd"
-        android:pathData="M0,0h1344v1344h-1344z"
-        android:strokeLineJoin="round">
+        android:pathData="M0,0h1344v1344h-1344z">
         <aapt:attr name="android:fillColor">
             <gradient
-                android:endX="1343.9999"
-                android:endY="1343.9999"
+                android:endX="1344"
+                android:endY="1344"
                 android:startX="0"
                 android:startY="0"
                 android:type="linear">
                 <item
-                    android:color="#FF38B6FF"
+                    android:color="#FF4BBFEA"
                     android:offset="0" />
                 <item
-                    android:color="#FF3B82F6"
+                    android:color="#FF496BBF"
                     android:offset="1" />
             </gradient>
         </aapt:attr>
