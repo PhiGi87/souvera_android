@@ -13,6 +13,16 @@
         android:name="android.permission.REQUEST_INSTALL_PACKAGES"
         tools:node="remove"/>
 
+    <!-- Google Play restricts "All files access" to apps whose core function needs it (e.g.
+         file managers); Souvera's synced-folders/auto-upload already falls back to granular
+         media permissions without it (see PermissionUtil.checkStoragePermission()), and the
+         gplay-flavor UI already hides the "all files access" option when isBrandedAndFlavourGplay
+         is true. Removing the manifest permission avoids the Play Console "All files access"
+         declaration entirely for this flavor. -->
+    <uses-permission
+        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:node="remove"/>
+
     <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
 
     <application

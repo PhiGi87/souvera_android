@@ -26,11 +26,13 @@
 
         <ImageView
             android:id="@+id/thumbnail"
-            android:layout_width="@dimen/splash_image_size"
-            android:layout_height="@dimen/splash_image_size"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/standard_padding"
+            android:adjustViewBounds="true"
             android:contentDescription="@string/app_name"
-            android:src="@drawable/logo" />
+            android:maxWidth="@dimen/default_login_width"
+            android:src="@drawable/souvera_wordmark" />
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -51,7 +53,7 @@
                     style="@style/Widget.App.Login.TextInputLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="@string/auth_host_url"
+                    android:hint="@string/souvera_slug_hint"
                     android:theme="@style/TextInputLayoutLogin"
                     app:endIconContentDescription="@string/test_server_button"
                     app:endIconDrawable="@drawable/arrow_right"
@@ -63,7 +65,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="top"
-                        android:inputType="textUri|textNoSuggestions|textEmailAddress"
+                        android:inputType="text|textNoSuggestions"
                         android:lines="1"
                         android:minLines="1"
                         android:paddingStart="@dimen/standard_padding"

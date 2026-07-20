@@ -12,6 +12,7 @@ plugins {
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.kotlin.parcelize) apply false
+    alias(libs.plugins.google.services) apply false
     alias(libs.plugins.spotbugs) apply false
     alias(libs.plugins.detekt) apply false
     // needed to make renovate run without shot, as shot requires Android SDK

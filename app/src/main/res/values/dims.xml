@@ -145,6 +145,7 @@
     <dimen name="dialog_padding">24dp</dimen>
     <dimen name="splash_image_size">180dp</dimen>
     <dimen name="splash_text_size">20sp</dimen>
+    <dimen name="souvera_wordmark_width">200dp</dimen>
     <integer name="small_margin">5</integer>
     <integer name="zero">0</integer>
     <dimen name="txt_size_16sp">16sp</dimen>

@@ -19,7 +19,6 @@ import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.viewpager2.widget.ViewPager2
-import com.nextcloud.android.common.ui.theme.utils.ColorRole
 import com.nextcloud.client.account.UserAccountManager
 import com.nextcloud.client.appinfo.AppInfo
 import com.nextcloud.client.di.Injectable
@@ -84,7 +83,6 @@ class FirstRunActivity :
         registerActivityResult()
         setupLoginButton()
         setupSignupButton(MDMConfig.showIntro(this))
-        setupHostOwnServerTextView(MDMConfig.showIntro(this))
         deleteAccountAtFirstLaunch()
         setupFeaturesViewAdapter()
         handleOnBackPressed()
@@ -149,19 +147,6 @@ class FirstRunActivity :
         val intent = Intent(this, AuthenticatorActivity::class.java)
         intent.putExtra(AuthenticatorActivity.EXTRA_USE_PROVIDER_AS_WEBLOGIN, extraUseProviderAsWebLogin)
         return intent
-    }
-
-    private fun setupHostOwnServerTextView(isProviderOrOwnInstallationVisible: Boolean) {
-        defaultViewThemeUtils?.platform?.colorTextView(binding.hostOwnServer, ColorRole.ON_PRIMARY)
-        binding.hostOwnServer.visibility = if (isProviderOrOwnInstallationVisible) View.VISIBLE else View.GONE
-        if (isProviderOrOwnInstallationVisible) {
-            binding.hostOwnServer.setOnClickListener {
-                DisplayUtils.startLinkIntent(
-                    this,
-                    R.string.url_server_install
-                )
-            }
-        }
     }
 
     // Sometimes, accounts are not deleted when you uninstall the application so we'll do it now

@@ -36,6 +36,16 @@ plugins {
 }
 apply(from = "${rootProject.projectDir}/jacoco.gradle.kts")
 
+// Reads app/google-services.json (or a flavor-specific override) to configure Firebase Cloud
+// Messaging. The file is gitignored (Firebase project config, provisioned per environment), so
+// applying this plugin unconditionally would break CI checkouts that don't have it - only apply
+// when it's actually present. Only generic/gplay/huawei share a matching package_name
+// (eu.souvera.workspace) in that file; building versionDev/qa would need their own Firebase app
+// registration first.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 println("Gradle uses Java ${Jvm.current()}")
 
 configurations.configureEach {
@@ -58,11 +68,12 @@ configurations.configureEach {
     }
 }
 
-// semantic versioning for version code
-val versionMajor = 34
-val versionMinor = 1
-val versionPatch = 0
-val versionBuild = 50 // 0-50=Alpha / 51-98=RC / 90-99=stable
+// Souvera Workspace has its own release history, independent of the upstream Nextcloud
+// version this fork started from - reset to 1.0.0 for the first public release.
+val versionMajor = 1
+val versionMinor = 0
+val versionPatch = 1
+val versionBuild = 99 // 0-50=Alpha / 51-98=RC / 90-99=stable
 
 val ndkEnv = buildMap {
     // Defaults so the build also works when ndk.env is absent (e.g. excluded by .gitignore)
@@ -110,7 +121,7 @@ android {
             "TEST_SERVER_PASSWORD" to ncTestServerPassword.toString(),
             "disableAnalytics" to "true"
         )
-        applicationId = "com.souvera.workspace"
+        applicationId = "eu.souvera.workspace"
         minSdk = 28
         targetSdk = 36
         compileSdk = 37
@@ -149,6 +160,30 @@ android {
                     storePassword = "souverademo"
                     keyAlias = "souvera"
                     keyPassword = "souverademo"
+                    // Sign with v1 (JAR) as well as v2/v3 for maximum installer compatibility
+                    // across OEM devices; some reject v2-only sideloaded APKs.
+                    enableV1Signing = true
+                    enableV2Signing = true
+                    enableV3Signing = true
+                }
+            }
+
+            // Production upload key for Play Console releases. Never committed - path/passwords
+            // come from protected environment variables (or a local, git-ignored keystore.properties
+            // at the repo root, storeFile relative to the app module) so secrets never enter
+            // source control. Fails loudly (not silently unsigned) if a path is given but wrong.
+            create("souveraRelease") {
+                val releaseProps = rootProject.file("keystore.properties").let { pf ->
+                    Properties().apply { if (pf.exists()) pf.inputStream().use { s -> load(s) } }
+                }
+                val keystorePath = System.getenv("ANDROID_KEYSTORE_PATH") ?: releaseProps.getProperty("storeFile")
+                if (!keystorePath.isNullOrBlank()) {
+                    val keystoreFile = file(keystorePath)
+                    check(keystoreFile.exists()) { "Release keystore configured but not found at: $keystoreFile" }
+                    storeFile = keystoreFile
+                    storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: releaseProps.getProperty("storePassword")
+                    keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: releaseProps.getProperty("keyAlias")
+                    keyPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: releaseProps.getProperty("keyPassword")
                 }
             }
         }
@@ -156,6 +191,13 @@ android {
         buildTypes {
             release {
                 buildConfigField("String", "NC_TEST_SERVER_DATA_STRING", "\"\"")
+                val releaseProps = rootProject.file("keystore.properties").let { pf ->
+                    Properties().apply { if (pf.exists()) pf.inputStream().use { s -> load(s) } }
+                }
+                val releaseKeystorePath = System.getenv("ANDROID_KEYSTORE_PATH") ?: releaseProps.getProperty("storeFile")
+                if (!releaseKeystorePath.isNullOrBlank()) {
+                    signingConfig = signingConfigs.getByName("souveraRelease")
+                }
             }
 
             debug {
@@ -171,29 +213,29 @@ android {
         productFlavors {
             // used for f-droid
             register("generic") {
-                applicationId = "com.souvera.workspace"
+                applicationId = "eu.souvera.workspace"
                 dimension = "default"
             }
 
             register("gplay") {
-                applicationId = "com.souvera.workspace"
+                applicationId = "eu.souvera.workspace"
                 dimension = "default"
             }
 
             register("huawei") {
-                applicationId = "com.souvera.workspace"
+                applicationId = "eu.souvera.workspace"
                 dimension = "default"
             }
 
             register("versionDev") {
-                applicationId = "com.souvera.workspace.beta"
+                applicationId = "eu.souvera.workspace.beta"
                 dimension = "default"
                 versionCode = 20220322
                 versionName = "20220322"
             }
 
             register("qa") {
-                applicationId = "com.souvera.workspace.qa"
+                applicationId = "eu.souvera.workspace.qa"
                 dimension = "default"
                 versionCode = 1
                 versionName = "1"

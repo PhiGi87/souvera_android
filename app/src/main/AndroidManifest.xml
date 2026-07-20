@@ -464,6 +464,20 @@
             android:label="@string/drawer_item_calendar"
             android:theme="@style/Theme.ownCloud.Toolbar" />
 
+        <!-- Souvera Workspace: local, on-device notes screen -->
+        <activity
+            android:name="com.souvera.workspace.notes.SouveraNotesActivity"
+            android:exported="false"
+            android:label="@string/souvera_notes_title"
+            android:theme="@style/Theme.ownCloud.Toolbar" />
+
+        <!-- Souvera Workspace: SnappyMail-based webmail embedded in a WebView -->
+        <activity
+            android:name="com.souvera.workspace.mail.SouveraMailWebViewActivity"
+            android:exported="false"
+            android:label="@string/drawer_item_mail"
+            android:theme="@style/Theme.ownCloud.Toolbar" />
+
         <service
             android:name="com.nextcloud.client.widget.DashboardWidgetService"
             android:exported="true"

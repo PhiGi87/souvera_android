@@ -22,8 +22,9 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:layout_weight="1"
+        android:adjustViewBounds="true"
         android:contentDescription="@string/app_name"
-        android:src="@drawable/logo" />
+        android:src="@drawable/souvera_wordmark" />
 
     <ScrollView
         android:layout_width="0dp"
@@ -51,7 +52,7 @@
                     style="@style/Widget.App.Login.TextInputLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="@string/auth_host_url"
+                    android:hint="@string/souvera_slug_hint"
                     android:theme="@style/TextInputLayoutLogin"
                     app:endIconContentDescription="@string/test_server_button"
                     app:endIconDrawable="@drawable/arrow_right"
@@ -63,7 +64,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="top"
-                        android:inputType="textUri|textNoSuggestions|textEmailAddress"
+                        android:inputType="text|textNoSuggestions"
                         android:lines="1"
                         android:minLines="1"
                         android:paddingStart="@dimen/standard_padding"

@@ -1,5 +1,7 @@
 /*
  * Souvera Workspace - Android Client
+ *
+ * SPDX-FileCopyrightText: 2026 Host-On Service Provider GmbH (Souvera)
  * SPDX-License-Identifier: AGPL-3.0-or-later
  *
  * Two-way CardDAV synchronisation between a Nextcloud server and the Android
@@ -48,8 +50,6 @@ class CardDavSync(
         pushLocalChanges(book.href)
         pullRemoteChanges(book)
     }
-
-    // ---- push (device -> server) -----------------------------------------
 
     private fun pushLocalChanges(collectionHref: String) {
         // deletions
@@ -103,8 +103,6 @@ class CardDavSync(
             }
         }
     }
-
-    // ---- pull (server -> device) -----------------------------------------
 
     private fun pullRemoteChanges(book: DavResource) {
         val remoteCTag = client.cTag(book.href)
@@ -203,8 +201,6 @@ class CardDavSync(
         resolver.applyBatch(ContactsContract.AUTHORITY, ops)
     }
 
-    // ---- vCard export -----------------------------------------------------
-
     private fun buildVCard(rawContactId: Long, uid: String): String {
         val vcard = VCard()
         vcard.uid = Uid(uid)
@@ -226,8 +222,6 @@ class CardDavSync(
         if (vcard.formattedName == null) vcard.setFormattedName(uid)
         return Ezvcard.write(vcard).version(VCardVersion.V3_0).go()
     }
-
-    // ---- helpers ----------------------------------------------------------
 
     private fun dataInsert() =
         ContentProviderOperation.newInsert(syncUri(Data.CONTENT_URI))

@@ -1024,9 +1024,9 @@
     <string name="prefs_e2e_mnemonic">E2E mnemonic</string>
     <string name="prefs_e2e_no_device_credentials">To show mnemonic please enable device credentials.</string>
     <string name="login">Log in</string>
-    <string name="signup_with_provider">Sign up with provider</string>
+    <string name="signup_with_provider">Get Souvera</string>
     <string name="host_your_own_server">Host your own server</string>
-    <string name="first_run_1_text">Keep your data secure and under your control</string>
+    <string name="first_run_1_text">Your data.\nYour rules.\nYour sovereignty.</string>
     <string name="first_run_2_text">Secure collaboration and file exchange</string>
     <string name="first_run_3_text">Easy-to-use webmail, calendar and contacts</string>
     <string name="first_run_4_text">Screensharing, online meetings and web conferences</string>
@@ -1529,6 +1529,7 @@
 
     <!-- Souvera Workspace -->
     <string name="drawer_item_calendar">Calendar</string>
+    <string name="drawer_item_mail">Mail</string>
     <string name="souvera_events_header">Events</string>
     <string name="souvera_no_events">No events for this day</string>
     <string name="souvera_all_day">All day</string>
@@ -1536,4 +1537,19 @@
     <string name="souvera_sync_started">Syncing contacts &amp; calendar…</string>
     <string name="souvera_no_account">No Souvera account found</string>
     <string name="souvera_company" translatable="false">Souvera is a brand of Host-On Service Provider GmbH</string>
+    <string name="souvera_slug_hint">Workspace slug</string>
+    <string name="souvera_slug_helper_text">Enter only your workspace slug — the part before .%1$s in your Souvera Workspace address.</string>
+    <string name="souvera_invalid_slug">Please enter a valid workspace slug</string>
+    <string name="souvera_notes_title">Notes</string>
+    <string name="souvera_notes_empty">No notes yet.\nTap + to create one.</string>
+    <string name="souvera_notes_add">New note</string>
+    <string name="souvera_note_edit">Edit note</string>
+    <string name="souvera_note_hint">Write a note…</string>
+    <string name="souvera_note_delete">Delete this note?</string>
+    <string name="souvera_note_untitled">(empty note)</string>
+    <string name="souvera_delete">Delete</string>
+    <string name="souvera_note_title_hint">Title</string>
+    <string name="souvera_notes_error">Could not reach the server. Please check your connection and try again.</string>
+    <string name="souvera_notes_folder" translatable="false">Notes</string>
+    <string name="souvera_notes_default_name" translatable="false">Note</string>
 </resources>

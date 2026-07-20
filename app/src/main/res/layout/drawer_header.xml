@@ -31,7 +31,7 @@
             android:contentDescription="@null"
             android:maxWidth="96dp"
             android:scaleType="fitCenter"
-            android:src="@drawable/nextcloud_logo" />
+            android:src="@drawable/souvera_icon" />
 
         <TextView
             android:id="@+id/drawer_header_server_name"
@@ -115,9 +115,9 @@
                 android:layout_height="40dp"
                 android:layout_margin="4dp"
                 android:background="@drawable/white_outline"
-                android:contentDescription="@string/ecosystem_apps_talk"
+                android:contentDescription="@string/drawer_item_calendar"
                 android:padding="8dp"
-                android:src="@drawable/ic_talk"
+                android:src="@drawable/ic_souvera_calendar"
                 app:tint="@color/white" />
 
             <TextView
@@ -126,7 +126,7 @@
                 android:layout_gravity="center"
                 android:ellipsize="end"
                 android:lines="1"
-                android:text="@string/ecosystem_apps_display_talk"
+                android:text="@string/drawer_item_calendar"
                 android:textColor="@color/white"
                 android:textStyle="bold" />
 
@@ -141,7 +141,7 @@
             android:focusable="true"
             android:gravity="center_horizontal"
             android:orientation="vertical"
-            app:layout_constraintEnd_toStartOf="@+id/drawer_ecosystem_more"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.5"
             app:layout_constraintStart_toEndOf="@+id/drawer_ecosystem_talk"
             app:layout_constraintTop_toTopOf="parent"
@@ -164,43 +164,6 @@
                 android:ellipsize="end"
                 android:lines="1"
                 android:text="@string/ecosystem_apps_display_notes"
-                android:textColor="@color/white"
-                android:textStyle="bold" />
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/drawer_ecosystem_more"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:background="?android:selectableItemBackgroundBorderless"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center_horizontal"
-            android:orientation="vertical"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.5"
-            app:layout_constraintStart_toEndOf="@+id/drawer_ecosystem_notes"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintWidth_max="80dp">
-
-            <ImageView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_margin="4dp"
-                android:background="@drawable/white_outline"
-                android:contentDescription="@string/ecosystem_apps_more"
-                android:padding="8dp"
-                android:src="@drawable/ic_more_apps"
-                app:tint="@color/white" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:ellipsize="end"
-                android:lines="1"
-                android:text="@string/ecosystem_apps_display_more"
                 android:textColor="@color/white"
                 android:textStyle="bold" />
 

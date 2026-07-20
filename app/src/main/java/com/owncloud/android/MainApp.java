@@ -242,7 +242,9 @@ public class MainApp extends Application implements HasAndroidInjector, NetworkC
         // let the platform deal with those
         final boolean isCrashReportingProcess = getAppProcessName().endsWith(":crash");
 
-        if (!isCrashReportingProcess && !appInfo.isDebugBuild()) {
+        // Souvera: also show the on-screen crash report on debug/test builds (upstream limits it to
+        // release) so testers can capture a full stack trace by screenshot, without adb/logcat.
+        if (!isCrashReportingProcess) {
             Thread.UncaughtExceptionHandler defaultPlatformHandler = Thread.getDefaultUncaughtExceptionHandler();
 
             if (defaultPlatformHandler != null) {

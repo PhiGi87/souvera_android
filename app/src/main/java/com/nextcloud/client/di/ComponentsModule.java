@@ -201,6 +201,9 @@ abstract class ComponentsModule {
     abstract ComposeActivity composeActivity();
 
     @ContributesAndroidInjector
+    abstract com.souvera.workspace.mail.SouveraMailWebViewActivity souveraMailWebViewActivity();
+
+    @ContributesAndroidInjector
     abstract PassCodeActivity passCodeActivity();
 
     @ContributesAndroidInjector

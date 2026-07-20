@@ -67,6 +67,7 @@ import com.nextcloud.common.PlainClient;
 import com.nextcloud.operations.PostMethod;
 import com.nextcloud.utils.extensions.BundleExtensionsKt;
 import com.nextcloud.utils.mdm.MDMConfig;
+import com.souvera.workspace.login.SouveraServerUrl;
 import com.owncloud.android.MainApp;
 import com.owncloud.android.R;
 import com.owncloud.android.databinding.AccountSetupBinding;
@@ -712,8 +713,9 @@ public class AuthenticatorActivity extends AccountAuthenticatorActivity
     private void initOverallUi() {
         accountSetupBinding.hostUrlContainer.setEndIconOnClickListener(v -> checkOcServer());
 
+        accountSetupBinding.hostUrlContainer.setSuffixText("." + getString(R.string.souvera_server_domain));
         accountSetupBinding.hostUrlInputHelperText.setText(
-            String.format(getString(R.string.login_url_helper_text), getString(R.string.app_name)));
+            String.format(getString(R.string.souvera_slug_helper_text), getString(R.string.souvera_server_domain)));
 
         viewThemeUtils.platform.colorTextView(accountSetupBinding.hostUrlInputHelperText, ColorRole.ON_PRIMARY);
         viewThemeUtils.platform.colorTextView(accountSetupBinding.serverStatusText, ColorRole.ON_PRIMARY);
@@ -967,12 +969,24 @@ public class AuthenticatorActivity extends AccountAuthenticatorActivity
 
         mServerInfo = new GetServerInfoOperation.ServerInfo();
 
-        if (!uri.isEmpty()) {
+        // Souvera Workspace: users enter only a workspace slug; the server URL is derived from it
+        // and connections are restricted to https://<slug>.<souvera_server_domain>.
+        final String souveraDomain = getString(R.string.souvera_server_domain);
+        final String slug = SouveraServerUrl.INSTANCE.extractSlug(uri, souveraDomain);
+        if (slug.isEmpty()) {
             if (accountSetupBinding != null) {
-                uri = AuthenticatorUrlUtils.INSTANCE.stripIndexPhpOrAppsFiles(uri);
-                accountSetupBinding.hostUrlInput.setText(uri);
+                mServerStatusText = getResources().getString(R.string.souvera_invalid_slug);
+                mServerStatusIcon = R.drawable.ic_alert;
+                showServerStatus();
             }
+            return;
+        }
+        if (accountSetupBinding != null) {
+            accountSetupBinding.hostUrlInput.setText(slug);
+        }
+        uri = SouveraServerUrl.INSTANCE.buildUrl(slug, souveraDomain);
 
+        if (!uri.isEmpty()) {
             try {
                 uri = AuthenticatorUrlUtils.INSTANCE.normalizeScheme(uri);
             } catch (IllegalArgumentException ex) {

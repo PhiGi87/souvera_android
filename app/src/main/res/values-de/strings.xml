@@ -508,7 +508,7 @@
     <string name="filename_forbidden_characters">Verbotene Zeichen: / \\ &lt; &gt; : \" | ? *</string>
     <string name="filename_forbidden_charaters_from_server">Der Dateiname enthält mindestens ein ungültiges Zeichen</string>
     <string name="filename_hint">Dateiname</string>
-    <string name="first_run_1_text">Halten Sie Ihre Daten sicher und unter Ihrer Kontrolle</string>
+    <string name="first_run_1_text">Ihre Daten.\nIhre Regeln.\nIhre Souveränität.</string>
     <string name="first_run_2_text">Sichere Zusammenarbeit und Dateiaustausch</string>
     <string name="first_run_3_text">Benutzerfreundlicher Webmailer, Kalender und Kontakte</string>
     <string name="first_run_4_text">Bildschirmfreigabe, Online-Meetings und Webkonferenzen</string>
@@ -931,7 +931,7 @@
     <string name="show_less">Weniger anzeigen</string>
     <string name="show_video">Videos anzeigen</string>
     <string name="sign_tos_failed">Bitte überprüfen Sie die Nutzungsbedingungen selbst!</string>
-    <string name="signup_with_provider">Mit Provider anmelden</string>
+    <string name="signup_with_provider">Hol dir Souvera</string>
     <string name="single_sign_on_request_token" formatted="true">Zulassen, dass %1$s auf Ihr Nextcloud Konto %2$s zugreifen darf?</string>
     <string name="sort_by">Sortieren nach</string>
     <string name="sort_favorites_first">Favoriten zuerst sortieren</string>

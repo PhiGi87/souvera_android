@@ -1,5 +1,7 @@
 /*
  * Souvera Workspace - Android Client
+ *
+ * SPDX-FileCopyrightText: 2026 Host-On Service Provider GmbH (Souvera)
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 package com.souvera.workspace.calendar
@@ -47,6 +49,7 @@ class CalendarActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.statusBarColor = ContextCompat.getColor(this, R.color.primary)
         setContentView(R.layout.activity_calendar)
 
         val toolbar = findViewById<MaterialToolbar>(R.id.calendar_toolbar)

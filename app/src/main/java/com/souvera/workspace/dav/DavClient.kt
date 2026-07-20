@@ -1,5 +1,7 @@
 /*
  * Souvera Workspace - Android Client
+ *
+ * SPDX-FileCopyrightText: 2026 Host-On Service Provider GmbH (Souvera)
  * SPDX-License-Identifier: AGPL-3.0-or-later
  *
  * Lightweight WebDAV/CalDAV/CardDAV client built on the commons-httpclient +
@@ -18,6 +20,7 @@ import org.apache.commons.httpclient.methods.GetMethod
 import org.apache.commons.httpclient.methods.PutMethod
 import org.apache.commons.httpclient.methods.StringRequestEntity
 import org.apache.jackrabbit.webdav.DavConstants
+import org.apache.jackrabbit.webdav.client.methods.MkColMethod
 import org.apache.jackrabbit.webdav.client.methods.PropFindMethod
 import org.apache.jackrabbit.webdav.property.DavPropertyName
 import org.apache.jackrabbit.webdav.property.DavPropertyNameSet
@@ -46,8 +49,6 @@ class DavClient(
     private val davRoot = "$baseUrl/remote.php/dav/"
     private val client = HttpClient()
     private var authMode = AuthMode.UNKNOWN
-
-    // ---- authentication ---------------------------------------------------
 
     private fun applyAuth(method: HttpMethod, mode: AuthMode = authMode) {
         when (mode) {
@@ -87,8 +88,6 @@ class DavClient(
             method.releaseConnection()
         }
     }
-
-    // ---- read -------------------------------------------------------------
 
     fun list(collectionUrl: String): List<DavResource> {
         ensureAuth()
@@ -151,8 +150,6 @@ class DavClient(
         }
     }
 
-    // ---- write ------------------------------------------------------------
-
     /** Uploads an object. Returns the new ETag (may be null) on success, or null on failure. */
     fun put(
         href: String,
@@ -176,6 +173,24 @@ class DavClient(
         } catch (e: Exception) {
             Log.w(TAG, "PUT failed for $href", e)
             PutResult(false, null)
+        } finally {
+            method.releaseConnection()
+        }
+    }
+
+    /** Creates a collection (folder). Treats "already exists" (405) as success. */
+    fun mkcol(collectionUrl: String): Boolean {
+        ensureAuth()
+        val method = MkColMethod(toAbsolute(collectionUrl))
+        applyAuth(method)
+        return try {
+            val status = client.executeMethod(method)
+            status == HttpStatus.SC_CREATED ||
+                status == HttpStatus.SC_OK ||
+                status == HttpStatus.SC_METHOD_NOT_ALLOWED
+        } catch (e: Exception) {
+            Log.w(TAG, "MKCOL failed for $collectionUrl", e)
+            false
         } finally {
             method.releaseConnection()
         }

@@ -1,0 +1,57 @@
+<!--
+  ~ Souvera Workspace - Android Client
+  ~
+  ~ SPDX-FileCopyrightText: 2026 Host-On Service Provider GmbH (Souvera)
+  ~ SPDX-License-Identifier: AGPL-3.0-or-later
+  ~ Souvera icon mark: rounded four-quadrant gradient tile with the white "S".
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="97.130463"
+    android:viewportHeight="97.130463">
+    <group android:translateY="-39.103079">
+        <group
+            android:scaleX="1.2950717"
+            android:scaleY="1.2950717"
+            android:translateX="-46.061583"
+            android:translateY="-40.198658">
+            <path android:pathData="m 52.066589,61.233472 c -9.140991,0 -16.499768,7.358777 -16.499768,16.499768 v 21.000268 c 12.347247,4.124672 24.808037,5.183682 37.500037,0 5.533285,-12.845842 5.529007,-25.345587 0,-37.500036 z">
+                <aapt:attr name="android:fillColor">
+                    <gradient android:type="linear" android:startX="40.388836" android:startY="66.055481" android:endX="73.066856" android:endY="98.733505">
+                        <item android:color="#FF4BBFEA" android:offset="0" />
+                        <item android:color="#FF4D9DDA" android:offset="1" />
+                    </gradient>
+                </aapt:attr>
+            </path>
+            <path android:pathData="m 73.066858,61.233472 v 37.500036 c 12.002917,3.811052 24.460386,4.137202 37.500032,0 V 77.73324 c 0,-9.140991 -7.35929,-16.499768 -16.50028,-16.499768 z">
+                <aapt:attr name="android:fillColor">
+                    <gradient android:type="linear" android:startX="73.066856" android:startY="61.233471" android:endX="110.56689" android:endY="98.733505">
+                        <item android:color="#FF5AAADE" android:offset="0" />
+                        <item android:color="#FF496BBF" android:offset="1" />
+                    </gradient>
+                </aapt:attr>
+            </path>
+            <path android:pathData="m 73.066858,98.733508 c -6.29284,12.500012 -2.72853,25.000022 0,37.500032 H 94.06661 c 9.14099,0 16.50028,-7.35929 16.50028,-16.50028 V 98.733508 Z">
+                <aapt:attr name="android:fillColor">
+                    <gradient android:type="linear" android:startX="73.066856" android:startY="98.733505" android:endX="105.74462" android:endY="131.41127">
+                        <item android:color="#FF4D9DDA" android:offset="0" />
+                        <item android:color="#FF3B86D0" android:offset="1" />
+                    </gradient>
+                </aapt:attr>
+            </path>
+            <path android:pathData="m 35.566821,98.733508 v 20.999752 c 0,9.14099 7.358777,16.50028 16.499768,16.50028 H 73.066858 V 98.733508 Z">
+                <aapt:attr name="android:fillColor">
+                    <gradient android:type="linear" android:startX="35.566822" android:startY="98.733505" android:endX="73.066856" android:endY="136.23354">
+                        <item android:color="#FF559DD8" android:offset="0" />
+                        <item android:color="#FF4A65BC" android:offset="1" />
+                    </gradient>
+                </aapt:attr>
+            </path>
+        </group>
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="m 32.472004,115.53329 c -4.649122,-3.32211 -9.342625,-10.82619 -8.921675,-14.63763 h 12.679426 c 0.81776,3.2307 2.598268,5.8238 5.857576,7.01448 0.9514,0.31364 1.817643,0.54198 2.819546,0.73745 8.418047,1.64232 17.725731,-1.55679 14.696827,-8.831816 -1.957329,-4.701244 -16.90163,-7.379036 -21.895663,-9.32778 -1.168079,-0.446074 -4.700791,-2.220461 -5.017761,-2.520296 -0.0872,-0.08249 -0.231178,-0.149976 -0.319948,-0.149976 -0.08878,0 -0.179401,-0.0405 -0.201398,-0.08999 -0.02199,-0.0495 -0.444925,-0.359942 -0.939847,-0.689886 C 30.161386,86.32604 29.876588,86.089357 28.837436,85.050202 24.746593,80.959355 23.97838,75.593049 24.97988,70.000599 27.286502,58.665783 36.125675,55.905621 45.422676,55.304657 c 0.76243,-0.04928 3.755461,-0.156867 4.693508,0.0017 10.976437,0.349996 23.030254,5.73869 22.453515,19.037772 -0.0058,0.133954 -1.39141,0.155784 -6.838317,0.155784 h -6.778498 c -0.641218,-6.420175 -7.560832,-8.96774 -13.608809,-7.923908 -2.462775,0.498637 -4.847049,0.934953 -6.267646,3.358186 -1.21356,2.13106 -0.929628,4.751151 0.539273,6.5843 2.649286,2.685915 6.74667,3.591891 10.21038,4.753892 6.048593,2.178699 12.986493,3.137321 18.11707,7.146223 4.340754,3.40077 5.661629,7.763196 5.5138,11.083358 0.204721,6.917386 -2.018311,13.164686 -8.275874,17.333076 -4.061397,2.70544 -20.525121,7.40449 -32.709074,-1.30175 z" />
+    </group>
+</vector>

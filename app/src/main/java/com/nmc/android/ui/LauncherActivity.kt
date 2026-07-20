@@ -22,8 +22,8 @@ import com.owncloud.android.R
 import com.owncloud.android.authentication.AuthenticatorActivity
 import com.owncloud.android.databinding.ActivitySplashBinding
 import com.owncloud.android.ui.activity.BaseActivity
-import com.owncloud.android.ui.activity.FileDisplayActivity
 import com.owncloud.android.ui.activity.SettingsActivity
+import com.souvera.workspace.mail.SouveraMailWebViewActivity
 import javax.inject.Inject
 
 class LauncherActivity : BaseActivity() {
@@ -70,7 +70,10 @@ class LauncherActivity : BaseActivity() {
                 if (MDMConfig.enforceProtection(this) && appPreferences.lockPreference == SettingsActivity.LOCK_NONE) {
                     startActivity(Intent(this, SettingsActivity::class.java))
                 } else {
-                    startActivity(Intent(this, FileDisplayActivity::class.java))
+                    // Souvera: Mail is the app's main function, so cold start lands on the
+                    // Mail home (a drawer-hosted screen); Files/Calendar/Notes stay reachable
+                    // via its navigation drawer.
+                    startActivity(Intent(this, SouveraMailWebViewActivity::class.java))
                 }
             } else {
                 startActivity(Intent(this, AuthenticatorActivity::class.java))

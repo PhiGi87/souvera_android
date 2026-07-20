@@ -12,13 +12,22 @@
 
     <!-- App name  and other strings-->
     <string name="app_name">Souvera Workspace</string>
-    <string name="account_type">nextcloud</string>     <!-- better if was a domain name; but changing it now would require migrate accounts when the app is updated -->
-    <string name="authority">org.nextcloud</string>    <!-- better if was the app package with ".provider" appended ; it identifies the provider -->
-    <string name="users_and_groups_search_authority">com.nextcloud.android.providers.UsersAndGroupsSearchProvider</string>
-    <string name="users_and_groups_share_with">com.nextcloud.android.providers.UsersAndGroupsSearchProvider.action.SHARE_WITH</string>
-    <string name="document_provider_authority">org.nextcloud.documents</string>
-    <string name="file_provider_authority">org.nextcloud.files</string>
-    <string name="image_cache_provider_authority">org.nextcloud.imageCache.provider</string>
+    <!-- Must be unique per app: Android's AccountManager only lets the app registered as the
+         authenticator for a given account type call addAccountExplicitly() for it, enforced by
+         signing certificate. Sharing "nextcloud" with the official Nextcloud app throws
+         SecurityException "cannot explicitly add accounts of type: nextcloud" when both apps are
+         installed on the same device. No existing Souvera accounts depend on the old value. -->
+    <string name="account_type">eu.souvera.workspace.account</string>
+    <!-- Namespaced under the app package (unlike upstream's bare org.nextcloud.*) so this
+         provider never collides with the official Nextcloud app or another Nextcloud fork
+         installed on the same device - Android refuses to install an app whose provider
+         authority is already taken by another installed package. -->
+    <string name="authority">eu.souvera.workspace.provider</string>
+    <string name="users_and_groups_search_authority">eu.souvera.workspace.providers.UsersAndGroupsSearchProvider</string>
+    <string name="users_and_groups_share_with">eu.souvera.workspace.providers.UsersAndGroupsSearchProvider.action.SHARE_WITH</string>
+    <string name="document_provider_authority">eu.souvera.workspace.documents</string>
+    <string name="file_provider_authority">eu.souvera.workspace.files</string>
+    <string name="image_cache_provider_authority">eu.souvera.workspace.imageCache.provider</string>
     <string name="db_file">nextcloud.db</string>
     <string name="db_name">nextcloud</string>
     <string name="data_folder">nextcloud</string>
@@ -28,9 +37,11 @@
     <string name="name_for_branded_user_agent">Souvera</string>
 
     <!-- URLs and flags related -->
+    <!-- Souvera Workspace: connections are restricted to https://<slug>.<souvera_server_domain> -->
+    <string name="souvera_server_domain" translatable="false">souvera.work</string>
     <bool name="show_server_url_input">true</bool>
     <bool name="show_provider_or_own_installation">true</bool>
-    <string name="provider_registration_server">https://www.nextcloud.com/register</string>
+    <string name="provider_registration_server">https://souvera.eu</string>
 
     <!-- specify built in proxy -->
     <string name="proxy_host"></string>
@@ -65,10 +76,10 @@
     <!-- To fill if you want to show webviews instead of regular welcome views -->
     <array name="whatsnew_urls"></array>
 
-    <!-- Colors -->
-    <color name="primary">#2F80ED</color>
-    <color name="primary_dark">#1F66C9</color>
-    <color name="color_accent">#38B6FF</color>
+    <!-- Colors - derived from the Souvera Workspace logo -->
+    <color name="primary">#3B86D0</color>
+    <color name="primary_dark">#2E69AE</color>
+    <color name="color_accent">#4BBFEA</color>
     <color name="login_text_color">#ffffff</color>
     <color name="login_text_hint_color">#BBDDFF</color>
 
@@ -120,9 +131,9 @@
     <string name="translation_link" translatable="false">https://app.transifex.com/nextcloud/nextcloud/android/</string>
     <string name="contributing_link" translatable="false">https://github.com/nextcloud/android/blob/master/CONTRIBUTING.md</string>
     <!-- For semi-automated bug report creation -->
-    <string name="report_issue_link" translatable="false">https://github.com/nextcloud/android/issues/new?template=bug_report.yml</string>
+    <string name="report_issue_link" translatable="false">https://github.com/PhiGi87/souvera_android/issues/new</string>
     <!-- For manual report from user -->
-    <string name="report_issue_empty_link" translatable="false">https://github.com/nextcloud/android/issues/new/choose</string>
+    <string name="report_issue_empty_link" translatable="false">https://github.com/PhiGi87/souvera_android/issues/new</string>
 
     <!-- login data links -->
     <string name="login_data_own_scheme" translatable="false">nc</string>

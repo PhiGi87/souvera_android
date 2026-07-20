@@ -396,29 +396,19 @@ public abstract class DrawerActivity extends ToolbarActivity
     }
 
     public void updateHeader() {
-        final var account = getAccount();
         boolean isClientBranded = getResources().getBoolean(R.bool.is_branded_client);
         final var optionalCapability = getCapabilities();
-        if (optionalCapability.isPresent()) {
-            final var capability = optionalCapability.get();
-            if (account != null && capability.getServerBackground() != null && !isClientBranded) {
-                int primaryColor = themeColorUtils.unchangedPrimaryColor(account, this);
-                String serverLogoURL = capability.getServerLogo();
 
-                // set background to primary color
-                LinearLayout drawerHeader = mNavigationViewHeader.findViewById(R.id.drawer_header_view);
-                drawerHeader.setBackgroundColor(primaryColor);
-
-                if (!TextUtils.isEmpty(serverLogoURL) && URLUtil.isValidUrl(serverLogoURL)) {
-                    Target<Drawable> target = createSVGLogoTarget(primaryColor, capability);
-                    GlideHelper.INSTANCE.loadIntoTarget(this,
-                                                        accountManager.getCurrentOwnCloudAccount(),
-                                                        serverLogoURL,
-                                                        target,
-                                                        R.drawable.background);
-                }
-            }
+        // Souvera: keep the drawer header on our fixed brand colour and our own icon instead of
+        // adopting the server's theming colour/logo. Otherwise it shows a second "Souvera" wordmark
+        // next to the workspace name and a slightly different blue than the rest of the app.
+        LinearLayout drawerHeader = mNavigationViewHeader.findViewById(R.id.drawer_header_view);
+        drawerHeader.setBackgroundColor(ContextCompat.getColor(this, R.color.primary));
+        String serverName = optionalCapability.isPresent() ? optionalCapability.get().getServerName() : "";
+        if (TextUtils.isEmpty(serverName)) {
+            serverName = getString(R.string.app_name);
         }
+        setDrawerHeaderLogo(ContextCompat.getDrawable(this, R.drawable.souvera_icon), serverName);
 
         // hide ecosystem apps according to user preference or in branded client
         ConstraintLayout banner = mNavigationViewHeader.findViewById(R.id.drawer_ecosystem_apps);
@@ -484,17 +474,16 @@ public abstract class DrawerActivity extends ToolbarActivity
     private void showTopBanner(ConstraintLayout banner) {
         LinearLayout notesView = banner.findViewById(R.id.drawer_ecosystem_notes);
         LinearLayout talkView = banner.findViewById(R.id.drawer_ecosystem_talk);
-        LinearLayout moreView = banner.findViewById(R.id.drawer_ecosystem_more);
         LinearLayout assistantView = banner.findViewById(R.id.drawer_ecosystem_assistant);
 
-        final var optionalUser = getUser();
-        if (optionalUser.isPresent()) {
-            final var accountName = optionalUser.get().getAccountName();
-            notesView.setOnClickListener(v -> ecosystemManager.openApp(EcosystemApp.NOTES, accountName));
-            talkView.setOnClickListener(v -> ecosystemManager.openApp(EcosystemApp.TALK, accountName));
-        }
-
-        moreView.setOnClickListener(v -> LinkHelper.INSTANCE.openAppStore("Nextcloud", true, this));
+        // Souvera: the ecosystem shortcuts stay inside the app - the "Talk" slot opens the
+        // built-in calendar and the "Notes" slot opens the local notes screen (no external app).
+        talkView.setOnClickListener(v ->
+                                        startActivity(new Intent(this,
+                                                                 com.souvera.workspace.calendar.CalendarActivity.class)));
+        notesView.setOnClickListener(v ->
+                                         startActivity(new Intent(this,
+                                                                  com.souvera.workspace.notes.SouveraNotesActivity.class)));
         assistantView.setOnClickListener(v -> startAssistantScreen());
         final var optionalCapabilities = getCapabilities();
         if (optionalCapabilities.isPresent()) {
@@ -508,7 +497,7 @@ public abstract class DrawerActivity extends ToolbarActivity
             assistantView.setVisibility(View.GONE);
         }
 
-        List<LinearLayout> views = Arrays.asList(notesView, talkView, moreView, assistantView);
+        List<LinearLayout> views = Arrays.asList(notesView, talkView, assistantView);
 
         int iconColor;
         final var account = getAccount();
@@ -635,6 +624,9 @@ public abstract class DrawerActivity extends ToolbarActivity
         } else if (itemId == R.id.nav_calendar) {
             resetOnlyPersonalAndOnDevice();
             startActivity(new Intent(this, com.souvera.workspace.calendar.CalendarActivity.class));
+        } else if (itemId == R.id.nav_mail) {
+            resetOnlyPersonalAndOnDevice();
+            startMailScreen();
         } else if (itemId == R.id.nav_groupfolders) {
             resetOnlyPersonalAndOnDevice();
             Intent intent = new Intent(getApplicationContext(), FileDisplayActivity.class);
@@ -708,6 +700,10 @@ public abstract class DrawerActivity extends ToolbarActivity
         bundle.putParcelable(ComposeActivity.DESTINATION, destination);
         composeActivity.putExtras(bundle);
         startActivity(composeActivity);
+    }
+
+    private void startMailScreen() {
+        startActivity(new Intent(this, com.souvera.workspace.mail.SouveraMailWebViewActivity.class));
     }
 
     void startActivity(Class<? extends Activity> activity) {
