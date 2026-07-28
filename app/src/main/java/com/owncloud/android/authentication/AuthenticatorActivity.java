@@ -96,7 +96,6 @@ import com.owncloud.android.providers.DocumentsStorageProvider;
 import com.owncloud.android.services.OperationsService;
 import com.owncloud.android.services.OperationsService.OperationsServiceBinder;
 import com.owncloud.android.ui.NextcloudWebViewClient;
-import com.owncloud.android.ui.activity.FileDisplayActivity;
 import com.owncloud.android.ui.activity.SettingsActivity;
 import com.owncloud.android.ui.dialog.IndeterminateProgressDialog;
 import com.owncloud.android.ui.dialog.SslUntrustedCertDialog;
@@ -1430,8 +1429,7 @@ public class AuthenticatorActivity extends AccountAuthenticatorActivity
                 Intent i = new Intent(this, SettingsActivity.class);
                 startActivity(i);
             } else {
-                Intent i = new Intent(this, FileDisplayActivity.class);
-                i.setAction(FileDisplayActivity.RESTART);
+                Intent i = new Intent(this, com.souvera.workspace.mail.ui.MailActivity.class);
                 i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 startActivity(i);
             }

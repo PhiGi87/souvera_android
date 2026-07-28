@@ -1,11 +1,6 @@
-/*
- * Nextcloud - Android Client
- *
- * SPDX-FileCopyrightText: 2026 Alper Ozturk <alper.ozturk@nextcloud.com>
- * SPDX-FileCopyrightText: 2025 Jimly Asshiddiqy <jimly.asshiddiqy@accenture.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+/**
+ * Nextcloud Android client settings
  */
-rootProject.name = "Nextcloud"
 
 pluginManagement {
     resolutionStrategy.eachPlugin {
@@ -37,34 +32,17 @@ dependencyResolutionManagement {
             }
         }
         mavenCentral()
+        mavenLocal()
         maven("https://jitpack.io")
     }
 }
 
-/*
-Needed for local android library
-
-includeBuild("../android_library") {
+includeBuild("/tmp/android-library") {
     dependencySubstitution {
         substitute(module("com.github.nextcloud:android-library"))
             .using(project(":library"))
     }
 }
-*/
 
-
-/*
-Needed for local android common library
-
-includeBuild("../android_common") {
-    dependencySubstitution {
-        substitute(module("com.github.nextcloud.android-common:core"))
-            .using(project(":core"))
-
-        substitute(module("com.github.nextcloud.android-common:ui"))
-            .using(project(":ui"))
-    }
-}
-*/
-
+rootProject.name = "Souvera Android Client"
 include(":app", ":appscan")

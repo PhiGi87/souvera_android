@@ -36,6 +36,12 @@
         <meta-data
             android:name="firebase_analytics_collection_deactivated"
             android:value="true" />
+        <!-- Channel used when FCM itself displays a notification-payload message while the app is
+             in the background/killed, so those pushes reliably show (Android 8+ needs a valid
+             channel). Matches NotificationUtils.NOTIFICATION_CHANNEL_PUSH created in MainApp. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="NOTIFICATION_CHANNEL_PUSH" />
         <meta-data
             android:name="google_analytics_adid_collection_enabled"
             android:value="false" />

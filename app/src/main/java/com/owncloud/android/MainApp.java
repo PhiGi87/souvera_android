@@ -220,6 +220,14 @@ public class MainApp extends Application implements HasAndroidInjector, NetworkC
     }
 
     /**
+     * Temporary getter replacing Dagger DI, used by the Souvera push-token registration so the
+     * device can (re-)register for Nextcloud push on app start, not just on FCM token change.
+     */
+    public UserAccountManager getUserAccountManager() {
+        return accountManager;
+    }
+
+    /**
      * Temporary getter replacing Dagger DI
      * TODO: remove when cleaning DI in NContentObserverJob
      */

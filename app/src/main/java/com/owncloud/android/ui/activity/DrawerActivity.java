@@ -472,15 +472,20 @@ public abstract class DrawerActivity extends ToolbarActivity
     }
 
     private void showTopBanner(ConstraintLayout banner) {
+        LinearLayout mailView = banner.findViewById(R.id.drawer_ecosystem_mail);
         LinearLayout notesView = banner.findViewById(R.id.drawer_ecosystem_notes);
         LinearLayout talkView = banner.findViewById(R.id.drawer_ecosystem_talk);
         LinearLayout assistantView = banner.findViewById(R.id.drawer_ecosystem_assistant);
 
-        // Souvera: the ecosystem shortcuts stay inside the app - the "Talk" slot opens the
-        // built-in calendar and the "Notes" slot opens the local notes screen (no external app).
+        // Souvera: the ecosystem shortcuts stay inside the app - "Mail" opens the built-in
+        // native mail client, "Talk" opens the built-in calendar and "Notes" opens the local notes
+        // screen (no external app).
+        mailView.setOnClickListener(v ->
+                                        startActivity(new Intent(this,
+                                                                 com.souvera.workspace.mail.ui.MailActivity.class)));
         talkView.setOnClickListener(v ->
                                         startActivity(new Intent(this,
-                                                                 com.souvera.workspace.calendar.CalendarActivity.class)));
+                                                                 com.souvera.workspace.link.ui.LinkActivity.class)));
         notesView.setOnClickListener(v ->
                                          startActivity(new Intent(this,
                                                                   com.souvera.workspace.notes.SouveraNotesActivity.class)));
@@ -497,7 +502,7 @@ public abstract class DrawerActivity extends ToolbarActivity
             assistantView.setVisibility(View.GONE);
         }
 
-        List<LinearLayout> views = Arrays.asList(notesView, talkView, assistantView);
+        List<LinearLayout> views = Arrays.asList(mailView, notesView, talkView, assistantView);
 
         int iconColor;
         final var account = getAccount();
@@ -624,9 +629,15 @@ public abstract class DrawerActivity extends ToolbarActivity
         } else if (itemId == R.id.nav_calendar) {
             resetOnlyPersonalAndOnDevice();
             startActivity(new Intent(this, com.souvera.workspace.calendar.CalendarActivity.class));
+        } else if (itemId == R.id.nav_contacts) {
+            resetOnlyPersonalAndOnDevice();
+            startActivity(new Intent(this, com.souvera.workspace.contacts.SouveraContactsActivity.class));
         } else if (itemId == R.id.nav_mail) {
             resetOnlyPersonalAndOnDevice();
             startMailScreen();
+        } else if (itemId == R.id.nav_link) {
+            resetOnlyPersonalAndOnDevice();
+            startActivity(new Intent(this, com.souvera.workspace.link.ui.LinkActivity.class));
         } else if (itemId == R.id.nav_groupfolders) {
             resetOnlyPersonalAndOnDevice();
             Intent intent = new Intent(getApplicationContext(), FileDisplayActivity.class);
@@ -703,7 +714,7 @@ public abstract class DrawerActivity extends ToolbarActivity
     }
 
     private void startMailScreen() {
-        startActivity(new Intent(this, com.souvera.workspace.mail.SouveraMailWebViewActivity.class));
+        startActivity(new Intent(this, com.souvera.workspace.mail.ui.MailActivity.class));
     }
 
     void startActivity(Class<? extends Activity> activity) {

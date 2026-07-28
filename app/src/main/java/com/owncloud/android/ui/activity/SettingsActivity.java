@@ -17,6 +17,7 @@ package com.owncloud.android.ui.activity;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
@@ -25,8 +26,11 @@ import android.content.res.Configuration;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.CalendarContract;
+import android.provider.ContactsContract;
 import android.os.Handler;
 import android.os.Looper;
+import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceCategory;
@@ -80,6 +84,11 @@ import com.owncloud.android.utils.PermissionUtil;
 import com.owncloud.android.utils.theme.CapabilityUtils;
 import com.owncloud.android.utils.theme.ViewThemeUtils;
 
+import com.souvera.workspace.dav.DavCollectionInfo;
+import com.souvera.workspace.dav.DavCollectionSettings;
+import com.souvera.workspace.dav.SyncSettings;
+
+import java.util.List;
 import java.util.Objects;
 
 import javax.inject.Inject;
@@ -185,6 +194,12 @@ public class SettingsActivity extends PreferenceActivity
 
         // Sync
         setupSyncCategory();
+
+        // Mail
+        setupMailCategory();
+
+        // Souvera: per-collection calendar/contacts sync toggles
+        setupDavCollectionsCategory();
 
         // More
         setupMoreCategory();
@@ -344,6 +359,107 @@ public class SettingsActivity extends PreferenceActivity
                 preferenceCategoryAbout.removePreference(sourcecodePreference);
             }
         }
+    }
+
+    private void setupMailCategory() {
+        final PreferenceCategory preferenceCategoryMail = (PreferenceCategory) findPreference("mail");
+        viewThemeUtils.files.themePreferenceCategory(preferenceCategoryMail);
+    }
+
+    private void setupDavCollectionsCategory() {
+        final PreferenceCategory category = (PreferenceCategory) findPreference("dav_collections");
+        if (category == null) {
+            return;
+        }
+        android.accounts.Account[] accounts = android.accounts.AccountManager.get(this)
+            .getAccountsByType(getString(R.string.account_type));
+        if (accounts.length == 0) {
+            getPreferenceScreen().removePreference(category);
+            return;
+        }
+        viewThemeUtils.files.themePreferenceCategory(category);
+        new SyncSettings(this).applyInterval(accounts[0]);
+        category.addPreference(buildSyncIntervalPreference(accounts[0]));
+        category.addPreference(buildSyncNowPreference(accounts[0]));
+
+        DavCollectionSettings davSettings = new DavCollectionSettings(this);
+        List<DavCollectionInfo> calendars = davSettings.knownCalendars();
+        List<DavCollectionInfo> addressBooks = davSettings.knownAddressBooks();
+        for (DavCollectionInfo calendar : calendars) {
+            category.addPreference(
+                buildCollectionToggle(calendar, R.string.dav_collection_calendar, CalendarContract.AUTHORITY));
+        }
+        for (DavCollectionInfo addressBook : addressBooks) {
+            category.addPreference(
+                buildCollectionToggle(addressBook, R.string.dav_collection_addressbook, ContactsContract.AUTHORITY));
+        }
+    }
+
+    private Preference buildCollectionToggle(DavCollectionInfo info, int summaryRes, String authority) {
+        ThemeableSwitchPreference toggle = new ThemeableSwitchPreference(this);
+        toggle.setKey(DavCollectionSettings.KEY_PREFIX + info.getHref());
+        toggle.setDefaultValue(true);
+        toggle.setTitle(info.getDisplayName().isEmpty() ? info.getHref() : info.getDisplayName());
+        toggle.setSummary(summaryRes);
+        toggle.setOnPreferenceChangeListener((preference, newValue) -> {
+            requestDavSync(authority);
+            return true;
+        });
+        return toggle;
+    }
+
+    private void requestDavSync(String authority) {
+        android.accounts.Account[] accounts = android.accounts.AccountManager.get(this)
+            .getAccountsByType(getString(R.string.account_type));
+        if (accounts.length > 0) {
+            Bundle extras = new Bundle();
+            extras.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
+            extras.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
+            ContentResolver.requestSync(accounts[0], authority, extras);
+        }
+    }
+
+    private ListPreference buildSyncIntervalPreference(android.accounts.Account account) {
+        ListPreference interval = new ListPreference(this);
+        interval.setKey(SyncSettings.KEY_INTERVAL);
+        interval.setTitle(R.string.dav_sync_interval_title);
+        interval.setEntries(R.array.dav_sync_interval_entries);
+        interval.setEntryValues(R.array.dav_sync_interval_values);
+        interval.setDefaultValue("3600");
+        interval.setSummary("%s");
+        interval.setOnPreferenceChangeListener((preference, newValue) -> {
+            preference.getSharedPreferences().edit().putString(SyncSettings.KEY_INTERVAL, (String) newValue).apply();
+            new SyncSettings(this).applyInterval(account);
+            return true;
+        });
+        return interval;
+    }
+
+    private Preference buildSyncNowPreference(android.accounts.Account account) {
+        Preference syncNow = new Preference(this);
+        syncNow.setTitle(R.string.dav_sync_now_title);
+        syncNow.setSummary(syncStatusSummary());
+        syncNow.setOnPreferenceClickListener(preference -> {
+            new SyncSettings(this).requestManualSync(account);
+            preference.setSummary(syncStatusSummary());
+            return true;
+        });
+        return syncNow;
+    }
+
+    private String syncStatusSummary() {
+        SyncSettings sync = new SyncSettings(this);
+        return getString(R.string.dav_sync_status_summary,
+                         formatLastSync(sync.lastSync(CalendarContract.AUTHORITY)),
+                         formatLastSync(sync.lastSync(ContactsContract.AUTHORITY)));
+    }
+
+    private String formatLastSync(long timestamp) {
+        if (timestamp <= 0L) {
+            return getString(R.string.dav_sync_status_never);
+        }
+        return android.text.format.DateUtils.getRelativeTimeSpanString(
+            timestamp, System.currentTimeMillis(), android.text.format.DateUtils.MINUTE_IN_MILLIS).toString();
     }
 
     private void setupSyncCategory() {

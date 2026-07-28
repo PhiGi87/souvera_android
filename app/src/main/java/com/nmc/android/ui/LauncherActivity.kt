@@ -23,7 +23,8 @@ import com.owncloud.android.authentication.AuthenticatorActivity
 import com.owncloud.android.databinding.ActivitySplashBinding
 import com.owncloud.android.ui.activity.BaseActivity
 import com.owncloud.android.ui.activity.SettingsActivity
-import com.souvera.workspace.mail.SouveraMailWebViewActivity
+import com.souvera.workspace.mail.ui.MailActivity
+import com.souvera.workspace.push.PushTokenFetcher
 import javax.inject.Inject
 
 class LauncherActivity : BaseActivity() {
@@ -66,6 +67,10 @@ class LauncherActivity : BaseActivity() {
 
     private fun scheduleSplashScreen() {
         Handler(Looper.getMainLooper()).postDelayed({
+            // Register FCM token for mail push notifications as early as possible after login,
+            // so the server knows about this device even if the user never opens the Mail screen.
+            PushTokenFetcher.fetchAndRegister(this) { }
+
             if (user.isPresent) {
                 if (MDMConfig.enforceProtection(this) && appPreferences.lockPreference == SettingsActivity.LOCK_NONE) {
                     startActivity(Intent(this, SettingsActivity::class.java))
@@ -73,7 +78,7 @@ class LauncherActivity : BaseActivity() {
                     // Souvera: Mail is the app's main function, so cold start lands on the
                     // Mail home (a drawer-hosted screen); Files/Calendar/Notes stay reachable
                     // via its navigation drawer.
-                    startActivity(Intent(this, SouveraMailWebViewActivity::class.java))
+                    startActivity(Intent(this, MailActivity::class.java))
                 }
             } else {
                 startActivity(Intent(this, AuthenticatorActivity::class.java))

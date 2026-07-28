@@ -15,11 +15,7 @@ import com.owncloud.android.lib.common.accounts.AccountUtils
 /**
  * Holds the resolved connection data for a Souvera/Nextcloud account.
  */
-data class DavAccount(
-    val baseUrl: String,
-    val username: String,
-    val password: String
-)
+data class DavAccount(val baseUrl: String, val username: String, val password: String)
 
 /**
  * Entry point that wires an Android [Account] to the CardDAV / CalDAV sync logic.
@@ -44,6 +40,7 @@ class SouveraSyncManager(private val context: Context) {
         val client = DavClient(dav.baseUrl, dav.username, dav.password)
         val home = "${dav.baseUrl}/remote.php/dav/calendars/${dav.username}/"
         CalDavSync(context, account, client).sync(home)
+        SyncSettings(context).recordSync(android.provider.CalendarContract.AUTHORITY)
     }
 
     fun syncContacts(account: Account) {
@@ -54,6 +51,7 @@ class SouveraSyncManager(private val context: Context) {
         val client = DavClient(dav.baseUrl, dav.username, dav.password)
         val home = "${dav.baseUrl}/remote.php/dav/addressbooks/users/${dav.username}/"
         CardDavSync(context, account, client).sync(home)
+        SyncSettings(context).recordSync(android.provider.ContactsContract.AUTHORITY)
     }
 
     companion object {

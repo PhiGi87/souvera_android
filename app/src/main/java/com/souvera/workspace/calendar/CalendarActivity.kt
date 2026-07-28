@@ -9,8 +9,8 @@ package com.souvera.workspace.calendar
 import android.Manifest
 import android.accounts.Account
 import android.accounts.AccountManager
-import android.annotation.SuppressLint
 import android.content.ContentResolver
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.CalendarContract
@@ -24,6 +24,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.owncloud.android.R
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -41,6 +42,9 @@ class CalendarActivity : AppCompatActivity() {
     private lateinit var emptyView: View
     private lateinit var adapter: ArrayAdapter<String>
     private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    private val repository by lazy { CalendarRepository(this) }
+    private var events = emptyList<CalendarEvent>()
+    private var selectedDayBegin = 0L
 
     private val account: Account?
         get() = AccountManager.get(this)
@@ -73,6 +77,10 @@ class CalendarActivity : AppCompatActivity() {
         adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, ArrayList())
         eventsList.adapter = adapter
         eventsList.emptyView = emptyView
+        eventsList.setOnItemClickListener { _, _, position, _ ->
+            events.getOrNull(position)?.let { openEditor(it.id) }
+        }
+        findViewById<FloatingActionButton>(R.id.event_add).setOnClickListener { openEditor(null) }
 
         val calendarView = findViewById<CalendarView>(R.id.calendar_view)
         calendarView.setOnDateChangeListener { _, year, month, day ->
@@ -86,7 +94,6 @@ class CalendarActivity : AppCompatActivity() {
         loadEvents(now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH))
     }
 
-    @SuppressLint("MissingPermission")
     private fun loadEvents(year: Int, month: Int, day: Int) {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALENDAR)
             != PackageManager.PERMISSION_GRANTED
@@ -98,31 +105,37 @@ class CalendarActivity : AppCompatActivity() {
             set(year, month, day, 0, 0, 0)
             set(Calendar.MILLISECOND, 0)
         }.timeInMillis
-        val end = begin + DAY_MILLIS
+        selectedDayBegin = begin
 
-        val projection = arrayOf(
-            CalendarContract.Instances.TITLE,
-            CalendarContract.Instances.BEGIN,
-            CalendarContract.Instances.EVENT_LOCATION,
-            CalendarContract.Instances.ALL_DAY
-        )
-
-        val items = ArrayList<String>()
-        val cursor = CalendarContract.Instances.query(contentResolver, projection, begin, end)
-        cursor?.use {
-            while (it.moveToNext()) {
-                val title = it.getString(0) ?: "(no title)"
-                val start = it.getLong(1)
-                val location = it.getString(2)
-                val allDay = it.getInt(3) == 1
-                val time = if (allDay) getString(R.string.souvera_all_day) else timeFormat.format(Date(start))
-                items.add(if (location.isNullOrBlank()) "$time  •  $title" else "$time  •  $title\n$location")
-            }
-        }
-
+        events = repository.loadDay(begin, begin + DAY_MILLIS)
         adapter.clear()
-        adapter.addAll(items)
+        adapter.addAll(events.map { formatRow(it) })
         adapter.notifyDataSetChanged()
+    }
+
+    private fun formatRow(event: CalendarEvent): String {
+        val time =
+            if (event.allDay) getString(R.string.souvera_all_day) else timeFormat.format(Date(event.begin))
+        val title = event.title.ifBlank { getString(R.string.event_untitled) }
+        return if (event.location.isNullOrBlank()) "$time  •  $title" else "$time  •  $title\n${event.location}"
+    }
+
+    private fun openEditor(eventId: Long?) {
+        val intent = Intent(this, EventEditActivity::class.java)
+        if (eventId != null) {
+            intent.putExtra(EventEditActivity.EXTRA_EVENT_ID, eventId)
+        } else {
+            intent.putExtra(EventEditActivity.EXTRA_DAY_BEGIN, selectedDayBegin)
+        }
+        startActivity(intent)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (selectedDayBegin > 0L) {
+            val cal = Calendar.getInstance().apply { timeInMillis = selectedDayBegin }
+            loadEvents(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH))
+        }
     }
 
     private fun enableSync() {
@@ -161,11 +174,7 @@ class CalendarActivity : AppCompatActivity() {
         }
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_PERMISSIONS) {
             val now = Calendar.getInstance()

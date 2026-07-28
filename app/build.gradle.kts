@@ -72,7 +72,7 @@ configurations.configureEach {
 // version this fork started from - reset to 1.0.0 for the first public release.
 val versionMajor = 1
 val versionMinor = 0
-val versionPatch = 1
+val versionPatch = 113
 val versionBuild = 99 // 0-50=Alpha / 51-98=RC / 90-99=stable
 
 val ndkEnv = buildMap {
@@ -251,7 +251,13 @@ android {
     // adapt structure from Eclipse to Gradle/Android Studio expectations;
     // see http://tools.android.com/tech-docs/new-build-system/user-guide#TOC-Configuring-the-Structure
     packaging.resources {
-        excludes.addAll(listOf("META-INF/LICENSE*", "META-INF/versions/9/OSGI-INF/MANIFEST*"))
+        excludes.addAll(
+            listOf(
+                "META-INF/LICENSE*",
+                "META-INF/NOTICE*",
+                "META-INF/versions/9/OSGI-INF/MANIFEST*"
+            )
+        )
         pickFirsts.add("MANIFEST.MF") // workaround for duplicated manifest on some dependencies
     }
 
@@ -431,6 +437,18 @@ dependencies {
     implementation(libs.room.runtime)
     ksp(libs.room.compiler)
     androidTestImplementation(libs.room.testing)
+    // endregion
+
+    // region Mail (IMAP/SMTP)
+    implementation(libs.angus.mail)
+    // endregion
+
+    // region Rich text (WYSIWYG)
+    implementation(libs.richeditor.compose)
+    // endregion
+
+    // region Link (Nextcloud Talk) calls — reused hardened WebRTC build
+    implementation(libs.talk.webrtc)
     // endregion
 
     // region Espresso

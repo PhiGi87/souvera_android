@@ -73,6 +73,9 @@ class NotificationWork constructor(
     companion object {
         const val TAG = "NotificationJob"
         const val KEY_NOTIFICATION_ACCOUNT = "KEY_NOTIFICATION_ACCOUNT"
+        private const val LINK_CALL_CHANNEL = "souvera_link_call"
+        private const val ANSWER_REQUEST_OFFSET = 1000000
+        private const val RING_TIMEOUT_MS = 35000L
         const val KEY_NOTIFICATION_SUBJECT = "subject"
         const val KEY_NOTIFICATION_SIGNATURE = "signature"
         private const val KEY_NOTIFICATION_ACTION_LINK = "KEY_NOTIFICATION_ACTION_LINK"
@@ -104,10 +107,23 @@ class NotificationWork constructor(
                             String(decryptedSubject),
                             DecryptedPushMessage::class.java
                         )
+                        com.souvera.workspace.link.call.CallDebugLog.attach(context)
+                        com.souvera.workspace.link.call.CallDebugLog.log(
+                            "LinkPush",
+                            "decrypted app=${decryptedPushMessage.app} type=${decryptedPushMessage.type}"
+                        )
                         if (decryptedPushMessage.delete) {
-                            notificationManager.cancel(decryptedPushMessage.nid)
+                            val missedCaller = com.souvera.workspace.link.call.LinkCallNotifications
+                                .consumeForMissed(context, decryptedPushMessage.nid)
+                            if (missedCaller != null) {
+                                showMissedLinkCall(decryptedPushMessage.nid, missedCaller)
+                            } else {
+                                notificationManager.cancel(decryptedPushMessage.nid)
+                            }
                         } else if (decryptedPushMessage.deleteAll) {
                             notificationManager.cancelAll()
+                        } else if (decryptedPushMessage.app == "spreed" && decryptedPushMessage.type == "call") {
+                            showIncomingLinkCall(decryptedPushMessage)
                         } else {
                             val user = accountManager.getUser(signatureVerification.account?.name)
                                 .orElseThrow { RuntimeException() }
@@ -137,6 +153,19 @@ class NotificationWork constructor(
 
     @Suppress("LongMethod") // legacy code
     private fun sendNotification(notification: Notification, user: User) {
+        // A later Talk notification for the same conversation (e.g. the "missed call" the server
+        // posts after the caller hangs up) means the call is over — clear the still-ringing incoming
+        // call notification so it does not linger next to it.
+        if (notification.app == "spreed") {
+            val ringNid = com.souvera.workspace.link.call.LinkCallNotifications
+                .ringNidForRoom(context, notification.objectId)
+            if (ringNid != 0) {
+                notificationManager.cancel(ringNid)
+                com.souvera.workspace.link.call.LinkCallNotifications
+                    .consumeForMissed(context, ringNid)
+                com.souvera.workspace.link.call.LinkCallNotifications.clearRoom(context, notification.objectId)
+            }
+        }
         val randomId = SecureRandom()
         val file = notification.subjectRichParameters["file"]
 
@@ -222,6 +251,7 @@ class NotificationWork constructor(
                 notificationBuilder.addAction(NotificationCompat.Action(icon, action.label, actionPendingIntent))
             }
         }
+        applyLinkChatMessaging(notificationBuilder, notification, user)
         notificationBuilder.setPublicVersion(
             NotificationCompat.Builder(context, NotificationUtils.NOTIFICATION_CHANNEL_PUSH)
                 .setSmallIcon(R.drawable.notification_icon)
@@ -252,6 +282,112 @@ class NotificationWork constructor(
     }
 
     @Suppress("TooGenericExceptionCaught") // legacy code
+    // Souvera "Link" (Talk) incoming call: show a full-screen, high-priority CATEGORY_CALL
+    // notification that opens Link so the user can join the ringing conversation. Kept separate
+    // from the normal notification path so it never affects message notifications.
+    private fun showIncomingLinkCall(message: DecryptedPushMessage) {
+        Log_OC.d(TAG, "Incoming Link call push received")
+        com.souvera.workspace.link.call.CallDebugLog.attach(context)
+        com.souvera.workspace.link.call.CallDebugLog.log(
+            "LinkPush",
+            "incoming call push nid=${message.nid} room=${message.id}"
+        )
+        val ringtone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val attributes = android.media.AudioAttributes.Builder()
+                .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+                .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+            val channel = android.app.NotificationChannel(
+                LINK_CALL_CHANNEL,
+                context.getString(R.string.link_incoming_call),
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                setSound(ringtone, attributes)
+                enableVibration(true)
+                vibrationPattern = longArrayOf(0, 800, 800, 800, 800)
+                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+        // Full-screen intent opens a RINGING screen (Accept/Decline) — it must NOT auto-join. The
+        // CallStyle "Answer" action joins directly (the user explicitly accepted).
+        fun callIntent(incoming: Boolean) = Intent(context, com.souvera.workspace.link.call.CallActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            .putExtra(com.souvera.workspace.link.call.CallActivity.EXTRA_TOKEN, message.id)
+            .putExtra(com.souvera.workspace.link.call.CallActivity.EXTRA_TITLE, message.subject)
+            .putExtra(com.souvera.workspace.link.call.CallActivity.EXTRA_VIDEO, false)
+            .putExtra(com.souvera.workspace.link.call.CallActivity.EXTRA_NID, message.nid)
+            .putExtra(com.souvera.workspace.link.call.CallActivity.EXTRA_INCOMING, incoming)
+        val ringing = PendingIntent.getActivity(
+            context,
+            message.nid,
+            callIntent(true),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val answer = PendingIntent.getActivity(
+            context,
+            message.nid + ANSWER_REQUEST_OFFSET,
+            callIntent(false),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val declineIntent = Intent(context, com.souvera.workspace.link.call.CallDeclineReceiver::class.java)
+            .setAction(com.souvera.workspace.link.call.CallDeclineReceiver.ACTION_DECLINE)
+            .putExtra(com.souvera.workspace.link.call.CallDeclineReceiver.EXTRA_NID, message.nid)
+        val decline = PendingIntent.getBroadcast(
+            context,
+            message.nid,
+            declineIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        com.souvera.workspace.link.call.LinkCallNotifications.markIncoming(
+            context,
+            message.nid,
+            message.subject,
+            message.id
+        )
+        val caller = androidx.core.app.Person.Builder().setName(message.subject).setImportant(true).build()
+        val notification = NotificationCompat.Builder(context, LINK_CALL_CHANNEL)
+            .setSmallIcon(R.drawable.notification_icon)
+            .setContentTitle(message.subject)
+            .setCategory(NotificationCompat.CATEGORY_CALL)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setSound(ringtone)
+            .setVibrate(longArrayOf(0, 800, 800, 800, 800))
+            .setOngoing(true)
+            .setAutoCancel(true)
+            .setTimeoutAfter(RING_TIMEOUT_MS)
+            .setContentIntent(ringing)
+            .setFullScreenIntent(ringing, true)
+            .setStyle(NotificationCompat.CallStyle.forIncomingCall(caller, decline, answer))
+            .build()
+        notificationManager.notify(message.nid, notification)
+    }
+
+    // Replaces the ringing call notification with a dismissible "missed call" once the call ends
+    // unanswered, reusing the same notification id so the ring morphs instead of a second entry.
+    private fun showMissedLinkCall(nid: Int, caller: String) {
+        val intent = Intent(context, com.souvera.workspace.link.ui.LinkActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        val pending = PendingIntent.getActivity(
+            context,
+            nid,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val notification = NotificationCompat.Builder(context, LINK_CALL_CHANNEL)
+            .setSmallIcon(R.drawable.notification_icon)
+            .setContentTitle(context.getString(R.string.link_missed_call))
+            .setContentText(caller)
+            .setCategory(NotificationCompat.CATEGORY_CALL)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+            .setOngoing(false)
+            .setContentIntent(pending)
+            .build()
+        notificationManager.notify(nid, notification)
+    }
+
     private fun fetchCompleteNotification(account: User, decryptedPushMessage: DecryptedPushMessage) {
         val optionalUser = accountManager.getUser(account.accountName)
         if (!optionalUser.isPresent) {
@@ -270,6 +406,46 @@ class NotificationWork constructor(
         } catch (e: Exception) {
             Log_OC.e(this, "Error creating account", e)
         }
+    }
+
+    // Turns a Link (spreed) chat-message notification into a MessagingStyle notification with a
+    // voice-reply action, which Android Auto reads aloud and lets the user answer by voice. Additive
+    // and guarded — for non-chat notifications it changes nothing.
+    private fun applyLinkChatMessaging(builder: NotificationCompat.Builder, notification: Notification, user: User) {
+        val token = notification.objectId
+        val message = notification.message
+        if (notification.app != "spreed" || message.isNullOrBlank() || token.isNullOrBlank()) return
+        if (notification.objectType != "chat" && notification.objectType != "room") return
+
+        val sender = androidx.core.app.Person.Builder().setName(notification.subject ?: "").build()
+        val self = androidx.core.app.Person.Builder().setName(context.getString(R.string.link_you)).build()
+        val style = NotificationCompat.MessagingStyle(self)
+            .addMessage(message, System.currentTimeMillis(), sender)
+
+        val replyIntent = Intent(context, com.souvera.workspace.link.call.LinkReplyReceiver::class.java)
+            .putExtra(com.souvera.workspace.link.call.LinkReplyReceiver.EXTRA_TOKEN, token)
+            .putExtra(com.souvera.workspace.link.call.LinkReplyReceiver.EXTRA_NID, notification.getNotificationId())
+            .putExtra(com.souvera.workspace.link.call.LinkReplyReceiver.EXTRA_ACCOUNT, user.accountName)
+        val replyPending = PendingIntent.getBroadcast(
+            context,
+            notification.getNotificationId(),
+            replyIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+        )
+        val remoteInput = androidx.core.app.RemoteInput.Builder(
+            com.souvera.workspace.link.call.LinkReplyReceiver.KEY_REPLY
+        )
+            .setLabel(context.getString(R.string.link_reply))
+            .build()
+        val replyAction = NotificationCompat.Action.Builder(0, context.getString(R.string.link_reply), replyPending)
+            .addRemoteInput(remoteInput)
+            .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
+            .setShowsUserInterface(false)
+            .build()
+
+        builder.setStyle(style)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .addAction(replyAction)
     }
 
     class NotificationReceiver : BroadcastReceiver() {

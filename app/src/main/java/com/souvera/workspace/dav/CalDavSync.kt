@@ -23,11 +23,7 @@ import android.util.Log
 import java.util.UUID
 
 @android.annotation.SuppressLint("MissingPermission", "Recycle")
-class CalDavSync(
-    private val context: Context,
-    private val account: Account,
-    private val client: DavClient
-) {
+class CalDavSync(private val context: Context, private val account: Account, private val client: DavClient) {
     private val resolver = context.contentResolver
     private val prefs = context.getSharedPreferences("souvera_dav_ctags", Context.MODE_PRIVATE)
     private val icsWriter = CalDavIcsWriter(resolver)
@@ -35,10 +31,24 @@ class CalDavSync(
     fun sync(homeUrl: String) {
         val collections = client.list(homeUrl).filter { it.isCollection }
         Log.d(TAG, "Found ${collections.size} calendar collections")
+        val collectionSettings = DavCollectionSettings(context)
+        collectionSettings.storeCalendars(collections.map { DavCollectionInfo(it.href, it.displayName ?: "") })
         collections.forEach { collection ->
-            runCatching { syncCollection(collection) }
-                .onFailure { Log.e(TAG, "Calendar sync failed for ${collection.href}", it) }
+            if (collectionSettings.isEnabled(collection.href)) {
+                runCatching { syncCollection(collection) }
+                    .onFailure { Log.e(TAG, "Calendar sync failed for ${collection.href}", it) }
+            } else {
+                runCatching { removeLocalCalendar(collection.href) }
+                    .onFailure { Log.e(TAG, "Calendar cleanup failed for ${collection.href}", it) }
+            }
         }
+    }
+
+    private fun removeLocalCalendar(href: String) {
+        findCalendar(href)?.let { calendarId ->
+            resolver.delete(syncUri(ContentUris.withAppendedId(Calendars.CONTENT_URI, calendarId)), null, null)
+        }
+        prefs.edit().remove(href).apply()
     }
 
     private fun syncCollection(collection: DavResource) {
@@ -53,7 +63,8 @@ class CalDavSync(
             syncUri(Events.CONTENT_URI),
             arrayOf(Events._ID, Events._SYNC_ID, Events.SYNC_DATA1),
             "${Events.CALENDAR_ID} = ? AND ${Events.DELETED} = 1",
-            arrayOf(calendarId.toString()), null
+            arrayOf(calendarId.toString()),
+            null
         )?.use { cursor ->
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(0)
@@ -68,7 +79,8 @@ class CalDavSync(
             syncUri(Events.CONTENT_URI),
             EXPORT_COLUMNS,
             "${Events.CALENDAR_ID} = ? AND ${Events.DIRTY} = 1 AND ${Events.DELETED} = 0",
-            arrayOf(calendarId.toString()), null
+            arrayOf(calendarId.toString()),
+            null
         )?.use { cursor ->
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(cursor.getColumnIndexOrThrow(Events._ID))
@@ -81,7 +93,9 @@ class CalDavSync(
 
                 val ics = icsWriter.build(cursor, id, uid!!)
                 val result = client.put(
-                    href!!, ics, "text/calendar; charset=utf-8",
+                    href!!,
+                    ics,
+                    "text/calendar; charset=utf-8",
                     ifMatch = if (isNew) null else etag,
                     ifNoneMatch = isNew
                 )
@@ -94,7 +108,9 @@ class CalDavSync(
                     }
                     resolver.update(
                         syncUri(ContentUris.withAppendedId(Events.CONTENT_URI, id)),
-                        values, null, null
+                        values,
+                        null,
+                        null
                     )
                 }
             }
@@ -110,7 +126,8 @@ class CalDavSync(
             syncUri(Events.CONTENT_URI),
             arrayOf(Events._ID, Events._SYNC_ID, Events.SYNC_DATA1, Events.DIRTY),
             "${Events.CALENDAR_ID} = ? AND ${Events._SYNC_ID} IS NOT NULL",
-            arrayOf(calendarId.toString()), null
+            arrayOf(calendarId.toString()),
+            null
         )?.use { cursor ->
             while (cursor.moveToNext()) {
                 val dirty = cursor.getInt(3) == 1
@@ -189,9 +206,11 @@ class CalDavSync(
 
     private fun findCalendar(syncId: String): Long? {
         resolver.query(
-            syncUri(Calendars.CONTENT_URI), arrayOf(Calendars._ID),
+            syncUri(Calendars.CONTENT_URI),
+            arrayOf(Calendars._ID),
             "${Calendars._SYNC_ID} = ? AND ${Calendars.ACCOUNT_NAME} = ?",
-            arrayOf(syncId, account.name), null
+            arrayOf(syncId, account.name),
+            null
         )?.use { if (it.moveToFirst()) return it.getLong(0) }
         return null
     }

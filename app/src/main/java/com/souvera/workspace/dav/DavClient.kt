@@ -35,11 +35,7 @@ data class DavResource(
     val isCollection: Boolean
 )
 
-class DavClient(
-    private val baseUrl: String,
-    private val username: String,
-    private val secret: String
-) {
+class DavClient(private val baseUrl: String, private val username: String, private val secret: String) {
     private enum class AuthMode { UNKNOWN, BASIC, BEARER }
 
     private val origin: String = URL(baseUrl).let { url ->
@@ -53,9 +49,11 @@ class DavClient(
     private fun applyAuth(method: HttpMethod, mode: AuthMode = authMode) {
         when (mode) {
             AuthMode.BEARER -> method.setRequestHeader("Authorization", "Bearer $secret")
+
             else -> {
                 val token = Base64.encodeToString(
-                    "$username:$secret".toByteArray(Charsets.UTF_8), Base64.NO_WRAP
+                    "$username:$secret".toByteArray(Charsets.UTF_8),
+                    Base64.NO_WRAP
                 )
                 method.setRequestHeader("Authorization", "Basic $token")
             }

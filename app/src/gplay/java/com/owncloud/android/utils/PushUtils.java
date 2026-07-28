@@ -172,11 +172,16 @@ public final class PushUtils {
     public static void pushRegistrationToServer(final UserAccountManager accountManager, final String token) {
         arbitraryDataProvider = new ArbitraryDataProviderImpl(MainApp.getAppContext());
 
+        com.souvera.workspace.link.call.CallDebugLog.INSTANCE.attach(MainApp.getAppContext());
+        com.souvera.workspace.link.call.CallDebugLog.INSTANCE.log("NcPushReg",
+            "start urlSet=" + !TextUtils.isEmpty(MainApp.getAppContext().getResources().getString(R.string.push_server_url)) +
+                " tokenSet=" + !TextUtils.isEmpty(token));
         if (!TextUtils.isEmpty(MainApp.getAppContext().getResources().getString(R.string.push_server_url)) &&
                 !TextUtils.isEmpty(token)) {
             PushUtils.generateRsa2048KeyPair();
             String pushTokenHash = PushUtils.generateSHA512Hash(token).toLowerCase(Locale.ROOT);
             PublicKey devicePublicKey = (PublicKey) PushUtils.readKeyFromFile(true);
+            com.souvera.workspace.link.call.CallDebugLog.INSTANCE.log("NcPushReg", "publicKey=" + (devicePublicKey != null));
             if (devicePublicKey != null) {
                 byte[] publicKeyBytes = Base64.encode(devicePublicKey.getEncoded(), Base64.NO_WRAP);
                 String publicKey = new String(publicKeyBytes);
@@ -197,9 +202,13 @@ public final class PushUtils {
                         accountPushData = null;
                     }
 
-                    if (accountPushData != null && !accountPushData.getPushToken().equals(token) &&
-                            !accountPushData.isShouldBeDeleted() ||
-                            TextUtils.isEmpty(providerValue)) {
+                    boolean shouldRegister = accountPushData != null && !accountPushData.getPushToken().equals(token) &&
+                        !accountPushData.isShouldBeDeleted() ||
+                        TextUtils.isEmpty(providerValue);
+                    com.souvera.workspace.link.call.CallDebugLog.INSTANCE.attach(context);
+                    com.souvera.workspace.link.call.CallDebugLog.INSTANCE.log("NcPushReg",
+                        "storedState=" + !TextUtils.isEmpty(providerValue) + " register=" + shouldRegister);
+                    if (shouldRegister) {
                         try {
                             OwnCloudAccount ocAccount = new OwnCloudAccount(account, context);
                             NextcloudClient client = OwnCloudClientManagerFactory.getDefaultSingleton().
@@ -211,6 +220,10 @@ public final class PushUtils {
                                                                                    context.getResources().getString(R.string.push_server_url))
                                     .execute(client);
 
+                            com.souvera.workspace.link.call.CallDebugLog.INSTANCE.log("NcPushReg",
+                                "serverRegistration success=" + remoteOperationResult.isSuccess() +
+                                    " code=" + remoteOperationResult.getCode() +
+                                    " http=" + remoteOperationResult.getHttpCode());
                             if (remoteOperationResult.isSuccess()) {
                                 PushResponse pushResponse = remoteOperationResult.getResultData();
 
@@ -222,6 +235,10 @@ public final class PushUtils {
                                     MainApp.getUserAgent())
                                     .run();
 
+                                com.souvera.workspace.link.call.CallDebugLog.INSTANCE.log("NcPushReg",
+                                    "proxyRegistration success=" + resultProxy.isSuccess() +
+                                        " code=" + resultProxy.getCode() +
+                                        " http=" + resultProxy.getHttpCode());
                                 if (resultProxy.isSuccess()) {
                                     PushConfigurationState pushArbitraryData = new PushConfigurationState(token,
                                             pushResponse.getDeviceIdentifier(), pushResponse.getSignature(),
@@ -235,13 +252,13 @@ public final class PushUtils {
                                         UserAccountManager.ACCOUNT_USES_STANDARD_PASSWORD, "true");
                             }
                         } catch (com.owncloud.android.lib.common.accounts.AccountUtils.AccountNotFoundException e) {
-                            Log_OC.d(TAG, "Failed to find an account");
+                            com.souvera.workspace.link.call.CallDebugLog.INSTANCE.log("NcPushReg", "AccountNotFound");
                         } catch (AuthenticatorException e) {
-                            Log_OC.d(TAG, "Failed via AuthenticatorException");
+                            com.souvera.workspace.link.call.CallDebugLog.INSTANCE.log("NcPushReg", "AuthenticatorException");
                         } catch (IOException e) {
-                            Log_OC.d(TAG, "Failed via IOException");
+                            com.souvera.workspace.link.call.CallDebugLog.INSTANCE.log("NcPushReg", "IOException " + e.getMessage());
                         } catch (OperationCanceledException e) {
-                            Log_OC.d(TAG, "Failed via OperationCanceledException");
+                            com.souvera.workspace.link.call.CallDebugLog.INSTANCE.log("NcPushReg", "OperationCanceled");
                         }
                     } else if (accountPushData != null && accountPushData.isShouldBeDeleted()) {
                         deleteRegistrationForAccount(account);

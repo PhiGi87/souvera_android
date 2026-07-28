@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Nextcloud - Android Client
+  ~
+  ~ SPDX-FileCopyrightText: 2026 Nextcloud GmbH and Nextcloud contributors
+  ~ SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_call">
+
+    <org.webrtc.SurfaceViewRenderer
+        android:id="@+id/call_remote"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <LinearLayout
+        android:id="@+id/call_poster"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <ImageView
+            android:layout_width="128dp"
+            android:layout_height="128dp"
+            android:contentDescription="@null"
+            android:src="@drawable/souvera_icon" />
+
+        <TextView
+            android:id="@+id/call_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:textColor="@android:color/white"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/call_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:alpha="0.7"
+            android:text="@string/link_call_connecting"
+            android:textColor="@android:color/white"
+            android:textSize="15sp" />
+    </LinearLayout>
+
+    <org.webrtc.SurfaceViewRenderer
+        android:id="@+id/call_local"
+        android:layout_width="110dp"
+        android:layout_height="150dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="24dp"
+        android:layout_marginEnd="16dp" />
+
+    <LinearLayout
+        android:id="@+id/call_incoming"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="56dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <ImageButton
+            android:id="@+id/call_decline"
+            android:layout_width="76dp"
+            android:layout_height="76dp"
+            android:layout_marginEnd="64dp"
+            android:background="@drawable/bg_call_control_end"
+            android:contentDescription="@string/link_call_hangup"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_call_end" />
+
+        <ImageButton
+            android:id="@+id/call_accept"
+            android:layout_width="76dp"
+            android:layout_height="76dp"
+            android:background="@drawable/bg_call_control_accept"
+            android:contentDescription="@string/link_answer_call"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_phone" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/call_controls"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="56dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageButton
+            android:id="@+id/call_mute"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_marginEnd="28dp"
+            android:background="@drawable/bg_call_control"
+            android:contentDescription="@string/link_call_mute"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_mic" />
+
+        <ImageButton
+            android:id="@+id/call_hangup"
+            android:layout_width="76dp"
+            android:layout_height="76dp"
+            android:background="@drawable/bg_call_control_end"
+            android:contentDescription="@string/link_call_hangup"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_call_end" />
+
+        <ImageButton
+            android:id="@+id/call_video"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_marginStart="28dp"
+            android:background="@drawable/bg_call_control"
+            android:contentDescription="@string/link_call_video"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_video_camera" />
+    </LinearLayout>
+
+</FrameLayout>

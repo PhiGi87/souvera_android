@@ -7,18 +7,19 @@
 package com.souvera.workspace.notes
 
 import android.accounts.AccountManager
+import android.app.Activity
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.view.Gravity
 import android.view.MenuItem
 import android.view.View
 import android.widget.ArrayAdapter
-import android.widget.EditText
-import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -41,9 +42,21 @@ class SouveraNotesActivity : AppCompatActivity() {
     private lateinit var progress: ProgressBar
     private var client: DavClient? = null
     private var notesUrl: String = ""
+    private var pendingNote: Note? = null
+    private lateinit var editorLauncher: ActivityResultLauncher<Intent>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        editorLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                val data = result.data
+                val title = data?.getStringExtra(NoteEditorActivity.EXTRA_TITLE).orEmpty()
+                val body = data?.getStringExtra(NoteEditorActivity.EXTRA_BODY).orEmpty()
+                saveNote(pendingNote, title, body)
+            }
+        }
         window.statusBarColor = ContextCompat.getColor(this, R.color.primary)
         setContentView(R.layout.activity_notes)
 
@@ -125,32 +138,13 @@ class SouveraNotesActivity : AppCompatActivity() {
     }
 
     private fun showEditor(existing: Note?, body: String = "") {
-        val padding = resources.getDimensionPixelSize(R.dimen.standard_padding)
-        val titleInput = EditText(this).apply {
-            hint = getString(R.string.souvera_note_title_hint)
-            setText(existing?.title ?: "")
-            setSingleLine()
+        pendingNote = existing
+        val intent = Intent(this, NoteEditorActivity::class.java).apply {
+            putExtra(NoteEditorActivity.EXTRA_TITLE, existing?.title.orEmpty())
+            putExtra(NoteEditorActivity.EXTRA_BODY, body)
+            putExtra(NoteEditorActivity.EXTRA_IS_NEW, existing == null)
         }
-        val bodyInput = EditText(this).apply {
-            hint = getString(R.string.souvera_note_hint)
-            setText(body)
-            setLines(EDIT_LINES)
-            gravity = Gravity.TOP or Gravity.START
-        }
-        val container = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(padding, padding / 2, padding, 0)
-            addView(titleInput)
-            addView(bodyInput)
-        }
-        AlertDialog.Builder(this)
-            .setTitle(if (existing == null) R.string.souvera_notes_add else R.string.souvera_note_edit)
-            .setView(container)
-            .setPositiveButton(android.R.string.ok) { _, _ ->
-                saveNote(existing, titleInput.text.toString(), bodyInput.text.toString())
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+        editorLauncher.launch(intent)
     }
 
     private fun saveNote(existing: Note?, title: String, body: String) {
@@ -168,7 +162,12 @@ class SouveraNotesActivity : AppCompatActivity() {
                 result.success
             }.getOrDefault(false)
             onUi {
-                if (ok) reload() else { setLoading(false); showError() }
+                if (ok) {
+                    reload()
+                } else {
+                    setLoading(false)
+                    showError()
+                }
             }
         }.start()
     }
@@ -189,7 +188,12 @@ class SouveraNotesActivity : AppCompatActivity() {
         Thread {
             val ok = runCatching { dav.delete(note.href) }.getOrDefault(false)
             onUi {
-                if (ok) reload() else { setLoading(false); showError() }
+                if (ok) {
+                    reload()
+                } else {
+                    setLoading(false)
+                    showError()
+                }
             }
         }.start()
     }
@@ -227,7 +231,6 @@ class SouveraNotesActivity : AppCompatActivity() {
 
     companion object {
         private const val MENU_ADD = 1
-        private const val EDIT_LINES = 8
         private const val MAX_NAME = 120
     }
 }

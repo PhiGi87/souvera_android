@@ -28,8 +28,10 @@
             android:id="@+id/drawer_header_logo"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
+            android:background="@drawable/souvera_logo_outline"
             android:contentDescription="@null"
             android:maxWidth="96dp"
+            android:padding="2dp"
             android:scaleType="fitCenter"
             android:src="@drawable/souvera_icon" />
 
@@ -59,6 +61,43 @@
         android:orientation="horizontal">
 
         <LinearLayout
+            android:id="@+id/drawer_ecosystem_mail"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:background="?android:selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            app:layout_constraintEnd_toStartOf="@+id/drawer_ecosystem_assistant"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintWidth_max="80dp">
+
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/white_outline"
+                android:contentDescription="@string/drawer_item_mail"
+                android:padding="8dp"
+                android:src="@drawable/ic_souvera_mail"
+                app:tint="@color/white" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:ellipsize="end"
+                android:lines="1"
+                android:text="@string/drawer_item_mail"
+                android:textColor="@color/white"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/drawer_ecosystem_assistant"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -69,7 +108,7 @@
             android:orientation="vertical"
             app:layout_constraintEnd_toStartOf="@+id/drawer_ecosystem_talk"
             app:layout_constraintHorizontal_bias="0.5"
-            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/drawer_ecosystem_mail"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintWidth_max="80dp">
 
@@ -115,9 +154,9 @@
                 android:layout_height="40dp"
                 android:layout_margin="4dp"
                 android:background="@drawable/white_outline"
-                android:contentDescription="@string/drawer_item_calendar"
+                android:contentDescription="@string/drawer_item_link"
                 android:padding="8dp"
-                android:src="@drawable/ic_souvera_calendar"
+                android:src="@drawable/ic_talk"
                 app:tint="@color/white" />
 
             <TextView
@@ -126,7 +165,7 @@
                 android:layout_gravity="center"
                 android:ellipsize="end"
                 android:lines="1"
-                android:text="@string/drawer_item_calendar"
+                android:text="@string/drawer_item_link"
                 android:textColor="@color/white"
                 android:textStyle="bold" />
 

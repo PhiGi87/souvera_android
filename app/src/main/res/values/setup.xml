@@ -83,8 +83,12 @@
     <color name="login_text_color">#ffffff</color>
     <color name="login_text_hint_color">#BBDDFF</color>
 
-    <!-- Multiaccount support -->
-    <bool name="multiaccount_support">true</bool>
+    <!-- Multiaccount support: hidden for now. The native Souvera Mail/Contacts/Calendar/Notes
+         features resolve the first account only and are not multi-account aware yet; a second
+         account crashes them. Keep the underlying capability in code but gate the UI off (no
+         "add account", authenticator blocks a second one) until those features are multi-account
+         ready. Flip back to true once they are. -->
+    <bool name="multiaccount_support">false</bool>
 
     <!-- Drawer options -->
     <bool name="shared_enabled">true</bool>
@@ -94,20 +98,22 @@
     <bool name="passcode_enabled">true</bool>
     <bool name="device_credentials_enabled">true</bool>
     <bool name="show_hidden_files_enabled">true</bool>
-    <bool name="davdroid_integration_enabled">true</bool>
+    <!-- Souvera: calendar/contacts sync is built into the app (CalDavSync/CardDavSync),
+         so the upstream DAVx5 recommendation is disabled -->
+    <bool name="davdroid_integration_enabled">false</bool>
     <bool name="help_enabled">true</bool>
-    <string name="url_help">https://help.nextcloud.com/c/clients/android/</string>
+    <string name="url_help">https://doku.souvera.eu/</string>
     <bool name="privacy_enabled">true</bool>
-    <string name="privacy_url">https://nextcloud.com/privacy</string>
+    <string name="privacy_url">https://souvera.eu/de/datenschutz</string>
     <bool name="imprint_enabled">false</bool>
     <bool name="recommend_enabled">true</bool>
     <bool name="logger_enabled">false</bool>
-    <bool name="sourcecode_enabled">true</bool>
+    <bool name="sourcecode_enabled">false</bool>
     <string name="sourcecode_url" translatable="false">https://github.com/nextcloud/android</string>
     <bool name="license_enabled">true</bool>
     <string name="license_url" translatable="false">https://www.gnu.org/licenses/gpl-2.0.html</string>
     <string name="url_imprint"></string>
-    <string name="url_app_download">"https://play.google.com/store/apps/details?id=com.nextcloud.client"</string>
+    <string name="url_app_download">https://play.google.com/store/apps/details?id=eu.souvera.workspace</string>
     <string name="url_server_install">https://nextcloud.com/install</string>
 
     <!-- synced folder light; if enabled: move to setting & global upload settings -->
@@ -120,8 +126,8 @@
     <!--Destination mail for sending log files -->
     <string name="mail_logger"></string>
 
-    <!-- Determine is participate enabled -->
-    <bool name="participate_enabled">true</bool>
+    <!-- Determine is participate enabled. Souvera: community/participate screen is disabled -->
+    <bool name="participate_enabled">false</bool>
     <!-- Participate links -->
     <string name="fdroid_beta_link" translatable="false">https://f-droid.org/repository/browse/?fdid=com.nextcloud.android.beta</string>
     <string name="beta_apk_link" translatable="false">https://download.nextcloud.com/android/dev/latest.apk</string>
@@ -149,7 +155,12 @@
     <bool name="use_home">false</bool>
 
     <!-- Push server url -->
-    <string name="push_server_url" translatable="false"></string>
+    <!-- Souvera's own Nextcloud-push-v2-compatible proxy (FCM/APNs configured server-side).
+         The full Nextcloud push flow (RSA keypair, proxy + notifications-API registration with
+         proxyServer=this value, E2E-encrypted payload decryption) is preserved; only the proxy
+         endpoint is ours. Fixed default for production Souvera builds - NO fallback to the public
+         Nextcloud proxy. Central config: SOUVERA_PUSH_PROXY_URL. -->
+    <string name="push_server_url" translatable="false">https://push.souvera.eu</string>
 
     <!-- if contains values, will be used to show branding title below app icon in splash screen -->
     <string name="splashScreenBold">Souvera</string>

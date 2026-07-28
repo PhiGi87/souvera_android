@@ -50,6 +50,27 @@
             android:key="sort_favorites_first" />
     </PreferenceCategory>
 
+    <PreferenceCategory
+        android:title="@string/mail_settings"
+        android:key="mail">
+        <ListPreference
+            android:title="@string/mail_settings_message_limit"
+            android:summary="@string/mail_settings_message_limit_summary"
+            android:key="mail_message_limit"
+            android:entries="@array/mail_message_limit_entries"
+            android:entryValues="@array/mail_message_limit_entries"
+            android:defaultValue="200" />
+        <com.owncloud.android.ui.ThemeableSwitchPreference
+            android:title="@string/mail_settings_load_images"
+            android:summary="@string/mail_settings_load_images_summary"
+            android:key="mail_load_remote_images"
+            android:defaultValue="false" />
+        <EditTextPreference
+            android:title="@string/mail_settings_signature"
+            android:summary="@string/mail_settings_signature_hint"
+            android:key="mail_signature" />
+    </PreferenceCategory>
+
 	<PreferenceCategory android:title="@string/prefs_category_details" android:key="details">
 		<Preference
 			android:title="@string/prefs_lock"
@@ -85,6 +106,10 @@
             android:key="allFilesAccess"
             android:summary="@string/prefs_all_files_access_summary" />
     </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="@string/prefs_category_dav_collections"
+        android:key="dav_collections" />
 
 	<PreferenceCategory
         android:title="@string/prefs_category_more"

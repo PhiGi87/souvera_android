@@ -58,6 +58,14 @@
         tools:ignore="PhotoAndVideoPolicy,SelectedPhotoAccess" /> <!-- Needed for Android 14 (API level 34) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- Souvera Link (Nextcloud Talk) calls -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.MANAGE_OWN_CALLS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <!--
  Some Chromebooks don't support touch. Although not essential,
          it's a good idea to explicitly include this declaration.
@@ -463,6 +471,21 @@
             android:exported="false"
             android:label="@string/drawer_item_calendar"
             android:theme="@style/Theme.ownCloud.Toolbar" />
+        <activity
+            android:name="com.souvera.workspace.calendar.EventEditActivity"
+            android:exported="false"
+            android:label="@string/event_new_title"
+            android:theme="@style/Theme.ownCloud.Toolbar"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name="com.souvera.workspace.contacts.SouveraContactsActivity"
+            android:exported="false"
+            android:label="@string/drawer_item_contacts"
+            android:theme="@style/Theme.ownCloud.Toolbar" />
+        <activity
+            android:name="com.souvera.workspace.contacts.ContactDetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ownCloud.Toolbar" />
 
         <!-- Souvera Workspace: local, on-device notes screen -->
         <activity
@@ -471,7 +494,58 @@
             android:label="@string/souvera_notes_title"
             android:theme="@style/Theme.ownCloud.Toolbar" />
 
-        <!-- Souvera Workspace: SnappyMail-based webmail embedded in a WebView -->
+        <!-- Souvera Workspace: WYSIWYG note editor (Compose) -->
+        <activity
+            android:name="com.souvera.workspace.notes.NoteEditorActivity"
+            android:exported="false"
+            android:label="@string/souvera_notes_title"
+            android:theme="@style/Theme.AppCompat.DayNight.NoActionBar"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- Souvera Workspace: native Link (Nextcloud Talk) chat client (Compose) -->
+        <activity
+            android:name="com.souvera.workspace.link.ui.LinkActivity"
+            android:exported="false"
+            android:label="@string/drawer_item_link"
+            android:theme="@style/Theme.ownCloud.Toolbar"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- Souvera Workspace: Link call (WebRTC audio/video) -->
+        <activity
+            android:name="com.souvera.workspace.link.call.CallActivity"
+            android:exported="false"
+            android:label="@string/drawer_item_link"
+            android:launchMode="singleTask"
+            android:supportsPictureInPicture="false"
+            android:theme="@style/Theme.AppCompat.DayNight.NoActionBar" />
+        <service
+            android:name="com.souvera.workspace.link.call.CallForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="camera|microphone" />
+        <receiver
+            android:name="com.souvera.workspace.link.call.CallDeclineReceiver"
+            android:exported="false" />
+        <receiver
+            android:name="com.souvera.workspace.link.call.LinkReplyReceiver"
+            android:exported="false" />
+        <service
+            android:name="com.souvera.workspace.link.call.telecom.LinkConnectionService"
+            android:exported="true"
+            android:permission="android.permission.BIND_TELECOM_CONNECTION_SERVICE">
+            <intent-filter>
+                <action android:name="android.telecom.ConnectionService" />
+            </intent-filter>
+        </service>
+
+        <!-- Souvera Workspace: native IMAP/SMTP mail client (Compose) -->
+        <activity
+            android:name="com.souvera.workspace.mail.ui.MailActivity"
+            android:exported="false"
+            android:label="@string/drawer_item_mail"
+            android:theme="@style/Theme.ownCloud.Toolbar"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- Souvera Workspace: SnappyMail webmail WebView, kept as a fallback (not linked) -->
         <activity
             android:name="com.souvera.workspace.mail.SouveraMailWebViewActivity"
             android:exported="false"

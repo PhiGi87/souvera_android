@@ -34,6 +34,7 @@ import com.owncloud.android.ui.activity.FileDisplayActivity
 import com.owncloud.android.ui.adapter.FeaturesViewAdapter
 import com.owncloud.android.utils.DisplayUtils
 import com.owncloud.android.utils.theme.ViewThemeUtils
+import com.souvera.workspace.mail.ui.MailActivity
 import javax.inject.Inject
 
 /**
@@ -107,8 +108,7 @@ class FirstRunActivity :
 
                     userAccountManager?.setCurrentOwnCloudAccount(account.name)
 
-                    val i = Intent(this, FileDisplayActivity::class.java)
-                    i.action = FileDisplayActivity.RESTART
+                    val i = Intent(this, MailActivity::class.java)
                     i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
                     startActivity(i)
                     finish()

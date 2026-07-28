@@ -1530,12 +1530,140 @@
     <!-- Souvera Workspace -->
     <string name="drawer_item_calendar">Calendar</string>
     <string name="drawer_item_mail">Mail</string>
+    <string name="drawer_item_link">Link</string>
+    <string name="link_loading">Loading…</string>
+    <string name="link_no_conversations">No conversations</string>
+    <string name="link_message_hint">Message</string>
+    <string name="link_send">Send</string>
+    <string name="link_new_chat">New chat</string>
+    <string name="link_search_conversations">Search conversations</string>
+    <string name="link_search_users">Search people</string>
+    <string name="link_call">Call</string>
+    <string name="link_emoji">Emoji</string>
+    <string name="link_attach">Attach</string>
+    <string name="link_start_audio_call">Voice call</string>
+    <string name="link_start_video_call">Video call</string>
+    <string name="link_call_start_title">Start call</string>
+    <string name="link_answer_call">Answer</string>
+    <string name="link_missed_call">Missed call</string>
+    <string name="link_call_incoming_ringing">is calling…</string>
+    <string name="link_reply">Reply</string>
+    <string name="link_you">You</string>
+    <string name="link_call_connecting">Connecting…</string>
+    <string name="link_call_connected">Connected</string>
+    <string name="link_call_join">Join</string>
+    <string name="link_uploading_attachment">Sending attachment…</string>
+    <string name="link_fsi_permission_hint">Allow full-screen notifications so incoming calls ring like a phone call.</string>
+    <string name="status_change">Change status</string>
+    <string name="status_online">Online</string>
+    <string name="status_away">Away</string>
+    <string name="status_dnd">Do not disturb</string>
+    <string name="status_invisible">Invisible</string>
+    <string name="link_incoming_call">Incoming Link call</string>
+    <string name="link_share_call_log">Share call log</string>
+    <string name="link_no_call_log">No call log yet</string>
+    <string name="link_call_mute">Mute</string>
+    <string name="link_call_video">Video</string>
+    <string name="link_call_hangup">End</string>
+    <string name="link_call_ongoing">Ongoing call</string>
+    <string name="link_call_permission_denied">Camera and microphone permission are required for calls.</string>
     <string name="souvera_events_header">Events</string>
     <string name="souvera_no_events">No events for this day</string>
     <string name="souvera_all_day">All day</string>
     <string name="souvera_sync_action">Sync now</string>
     <string name="souvera_sync_started">Syncing contacts &amp; calendar…</string>
     <string name="souvera_no_account">No Souvera account found</string>
+    <!-- Souvera native mail client -->
+    <string name="mail_compose_title">New message</string>
+    <string name="mail_send">Send</string>
+    <string name="mail_credential_failed">Mail login could not be created: %1$s</string>
+    <string name="dav_sync_interval_title">Sync interval</string>
+    <string name="dav_sync_now_title">Sync now</string>
+    <string name="dav_sync_status_never">never</string>
+    <string name="dav_sync_status_summary">Calendar: %1$s · Contacts: %2$s</string>
+    <string-array name="dav_sync_interval_entries">
+        <item>Manual only</item>
+        <item>Every 15 minutes</item>
+        <item>Hourly</item>
+        <item>Every 4 hours</item>
+        <item>Daily</item>
+    </string-array>
+    <string-array name="dav_sync_interval_values">
+        <item>0</item>
+        <item>900</item>
+        <item>3600</item>
+        <item>14400</item>
+        <item>86400</item>
+    </string-array>
+    <string name="mail_push_new_title">New email</string>
+    <string name="mail_push_new_body">You have received a new message.</string>
+    <string name="mail_recipient_hint">To</string>
+    <string name="mail_cc_hint">Cc</string>
+    <string name="mail_bcc_hint">Bcc</string>
+    <string name="mail_from_label">From</string>
+    <string name="mail_subject_hint">Subject</string>
+    <string name="mail_body_hint">Message</string>
+    <string name="mail_no_messages">No messages</string>
+    <string name="mail_sent">Message sent</string>
+    <string name="mail_recipient_required">Add at least one recipient</string>
+    <string name="mail_reply">Reply</string>
+    <string name="mail_blocked_remote_content">External content blocked for your privacy.</string>
+    <string name="mail_load_remote_content">Load</string>
+    <string name="mail_delete">Delete</string>
+    <string name="mail_flag">Flag</string>
+    <string name="mail_unflag">Remove flag</string>
+    <string name="mail_no_subject">(no subject)</string>
+    <string name="mail_unknown_sender">(unknown sender)</string>
+    <string name="mail_compose">Compose</string>
+    <string name="mail_open_drawer">Open navigation</string>
+    <string name="mail_search_hint">Search in mail</string>
+    <string name="mail_search_clear">Clear search</string>
+    <string name="mail_no_results">No results found</string>
+    <string name="mail_folders">Folders</string>
+    <string name="mail_folder_inbox">Inbox</string>
+    <string name="mail_folder_sent">Sent</string>
+    <string name="mail_folder_drafts">Drafts</string>
+    <string name="mail_folder_trash">Trash</string>
+    <string name="mail_folder_junk">Spam</string>
+    <string name="mail_shared_prefix">Shared:</string>
+    <string name="mail_shared_prefix_delegated">Delegated:</string>
+    <string name="mail_show_cc_bcc">Show Cc/Bcc</string>
+    <string name="mail_settings">Mail settings</string>
+    <string name="mail_settings_message_limit">Messages per folder</string>
+    <string name="mail_settings_message_limit_summary">How many recent messages are downloaded and kept per folder</string>
+    <string name="mail_settings_load_images">Load remote images</string>
+    <string name="mail_settings_load_images_summary">Automatically show external images in HTML messages</string>
+    <string name="mail_settings_signature">Signature</string>
+    <string name="mail_settings_signature_hint">Added to new messages</string>
+    <string name="mail_attach">Attach</string>
+    <string name="mail_remove_attachment">Remove attachment</string>
+    <string name="mail_attachment_no_app">No app found to open this attachment</string>
+    <string name="prefs_category_dav_collections">Calendars &amp; address books</string>
+    <string name="dav_collection_calendar">Calendar</string>
+    <string name="dav_collection_addressbook">Address book</string>
+    <string name="event_new_title">New event</string>
+    <string name="event_edit_title">Edit event</string>
+    <string name="event_title_hint">Title</string>
+    <string name="event_location_hint">Location</string>
+    <string name="event_all_day">All day</string>
+    <string name="event_start">Start</string>
+    <string name="event_end">End</string>
+    <string name="event_save">Save</string>
+    <string name="event_delete">Delete</string>
+    <string name="event_title_required">Please enter a title</string>
+    <string name="event_saved">Event saved</string>
+    <string name="event_deleted">Event deleted</string>
+    <string name="event_no_calendar">No writable calendar available</string>
+    <string name="event_untitled">(no title)</string>
+    <string name="drawer_item_contacts">Contacts</string>
+    <string name="contact_no_email">No contact details</string>
+    <string name="souvera_no_contacts">No contacts found</string>
+    <string-array name="mail_message_limit_entries" translatable="false">
+        <item>50</item>
+        <item>100</item>
+        <item>200</item>
+        <item>500</item>
+    </string-array>
     <string name="souvera_company" translatable="false">Souvera is a brand of Host-On Service Provider GmbH</string>
     <string name="souvera_slug_hint">Workspace slug</string>
     <string name="souvera_slug_helper_text">Enter only your workspace slug — the part before .%1$s in your Souvera Workspace address.</string>

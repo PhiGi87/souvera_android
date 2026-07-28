@@ -29,21 +29,33 @@ import ezvcard.property.Uid
 import java.util.UUID
 
 @android.annotation.SuppressLint("MissingPermission", "Recycle")
-class CardDavSync(
-    private val context: Context,
-    private val account: Account,
-    private val client: DavClient
-) {
+class CardDavSync(private val context: Context, private val account: Account, private val client: DavClient) {
     private val resolver = context.contentResolver
     private val prefs = context.getSharedPreferences("souvera_dav_ctags", Context.MODE_PRIVATE)
 
     fun sync(homeUrl: String) {
         val addressBooks = client.list(homeUrl).filter { it.isCollection }
         Log.d(TAG, "Found ${addressBooks.size} address books")
+        val collectionSettings = DavCollectionSettings(context)
+        collectionSettings.storeAddressBooks(addressBooks.map { DavCollectionInfo(it.href, it.displayName ?: "") })
         addressBooks.forEach { book ->
-            runCatching { syncBook(book) }
-                .onFailure { Log.e(TAG, "Contacts sync failed for ${book.href}", it) }
+            if (collectionSettings.isEnabled(book.href)) {
+                runCatching { syncBook(book) }
+                    .onFailure { Log.e(TAG, "Contacts sync failed for ${book.href}", it) }
+            } else {
+                runCatching { removeLocalBook(book.href) }
+                    .onFailure { Log.e(TAG, "Contacts cleanup failed for ${book.href}", it) }
+            }
         }
+    }
+
+    private fun removeLocalBook(href: String) {
+        resolver.delete(
+            syncUri(RawContacts.CONTENT_URI),
+            "${RawContacts.SOURCE_ID} LIKE ?",
+            arrayOf("$href%")
+        )
+        prefs.edit().remove(href).apply()
     }
 
     private fun syncBook(book: DavResource) {
@@ -56,7 +68,9 @@ class CardDavSync(
         resolver.query(
             syncUri(RawContacts.CONTENT_URI),
             arrayOf(RawContacts._ID, RawContacts.SOURCE_ID, RawContacts.SYNC1),
-            "${RawContacts.DELETED} = 1", null, null
+            "${RawContacts.DELETED} = 1",
+            null,
+            null
         )?.use { cursor ->
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(0)
@@ -71,7 +85,9 @@ class CardDavSync(
         resolver.query(
             syncUri(RawContacts.CONTENT_URI),
             arrayOf(RawContacts._ID, RawContacts.SOURCE_ID, RawContacts.SYNC1, RawContacts.SYNC2),
-            "${RawContacts.DIRTY} = 1 AND ${RawContacts.DELETED} = 0", null, null
+            "${RawContacts.DIRTY} = 1 AND ${RawContacts.DELETED} = 0",
+            null,
+            null
         )?.use { cursor ->
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(0)
@@ -84,7 +100,9 @@ class CardDavSync(
 
                 val vcf = buildVCard(id, uid!!)
                 val result = client.put(
-                    href!!, vcf, "text/vcard; charset=utf-8",
+                    href!!,
+                    vcf,
+                    "text/vcard; charset=utf-8",
                     ifMatch = if (isNew) null else etag,
                     ifNoneMatch = isNew
                 )
@@ -97,7 +115,9 @@ class CardDavSync(
                     }
                     resolver.update(
                         syncUri(ContentUris.withAppendedId(RawContacts.CONTENT_URI, id)),
-                        values, null, null
+                        values,
+                        null,
+                        null
                     )
                 }
             }
@@ -112,7 +132,9 @@ class CardDavSync(
         resolver.query(
             syncUri(RawContacts.CONTENT_URI),
             arrayOf(RawContacts._ID, RawContacts.SOURCE_ID, RawContacts.SYNC1, RawContacts.DIRTY),
-            "${RawContacts.SOURCE_ID} IS NOT NULL", null, null
+            "${RawContacts.SOURCE_ID} IS NOT NULL",
+            null,
+            null
         )?.use { cursor ->
             while (cursor.moveToNext()) {
                 val dirty = cursor.getInt(3) == 1
@@ -207,7 +229,9 @@ class CardDavSync(
         resolver.query(
             Data.CONTENT_URI,
             arrayOf(Data.MIMETYPE, Data.DATA1),
-            "${Data.RAW_CONTACT_ID} = ?", arrayOf(rawContactId.toString()), null
+            "${Data.RAW_CONTACT_ID} = ?",
+            arrayOf(rawContactId.toString()),
+            null
         )?.use { cursor ->
             while (cursor.moveToNext()) {
                 val mime = cursor.getString(0)
@@ -223,9 +247,8 @@ class CardDavSync(
         return Ezvcard.write(vcard).version(VCardVersion.V3_0).go()
     }
 
-    private fun dataInsert() =
-        ContentProviderOperation.newInsert(syncUri(Data.CONTENT_URI))
-            .withValueBackReference(Data.RAW_CONTACT_ID, 0)
+    private fun dataInsert() = ContentProviderOperation.newInsert(syncUri(Data.CONTENT_URI))
+        .withValueBackReference(Data.RAW_CONTACT_ID, 0)
 
     private fun syncUri(uri: Uri): Uri = uri.buildUpon()
         .appendQueryParameter(ContactsContract.CALLER_IS_SYNCADAPTER, "true")

@@ -60,8 +60,11 @@ class CalDavIcsWriter(private val resolver: ContentResolver) {
         if (!rrule.isNullOrBlank()) sb.append("RRULE:").append(rrule).append("\r\n")
 
         resolver.query(
-            Reminders.CONTENT_URI, arrayOf(Reminders.MINUTES),
-            "${Reminders.EVENT_ID} = ?", arrayOf(eventId.toString()), null
+            Reminders.CONTENT_URI,
+            arrayOf(Reminders.MINUTES),
+            "${Reminders.EVENT_ID} = ?",
+            arrayOf(eventId.toString()),
+            null
         )?.use { rc ->
             while (rc.moveToNext()) {
                 val minutes = rc.getInt(0)
