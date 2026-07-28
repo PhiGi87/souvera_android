@@ -358,7 +358,14 @@ class NotificationWork constructor(
             .setAutoCancel(true)
             .setTimeoutAfter(RING_TIMEOUT_MS)
             .setContentIntent(ringing)
-            .setFullScreenIntent(ringing, true)
+            .apply {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+                    context.checkSelfPermission(android.Manifest.permission.USE_FULL_SCREEN_INTENT) ==
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
+                ) {
+                    setFullScreenIntent(ringing, true)
+                }
+            }
             .setStyle(NotificationCompat.CallStyle.forIncomingCall(caller, decline, answer))
             .build()
         notificationManager.notify(message.nid, notification)

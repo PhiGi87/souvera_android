@@ -39,7 +39,6 @@ class LinkActivity : DrawerActivity() {
         }
         viewModel.start(account)
         registerBackHandler()
-        ensureFullScreenIntentPermission()
 
         val colorScheme = viewThemeUtils.getColorScheme(this)
         findViewById<ComposeView>(R.id.link_compose_view).setContent {
@@ -51,40 +50,10 @@ class LinkActivity : DrawerActivity() {
 
     override fun getMenuItemId(): Int = R.id.nav_link
 
-    private var fsiPrompted = false
-
-    private fun ensureFullScreenIntentPermission() {
-        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
-        val prefs = getSharedPreferences(PREFS_FSI, MODE_PRIVATE)
-        if (prefs.getBoolean(KEY_FSI_GRANTED, false)) return
-        val manager = getSystemService(android.app.NotificationManager::class.java)
-        if (manager.canUseFullScreenIntent()) {
-            prefs.edit().putBoolean(KEY_FSI_GRANTED, true).apply()
-            return
-        }
-        if (fsiPrompted) return
-        fsiPrompted = true
-        prefs.edit().putBoolean(KEY_FSI_GRANTED, true).apply()
-        runCatching {
-            startActivity(android.content.Intent(
-                android.provider.Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,
-                android.net.Uri.parse("package:$packageName")))
-            Toast.makeText(this, R.string.link_fsi_permission_hint, Toast.LENGTH_LONG).show()
-        }
-    }
-
     override fun onResume() {
         super.onResume()
         highlightNavigationViewItem(R.id.nav_link)
         findViewById<View>(R.id.appbar)?.visibility = View.GONE
-        // Check if user granted FSI permission during previous redirect
-        val prefs = getSharedPreferences(PREFS_FSI, MODE_PRIVATE)
-        if (!prefs.getBoolean(KEY_FSI_GRANTED, false) && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            val manager = getSystemService(android.app.NotificationManager::class.java)
-            if (manager.canUseFullScreenIntent()) {
-                prefs.edit().putBoolean(KEY_FSI_GRANTED, true).apply()
-            }
-        }
     }
 
     private fun registerBackHandler() {
@@ -99,10 +68,5 @@ class LinkActivity : DrawerActivity() {
                 }
             }
         )
-    }
-
-    companion object {
-        private const val PREFS_FSI = "souvera_link_fsi"
-        private const val KEY_FSI_GRANTED = "fsi_granted"
     }
 }
