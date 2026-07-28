@@ -1,17 +1,18 @@
 # Souvera Workspace – Play Console Changelog
 
 <de-DE>
-• Push-Benachrichtigungen für neue Mails zuverlässig & schnell
-• Neues Souvera „S" als Benachrichtigungs-Icon in der Statusleiste
-• Gelöschte Mails (z. B. vom PC) verschwinden jetzt auch in der App
-• Fehler beim Öffnen geteilter Postfächer (Shared Folders) behoben
-• Ungelesen-Zähler aktualisiert sich jetzt beim Herunterziehen
+Souvera Workspace ist jetzt eine vollständig native App:
+• Mail: neuer nativer IMAP-Client mit WYSIWYG-Editor, Anhängen, Push-Benachrichtigungen
+• Link: Chat sowie Sprach- & Videoanrufe mit eingehendem Klingeln
+• Kalender, Kontakte, Notizen integriert
+• Souvera-Branding mit eigenem Benachrichtigungs-Icon
+• Geteilte Postfächer, Ordnerverwaltung, Abwesenheitsnotiz
 • Stabilitäts- und Performance-Verbesserungen
 </de-DE>
 
 ## Kurzfassung „Neuigkeiten" (Deutsch, ≤500 Zeichen für das Release-Feld)
 
-Große Neuauflage: Souvera Workspace ist jetzt eine vollständig native App.
+Souvera Workspace ist jetzt eine vollständig native App: nativer Mail-Client, Chat & Anrufe, Kalender, Kontakte, Notizen.
 • Mail: komplett neuer nativer Client (statt Weboberfläche) mit schnellem Posteingang, WYSIWYG-Editor, echten Antworten (Zitat + Threading), Anhängen und Schutz vor externen Inhalten.
 • Link: Chat sowie Sprach- und Videoanrufe mit eingehendem Klingeln.
 • Kalender, Kontakte und Notizen integriert.
