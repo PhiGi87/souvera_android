@@ -3,20 +3,18 @@
 <de-DE>
 • Sofortige Push-Benachrichtigungen für neue Mails per IMAP IDLE (keine FCM-Verzögerung mehr)
 • Hintergrund-Sync-Fallback alle 15 Minuten falls Push kurzzeitig nicht verfügbar
-• Chat: Nachrichten kopieren, zitieren & antworten per langem Tipp
-• Chat: Trennlinien zwischen Tagen und gruppierte Nachrichten desselben Absenders
-• Chat: Nachrichten-Status (gesendet/zugestellt/gelesen)
 • Verbesserte Akku-Laufzeit durch FCM-Mail-Entlastung
+• Keine doppelten Benachrichtigungen durch UID-Deduplizierung
 • Stabilitäts- und Performance-Verbesserungen
 </de-DE>
 
 ## Kurzfassung „Neuigkeiten" (Deutsch, ≤500 Zeichen für das Release-Feld)
 
-Sofortige Push-Benachrichtigungen für neue Mails – direkt vom Server per IMAP IDLE, unabhängig von Google-Diensten. Der Mail-Empfang ist jetzt nahezu in Echtzeit und zuverlässiger als je zuvor. Chat-Verbesserungen: Nachrichten kopieren, zitieren & antworten per langem Tipp sowie deutlich bessere Übersicht durch Tages-Trenner und Absender-Gruppierung. FCM-Mail-Push wurde entfernt, was die Akku-Laufzeit verbessert. Stabilitäts- und Performance-Verbesserungen.
+Sofortige Push-Benachrichtigungen für neue Mails – direkt vom Server per IMAP IDLE, unabhängig von Google-Diensten. Der Mail-Empfang ist jetzt nahezu in Echtzeit und zuverlässiger als je zuvor. Ein 15-Minuten-Sicherheitsnetz synchronisiert den Posteingang auch bei kurzzeitigen Verbindungsabbrüchen. FCM-Mail-Push wurde entfernt, was die Akku-Laufzeit verbessert. Keine doppelten Benachrichtigungen mehr durch UID-Deduplizierung. Stabilitäts- und Performance-Verbesserungen.
 
 ## Kurzfassung „What's new" (English, ≤500 chars)
 
-Instant push notifications for new mail via IMAP IDLE – delivered directly from the server, completely independent of Google services. Mail arrives in near real-time, more reliably than ever before. Chat improvements: copy, quote & reply on long-press plus better overview with date separators and sender grouping. FCM mail push has been removed, improving battery life. Stability and performance improvements.
+Instant push notifications for new mail via IMAP IDLE – delivered directly from the server, completely independent of Google services. Mail arrives in near real-time, more reliably than ever before. A 15-minute safety net syncs the inbox even during brief connection drops. FCM mail push has been removed, improving battery life. No more duplicate notifications thanks to UID deduplication. Stability and performance improvements.
 
 ---
 
@@ -29,10 +27,7 @@ Instant push notifications for new mail via IMAP IDLE – delivered directly fro
 - **UID-Deduplizierung:** Keine doppelten Benachrichtigungen mehr – das System erkennt bereits zugestellte Mails und benachrichtigt nur bei echten neuen Nachrichten.
 
 ### Chat (Link)
-- **Kontext-Menü:** Langes Tippen auf eine Nachricht öffnet Optionen: Kopieren, Antworten (Zitat), Weiterleiten
-- **Tages-Trenner:** Datumsbalken („Heute", „Gestern", Datum) zwischen Nachrichten verschiedener Tage
-- **Absender-Gruppierung:** Aufeinanderfolgende Nachrichten desselben Absenders werden visuell gruppiert
-- **Nachrichten-Status:** Eigene Nachrichten zeigen gesendet/zugestellt/gelesen an
+- Nächste Version: geplant sind Kontext-Menü (Kopieren/Zitieren/Antworten), Tages-Trenner und Absender-Gruppierung
 
 ---
 
