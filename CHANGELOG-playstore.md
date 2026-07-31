@@ -3,6 +3,7 @@
 <de-DE>
 • Sofortige Push-Benachrichtigungen für neue Mails per IMAP IDLE (keine FCM-Verzögerung mehr)
 • Hintergrund-Sync-Fallback alle 15 Minuten falls Push kurzzeitig nicht verfügbar
+• Chat: Nachrichten kopieren & zitieren per langem Tipp, Datums-Trenner ("Heute"/"Gestern"), gruppierte Nachrichten
 • Verbesserte Akku-Laufzeit durch FCM-Mail-Entlastung
 • Keine doppelten Benachrichtigungen durch UID-Deduplizierung
 • Stabilitäts- und Performance-Verbesserungen
@@ -10,7 +11,7 @@
 
 ## Kurzfassung „Neuigkeiten" (Deutsch, ≤500 Zeichen für das Release-Feld)
 
-Sofortige Push-Benachrichtigungen für neue Mails – direkt vom Server per IMAP IDLE, unabhängig von Google-Diensten. Der Mail-Empfang ist jetzt nahezu in Echtzeit und zuverlässiger als je zuvor. Ein 15-Minuten-Sicherheitsnetz synchronisiert den Posteingang auch bei kurzzeitigen Verbindungsabbrüchen. FCM-Mail-Push wurde entfernt, was die Akku-Laufzeit verbessert. Keine doppelten Benachrichtigungen mehr durch UID-Deduplizierung. Stabilitäts- und Performance-Verbesserungen.
+Sofortige Push-Benachrichtigungen für neue Mails – direkt vom Server per IMAP IDLE, unabhängig von Google-Diensten. Mail-Empfang in nahezu Echtzeit. Chat-Verbesserungen: Nachrichten kopieren und zitieren per langem Tipp, Datums-Trenner ("Heute"/"Gestern") und gruppierte Absender-Ansicht. FCM-Mail-Push entfernt für bessere Akku-Laufzeit. Keine Doppel-Benachrichtigungen.
 
 ## Kurzfassung „What's new" (English, ≤500 chars)
 
