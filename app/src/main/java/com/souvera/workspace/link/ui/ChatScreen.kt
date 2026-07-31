@@ -27,9 +27,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -79,6 +76,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.owncloud.android.R
 import com.souvera.workspace.link.call.CallActivity
 import com.souvera.workspace.link.net.LinkChatMessage
@@ -194,7 +192,7 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
                     )
                 }
             }
-            if (emojiOpen) EmojiPicker(colors) { input += it }
+            if (emojiOpen) EmojiPicker { input += it }
             if (replyQuote != null) {
                 ReplyQuoteBar(replyQuote!!, colors) { replyQuote = null }
             }
@@ -627,42 +625,21 @@ private fun ReplyQuoteBar(actorName: String, colors: ChatColors, onDismiss: () -
 }
 
 @Composable
-private fun EmojiPicker(colors: ChatColors, onPick: (String) -> Unit) {
-    Surface(color = colors.other, tonalElevation = EMOJI_ELEVATION.dp) {
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(EMOJI_CELL.dp),
-            modifier = Modifier.fillMaxWidth().height(EMOJI_PANEL_HEIGHT.dp),
-            contentPadding = PaddingValues(EMOJI_PANEL_PAD.dp)
-        ) {
-            items(EMOJIS) { emoji ->
-                Box(
-                    Modifier.size(EMOJI_CELL.dp).clip(CircleShape).clickable { onPick(emoji) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(emoji, style = MaterialTheme.typography.headlineSmall)
-                }
+private fun EmojiPicker(onPick: (String) -> Unit) {
+    AndroidView(
+        factory = { ctx ->
+            androidx.emoji2.emojipicker.EmojiPickerView(ctx).apply {
+                setOnEmojiPickedListener { item -> onPick(item.emoji) }
             }
-        }
-    }
+        },
+        modifier = Modifier.fillMaxWidth().height(EMOJI_PANEL_HEIGHT.dp)
+    )
 }
 
 private fun formatTime(unixSeconds: Long): String {
     val formatter = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
     return formatter.format(java.util.Date(unixSeconds * 1000))
 }
-
-private val EMOJIS = listOf(
-    "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇",
-    "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚",
-    "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🥳",
-    "🤩", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️", "😣",
-    "😖", "😫", "😩", "🥺", "😢", "😭", "😤", "😠", "😡", "🤬",
-    "🤯", "😳", "🥵", "🥶", "😱", "😨", "😰", "😥", "🤗", "🤔",
-    "🤭", "🤫", "😶", "😐", "😑", "😬", "🙄", "😯", "😴", "🤤",
-    "👍", "👎", "👌", "✌️", "🤞", "🙏", "👏", "🙌", "💪", "🔥",
-    "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "💯", "✅", "❌",
-    "🎉", "🎊", "👀", "⭐", "🌟", "💥", "☀️", "🌈", "☕", "🍕"
-)
 
 private const val LIST_V = 8
 private const val INPUT_H = 8
@@ -681,10 +658,7 @@ private const val BUBBLE_PAD_V = 6
 private const val SWIPE_HINT_PAD_H = 12
 private const val SWIPE_HINT_PAD_V = 8
 private const val READ_TICK_GAP = 3
-private const val EMOJI_CELL = 44
 private const val EMOJI_PANEL_HEIGHT = 240
-private const val EMOJI_PANEL_PAD = 8
-private const val EMOJI_ELEVATION = 3
 private const val CALL_ROW_V = 14
 private const val CALL_ROW_GAP = 20
 private const val BANNER_PAD = 14

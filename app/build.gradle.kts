@@ -72,7 +72,7 @@ configurations.configureEach {
 // version this fork started from - reset to 1.0.0 for the first public release.
 val versionMajor = 1
 val versionMinor = 0
-val versionPatch = 121
+val versionPatch = 122
 val versionBuild = 99 // 0-50=Alpha / 51-98=RC / 90-99=stable
 
 val ndkEnv = buildMap {
@@ -511,6 +511,7 @@ dependencies {
     implementation(libs.androidsvg)
     implementation(libs.annotation)
     implementation(libs.emoji.google)
+    implementation(libs.emoji2.picker)
     // endregion
 
     // region AppScan, document scanner not available on FDroid (generic) due to OpenCV binaries
