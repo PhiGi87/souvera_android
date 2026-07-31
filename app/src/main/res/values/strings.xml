@@ -1597,6 +1597,11 @@
     </string-array>
     <string name="mail_push_new_title">New email</string>
     <string name="mail_push_new_body">You have received a new message.</string>
+    <string name="mail_push_idle_channel_name">Mail sync</string>
+    <string name="mail_push_idle_channel_description">Keeps a background connection for instant new mail notifications</string>
+    <string name="mail_push_idle_notification_title">Mail sync active</string>
+    <string name="mail_push_idle_notification_text">Watching %1$d account(s)</string>
+    <string name="mail_push_idle_notification_connecting">Connecting…</string>
     <string name="mail_recipient_hint">To</string>
     <string name="mail_cc_hint">Cc</string>
     <string name="mail_bcc_hint">Bcc</string>
