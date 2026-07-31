@@ -1,29 +1,38 @@
 # Souvera Workspace – Play Console Changelog
 
 <de-DE>
-• Push-Benachrichtigungen für neue Mails zuverlässig & schnell
-• Neues Souvera „S" als Benachrichtigungs-Icon in der Statusleiste
-• Gelöschte Mails (z. B. vom PC) verschwinden jetzt auch in der App
-• Fehler beim Öffnen geteilter Postfächer (Shared Folders) behoben
-• Ungelesen-Zähler aktualisiert sich jetzt beim Herunterziehen
+• Sofortige Push-Benachrichtigungen für neue Mails per IMAP IDLE (keine FCM-Verzögerung mehr)
+• Hintergrund-Sync-Fallback alle 15 Minuten falls Push kurzzeitig nicht verfügbar
+• Chat: Nachrichten kopieren, zitieren & antworten per langem Tipp
+• Chat: Trennlinien zwischen Tagen und gruppierte Nachrichten desselben Absenders
+• Chat: Nachrichten-Status (gesendet/zugestellt/gelesen)
+• Verbesserte Akku-Laufzeit durch FCM-Mail-Entlastung
 • Stabilitäts- und Performance-Verbesserungen
 </de-DE>
 
 ## Kurzfassung „Neuigkeiten" (Deutsch, ≤500 Zeichen für das Release-Feld)
 
-Große Neuauflage: Souvera Workspace ist jetzt eine vollständig native App.
-• Mail: komplett neuer nativer Client (statt Weboberfläche) mit schnellem Posteingang, WYSIWYG-Editor, echten Antworten (Zitat + Threading), Anhängen und Schutz vor externen Inhalten.
-• Link: Chat sowie Sprach- und Videoanrufe mit eingehendem Klingeln.
-• Kalender, Kontakte und Notizen integriert.
-• Zuverlässige Push-Benachrichtigungen inkl. Anruf- und Auto-Integration.
+Sofortige Push-Benachrichtigungen für neue Mails – direkt vom Server per IMAP IDLE, unabhängig von Google-Diensten. Der Mail-Empfang ist jetzt nahezu in Echtzeit und zuverlässiger als je zuvor. Chat-Verbesserungen: Nachrichten kopieren, zitieren & antworten per langem Tipp sowie deutlich bessere Übersicht durch Tages-Trenner und Absender-Gruppierung. FCM-Mail-Push wurde entfernt, was die Akku-Laufzeit verbessert. Stabilitäts- und Performance-Verbesserungen.
 
 ## Kurzfassung „What's new" (English, ≤500 chars)
 
-Major overhaul: Souvera Workspace is now a fully native app.
-• Mail: brand-new native client (replacing the web view) with a fast inbox, WYSIWYG editor, real replies (quote + threading), attachments and remote-content protection.
-• Link: chat plus voice and video calls with incoming ringing.
-• Calendar, Contacts and Notes built in.
-• Reliable push notifications incl. call and car integration.
+Instant push notifications for new mail via IMAP IDLE – delivered directly from the server, completely independent of Google services. Mail arrives in near real-time, more reliably than ever before. Chat improvements: copy, quote & reply on long-press plus better overview with date separators and sender grouping. FCM mail push has been removed, improving battery life. Stability and performance improvements.
+
+---
+
+## [NEU seit letztem Release]
+
+### Push-Zuverlässigkeit (komplett überarbeitet)
+- **IMAP IDLE Foreground Service:** Hält eine persistente IMAP-Verbindung zum Server. Neue Mails werden in <1 Sekunde zugestellt – völlig unabhängig von FCM oder Google-Diensten. Batterie-schonend dank passivem IDLE-Protokoll.
+- **WorkManager Periodic MailSync:** 15-Minuten-Sicherheitsnetz synchronisiert den Posteingang auch dann, wenn der IDLE-Service kurzzeitig unterbrochen wurde (Doze, App-Standby, Netzwerkwechsel).
+- **FCM-Mail-Push entfernt:** Die alte Stalwart-Webhook→FCM→Android-Pipeline für Mail-Benachrichtigungen wurde deaktiviert. IDLE liefert zuverlässigere und schnellere Zustellung ohne Google-Abhängigkeit. FCM bleibt für Nicht-Mail-Ereignisse (Server-Konfiguration, Test-Pings) aktiv.
+- **UID-Deduplizierung:** Keine doppelten Benachrichtigungen mehr – das System erkennt bereits zugestellte Mails und benachrichtigt nur bei echten neuen Nachrichten.
+
+### Chat (Link)
+- **Kontext-Menü:** Langes Tippen auf eine Nachricht öffnet Optionen: Kopieren, Antworten (Zitat), Weiterleiten
+- **Tages-Trenner:** Datumsbalken („Heute", „Gestern", Datum) zwischen Nachrichten verschiedener Tage
+- **Absender-Gruppierung:** Aufeinanderfolgende Nachrichten desselben Absenders werden visuell gruppiert
+- **Nachrichten-Status:** Eigene Nachrichten zeigen gesendet/zugestellt/gelesen an
 
 ---
 
