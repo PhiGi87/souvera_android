@@ -53,6 +53,10 @@ class ImapIdleService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Must call startForeground() promptly after startForegroundService(), before any slow
+        // work (account resolution, connection setup) — Android kills the process otherwise
+        // (ForegroundServiceDidNotStartInTimeException).
+        updateForegroundNotification()
         val accountName = intent?.getStringExtra(EXTRA_ACCOUNT_NAME)
         if (accountName != null) {
             startIdle(accountName)
