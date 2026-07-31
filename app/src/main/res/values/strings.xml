@@ -1536,6 +1536,22 @@
     <string name="link_message_hint">Message</string>
     <string name="link_send">Send</string>
     <string name="link_read">Read</string>
+    <string name="link_online">Online</string>
+    <string name="link_away">Away</string>
+    <string name="link_dnd">Do not disturb</string>
+    <string name="link_last_active_now">Last active just now</string>
+    <plurals name="link_last_active_min">
+        <item quantity="one">Last active %d minute ago</item>
+        <item quantity="other">Last active %d minutes ago</item>
+    </plurals>
+    <plurals name="link_last_active_hour">
+        <item quantity="one">Last active %d hour ago</item>
+        <item quantity="other">Last active %d hours ago</item>
+    </plurals>
+    <plurals name="link_last_active_day">
+        <item quantity="one">Last active %d day ago</item>
+        <item quantity="other">Last active %d days ago</item>
+    </plurals>
     <string name="link_new_chat">New chat</string>
     <string name="link_search_conversations">Search conversations</string>
     <string name="link_search_users">Search people</string>

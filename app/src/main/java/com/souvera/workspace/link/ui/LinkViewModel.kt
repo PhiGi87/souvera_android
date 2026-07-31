@@ -36,8 +36,11 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
     private var dav: DavAccount? = null
     private var api: OcsApi? = null
     private var pollJob: Job? = null
+    private var peerStatusJob: Job? = null
     private var lastMessageId = 0L
     private var conversationLoadSeq = 0L
+    private var lastPeerStatusRefreshMs = 0L
+    private val peerIdByToken = mutableMapOf<String, String?>()
 
     var currentUserId: String = ""
         private set
@@ -57,6 +60,10 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
     /** Highest message id the chat peer has read (read receipt), null while unknown. */
     private val _readUpTo = MutableStateFlow<Long?>(null)
     val readUpTo: StateFlow<Long?> = _readUpTo.asStateFlow()
+
+    /** Presence of the one-to-one chat peer, null while unknown / in group rooms. */
+    private val _peerStatus = MutableStateFlow<com.souvera.workspace.status.PeerStatus?>(null)
+    val peerStatus: StateFlow<com.souvera.workspace.status.PeerStatus?> = _peerStatus.asStateFlow()
 
     private val _uploading = MutableStateFlow(false)
     val uploading: StateFlow<Boolean> = _uploading.asStateFlow()
@@ -187,9 +194,11 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
         _route.value = LinkRoute.Chat(token, title)
         _messages.value = LinkUiState.Loading
         _readUpTo.value = null
+        _peerStatus.value = null
         lastMessageId = 0L
         val client = api ?: return
         pollJob?.cancel()
+        peerStatusJob?.cancel()
         pollJob = viewModelScope.launch {
             // Load the newest messages: lookIntoFuture=0 pages backwards from a high anchor id, so
             // it returns the most recent page (there is no "give me the latest" without an anchor).
@@ -205,22 +214,78 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
             lastMessageId = ordered.lastOrNull()?.id ?: 0L
             _messages.value = LinkUiState.Success(ordered)
             loadConversations()
+            loadPeerStatus(token)
             pollNewMessages(token)
+        }
+    }
+
+    /** Refreshes the one-to-one peer presence; null in group rooms / on errors. Single-flight. */
+    fun loadPeerStatus(token: String) {
+        val client = api ?: return
+        val dav = dav ?: return
+        peerStatusJob?.cancel()
+        peerStatusJob = viewModelScope.launch {
+            val conversation = (_conversations.value as? LinkUiState.Success)?.data
+                ?.firstOrNull { it.token == token }
+            if (conversation != null && conversation.type != ROOM_TYPE_ONE_TO_ONE) {
+                if ((_route.value as? LinkRoute.Chat)?.token == token) {
+                    _peerStatus.value = null
+                }
+                return@launch
+            }
+            val peer = peerIdByToken[token] ?: run {
+                val found = try {
+                    withContext(Dispatchers.IO) { client.getPeerUserId(token, currentUserId) }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    null
+                }
+                if (found != null) peerIdByToken[token] = found
+                found
+            }
+            if ((_route.value as? LinkRoute.Chat)?.token != token) return@launch
+            if (peer == null) {
+                _peerStatus.value = null
+                return@launch
+            }
+            val parsed = try {
+                withContext(Dispatchers.IO) { com.souvera.workspace.status.StatusApi(dav).peerStatus(peer) }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                null
+            }
+            if ((_route.value as? LinkRoute.Chat)?.token != token) return@launch
+            val conversationLastActivity = (_conversations.value as? LinkUiState.Success)?.data
+                ?.firstOrNull { it.token == token }?.lastActivity ?: 0L
+            _peerStatus.value = parsed?.let {
+                it.copy(lastActivity = if (conversationLastActivity > 0) conversationLastActivity else it.lastActivity)
+            }
         }
     }
 
     private suspend fun pollNewMessages(token: String) {
         val client = api ?: return
         while (viewModelScope.isActive && (_route.value as? LinkRoute.Chat)?.token == token) {
-            val fresh = runCatching {
+            val fresh = try {
                 withContext(Dispatchers.IO) {
                     client.getMessages(token, lastMessageId, future = true, timeoutSeconds = POLL_TIMEOUT)
                 }
-            }.getOrDefault(emptyList())
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                emptyList()
+            }
             if (fresh.isNotEmpty()) {
                 lastMessageId = fresh.maxOf { it.id }
                 val current = (_messages.value as? LinkUiState.Success)?.data.orEmpty()
                 _messages.value = LinkUiState.Success((current + fresh).distinctBy { it.id }.sortedBy { it.id })
+            }
+            val now = android.os.SystemClock.elapsedRealtime()
+            if (now - lastPeerStatusRefreshMs > PEER_STATUS_REFRESH_MS) {
+                loadPeerStatus(token)
+                lastPeerStatusRefreshMs = now
             }
         }
     }
@@ -247,5 +312,6 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
         private const val ROOM_TYPE_ONE_TO_ONE = 1
         private const val ROOM_TYPE_GROUP = 2
         private const val HISTORY_ANCHOR = 2_000_000_000L
+        private const val PEER_STATUS_REFRESH_MS = 30_000L
     }
 }

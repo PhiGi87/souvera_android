@@ -109,6 +109,19 @@ class OcsApi(private val dav: DavAccount) {
             .execute().use { /* share creates the chat message; poll surfaces it */ }
     }
 
+    /**
+     * The single other user participant of a one-to-one room (for online status), or null in
+     * group rooms / when not determinable.
+     */
+    fun getPeerUserId(token: String, selfId: String): String? {
+        val url = "$base/api/v4/room/$token/participants"
+        val body = get(url) ?: return null
+        val type = object : TypeToken<OcsEnvelope<List<LinkParticipant>>>() {}.type
+        val peers = gson.fromJson<OcsEnvelope<List<LinkParticipant>>>(body, type).ocs.data.orEmpty()
+            .filter { it.actorType == "users" && it.actorId != selfId }
+        return peers.singleOrNull()?.actorId
+    }
+
     fun getSignalingSettings(token: String): com.souvera.workspace.link.call.SignalingSettings? {
         val root = dav.baseUrl.trimEnd('/')
         val url = "$root/ocs/v2.php/apps/spreed/api/v3/signaling/settings?token=$token"

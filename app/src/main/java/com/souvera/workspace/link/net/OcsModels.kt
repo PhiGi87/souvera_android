@@ -86,3 +86,9 @@ data class LinkSuggestion(
     @SerializedName("label") val label: String,
     @SerializedName("source") val source: String = ""
 )
+
+/** A room participant as returned by the room participants API (subset used for peer lookup). */
+data class LinkParticipant(
+    @SerializedName("actorId") val actorId: String = "",
+    @SerializedName("actorType") val actorType: String = ""
+)

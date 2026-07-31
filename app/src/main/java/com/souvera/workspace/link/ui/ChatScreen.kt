@@ -72,6 +72,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -95,6 +96,7 @@ private class ChatColors(dark: Boolean) {
 fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
     val state by viewModel.messages.collectAsState()
     val readUpTo by viewModel.readUpTo.collectAsState()
+    val peerStatus by viewModel.peerStatus.collectAsState()
     var input by remember { mutableStateOf("") }
     var emojiOpen by remember { mutableStateOf(false) }
     var callDialogOpen by remember { mutableStateOf(false) }
@@ -131,7 +133,7 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
         topBar = {
             TopAppBar(
                 windowInsets = WindowInsets(0, 0, 0, 0),
-                title = { Text(route.title) },
+                title = { ChatTitle(route.title, peerStatus) },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.back() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
@@ -234,6 +236,44 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
                 startCall(context, route, withVideo)
             }
         )
+    }
+}
+
+@Composable
+private fun ChatTitle(title: String, peer: com.souvera.workspace.status.PeerStatus?) {
+    Column {
+        Text(title)
+        if (peer != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(STATUS_DOT.dp).clip(CircleShape).background(peer.status.dotColor))
+                Text(
+                    lastActiveLabel(peer),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = STATUS_DOT_GAP.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun lastActiveLabel(peer: com.souvera.workspace.status.PeerStatus): String = when (peer.status) {
+    com.souvera.workspace.status.UserStatusType.ONLINE -> stringResource(R.string.link_online)
+    com.souvera.workspace.status.UserStatusType.AWAY -> stringResource(R.string.link_away)
+    com.souvera.workspace.status.UserStatusType.DND -> stringResource(R.string.link_dnd)
+    else -> {
+        if (peer.lastActivity <= 0) {
+            ""
+        } else {
+            val diff = System.currentTimeMillis() / 1000 - peer.lastActivity
+            when {
+                diff < 60 -> stringResource(R.string.link_last_active_now)
+                diff < 3600 -> pluralStringResource(R.plurals.link_last_active_min, (diff / 60).toInt(), diff / 60)
+                diff < 86400 -> pluralStringResource(R.plurals.link_last_active_hour, (diff / 3600).toInt(), diff / 3600)
+                else -> pluralStringResource(R.plurals.link_last_active_day, (diff / 86400).toInt(), diff / 86400)
+            }
+        }
     }
 }
 
@@ -659,6 +699,8 @@ private const val SWIPE_HINT_PAD_H = 12
 private const val SWIPE_HINT_PAD_V = 8
 private const val READ_TICK_GAP = 3
 private const val EMOJI_PANEL_HEIGHT = 240
+private const val STATUS_DOT = 8
+private const val STATUS_DOT_GAP = 4
 private const val CALL_ROW_V = 14
 private const val CALL_ROW_GAP = 20
 private const val BANNER_PAD = 14
