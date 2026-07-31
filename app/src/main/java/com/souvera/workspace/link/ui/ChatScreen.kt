@@ -7,6 +7,9 @@
 package com.souvera.workspace.link.ui
 
 import android.content.Intent
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -38,6 +41,10 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Face
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -87,6 +94,7 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
     var emojiOpen by remember { mutableStateOf(false) }
     var callDialogOpen by remember { mutableStateOf(false) }
     var modalImage by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+    var replyQuote by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
     val messages = (state as? LinkUiState.Success)?.data.orEmpty().filter { it.systemMessage.isEmpty() }
     val me = viewModel.currentUserId
@@ -141,8 +149,24 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 contentPadding = PaddingValues(vertical = LIST_V.dp)
             ) {
-                items(messages, key = { it.id }) { message ->
-                    MessageBubble(message, message.actorId == me, colors, viewModel) { img -> modalImage = img }
+                val items = buildChatItems(messages, me)
+                items(items, key = { it.key }) { item ->
+                    when (item) {
+                        is ChatItem.Separator -> DateSeparator(item.label, colors)
+                        is ChatItem.Message -> MessageBubble(
+                            message = item.message,
+                            mine = item.mine,
+                            grouped = item.grouped,
+                            colors = colors,
+                            viewModel = viewModel,
+                            onOpenImage = { img -> modalImage = img },
+                            onCopy = { text ->
+                                val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                cm.setPrimaryClip(ClipData.newPlainText("chat", text))
+                            },
+                            onReply = { quote -> replyQuote = quote }
+                        )
+                    }
                 }
             }
             if (uploading) {
@@ -163,6 +187,9 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
                 }
             }
             if (emojiOpen) EmojiPicker(colors) { input += it }
+            if (replyQuote != null) {
+                ReplyQuoteBar(replyQuote!!, colors) { replyQuote = null }
+            }
             InputBar(
                 input = input,
                 colors = colors,
@@ -275,14 +302,19 @@ private fun startCall(context: android.content.Context, route: LinkRoute.Chat, w
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MessageBubble(
     message: LinkChatMessage,
     mine: Boolean,
+    grouped: Boolean,
     colors: ChatColors,
     viewModel: LinkViewModel,
-    onOpenImage: (androidx.compose.ui.graphics.ImageBitmap) -> Unit
+    onOpenImage: (androidx.compose.ui.graphics.ImageBitmap) -> Unit,
+    onCopy: (String) -> Unit,
+    onReply: (String) -> Unit,
 ) {
+    var contextMenuOpen by remember { mutableStateOf(false) }
     val fileName = message.fileName()
     val fileId = message.fileId()
     val isImage = message.isImageFile() && fileId != null
@@ -299,29 +331,52 @@ private fun MessageBubble(
     var bubbleModifier = Modifier.widthIn(max = BUBBLE_MAX.dp)
         .clip(shape)
         .background(if (mine) colors.mine else colors.other)
-    if (onClick != null) bubbleModifier = bubbleModifier.clickable(onClick = onClick)
+        .combinedClickable(
+            onClick = onClick ?: {},
+            onLongClick = { contextMenuOpen = true },
+        )
     bubbleModifier = bubbleModifier.padding(horizontal = BUBBLE_PAD_H.dp, vertical = BUBBLE_PAD_V.dp)
 
+    val verticalPadding = if (grouped) 1 else BUBBLE_V
+
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = BUBBLE_H.dp, vertical = BUBBLE_V.dp),
+        Modifier.fillMaxWidth().padding(horizontal = BUBBLE_H.dp, vertical = verticalPadding.dp),
         horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start
     ) {
-        Column(bubbleModifier) {
-            if (isImage && fileId != null) {
-                ImageAttachment(fileId, fileName, viewModel, onOpenImage)
-            } else {
-                Text(
-                    if (fileName != null) "📎 $fileName" else message.message,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = colors.text
-                )
+        Box {
+            Column(bubbleModifier) {
+                if (isImage && fileId != null) {
+                    ImageAttachment(fileId, fileName, viewModel, onOpenImage)
+                } else {
+                    Text(
+                        if (fileName != null) "📎 $fileName" else message.message,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = colors.text
+                    )
+                }
+                if (message.timestamp > 0) {
+                    Text(
+                        formatTime(message.timestamp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colors.time,
+                        modifier = Modifier.align(Alignment.End)
+                    )
+                }
             }
-            if (message.timestamp > 0) {
-                Text(
-                    formatTime(message.timestamp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = colors.time,
-                    modifier = Modifier.align(Alignment.End)
+            DropdownMenu(expanded = contextMenuOpen, onDismissRequest = { contextMenuOpen = false }) {
+                DropdownMenuItem(
+                    text = { Text("Kopieren") },
+                    onClick = {
+                        contextMenuOpen = false
+                        onCopy(message.message)
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Zitieren") },
+                    onClick = {
+                        contextMenuOpen = false
+                        onReply(message.actorDisplayName ?: message.actorId ?: "")
+                    }
                 )
             }
         }
@@ -416,6 +471,81 @@ private fun InputBar(
                     tint = MaterialTheme.colorScheme.onPrimary
                 )
             }
+        }
+    }
+}
+
+private sealed interface ChatItem {
+    val key: String
+    data class Separator(override val key: String, val label: String) : ChatItem
+    data class Message(
+        override val key: String,
+        val message: LinkChatMessage,
+        val mine: Boolean,
+        val grouped: Boolean
+    ) : ChatItem
+}
+
+private fun buildChatItems(messages: List<LinkChatMessage>, me: String): List<ChatItem> {
+    val items = mutableListOf<ChatItem>()
+    var lastDate: String? = null
+    var lastActor: String? = null
+    messages.forEachIndexed { idx, msg ->
+        val date = dateLabel(msg.timestamp)
+        if (date != lastDate) {
+            items.add(ChatItem.Separator(key = "sep-${msg.id}", label = date))
+            lastDate = date
+        }
+        val isMe = msg.actorId == me
+        val grouped = msg.actorId != null && msg.actorId == lastActor && lastDate == date
+        items.add(ChatItem.Message(key = "${msg.id}", message = msg, mine = isMe, grouped = grouped))
+        lastActor = msg.actorId
+    }
+    return items
+}
+
+private fun dateLabel(ts: Long): String {
+    if (ts <= 0) return ""
+    val now = java.util.Calendar.getInstance()
+    val msgTime = java.util.Calendar.getInstance().apply { timeInMillis = ts * 1000 }
+    return when {
+        now.get(java.util.Calendar.YEAR) == msgTime.get(java.util.Calendar.YEAR) &&
+        now.get(java.util.Calendar.DAY_OF_YEAR) == msgTime.get(java.util.Calendar.DAY_OF_YEAR) -> "Heute"
+        now.get(java.util.Calendar.YEAR) == msgTime.get(java.util.Calendar.YEAR) &&
+        now.get(java.util.Calendar.DAY_OF_YEAR) - 1 == msgTime.get(java.util.Calendar.DAY_OF_YEAR) -> "Gestern"
+        else -> java.text.SimpleDateFormat("dd.MM.yyyy", java.util.Locale.getDefault())
+            .format(java.util.Date(ts * 1000))
+    }
+}
+
+@Composable
+private fun DateSeparator(label: String, colors: ChatColors) {
+    Box(Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
+        Surface(color = colors.time.copy(alpha = 0.15f), shape = RoundedCornerShape(12.dp)) {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                color = colors.time,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReplyQuoteBar(actorName: String, colors: ChatColors, onDismiss: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().background(colors.mine.copy(alpha = 0.3f)).padding(horizontal = INPUT_H.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            "↩ $actorName",
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.time,
+            modifier = Modifier.weight(1f)
+        )
+        IconButton(onClick = onDismiss) {
+            Text("✕", color = colors.time, style = MaterialTheme.typography.labelSmall)
         }
     }
 }
