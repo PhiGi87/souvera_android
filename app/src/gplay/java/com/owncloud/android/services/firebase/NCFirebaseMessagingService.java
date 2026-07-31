@@ -116,48 +116,28 @@ public class NCFirebaseMessagingService extends FirebaseMessagingService {
         }
 
         // Every Souvera mail push (Stalwart webhook -> souvera_mail -> FCM, type=new_mail; the
-        // souvera_mail:push:test diagnostic sends type=test) and any other message carrying a
-        // notification payload is displayed by the workspace itself, so the Souvera icon and text
-        // show regardless of app state and FCM data shape.
+        // souvera_mail:push:test diagnostic sends type=test).
+        //
+        // NEW_MAIL pushes are NO LONGER processed here — IMAP IDLE (ImapIdleService) handles
+        // instant new-mail notifications reliably, independent of FCM delivery delays. The FCM
+        // channel remains active for NON-mail notifications (Nextcloud push proxy, test pings,
+        // server-side config changes, etc.).
         final String type = data.get(SOUVERA_KEY_TYPE);
         com.souvera.workspace.link.call.CallDebugLog.INSTANCE.attach(this);
         com.souvera.workspace.link.call.CallDebugLog.INSTANCE.log(
             "MailPush", "onMessage type=" + type + " notif=" + (notification != null) + " dataKeys=" + data.keySet());
 
-        // Safety net: if this message has ANY Souvera mail push markers, show a notification
-        // unconditionally — we never want a mail push to be silently dropped.
-        boolean isSouveraPush = type != null || notification != null;
+        if ("new_mail".equals(type)) {
+            Log_OC.d(TAG, "new_mail push received — IDLE handles notification, skipping FCM handler");
+            return;
+        }
 
+        // Non-mail Souvera push (test, unknown type, or FCM notification payload).
+        final boolean isSouveraPush = type != null || notification != null;
         if (isSouveraPush) {
             try {
                 final String resolvedTitle = notification != null ? notification.getTitle() : data.get(SOUVERA_KEY_TITLE);
                 final String resolvedBody = notification != null ? notification.getBody() : data.get(SOUVERA_KEY_BODY);
-                if ("new_mail".equals(type)) {
-                    // Show a generic notification INSTANTLY — no IMAP wait. Then enrich
-                    // with sender/subject/snippet in the background.
-                    final int notifyId = MailPushNotifier.LATEST_ID;
-                    MailPushNotifier.INSTANCE.show(this,
-                        resolvedTitle != null ? resolvedTitle : getString(R.string.mail_push_new_title),
-                        resolvedBody != null ? resolvedBody : getString(R.string.mail_push_new_body),
-                        null, null, null, notifyId);
-
-                    // Fetch the IMAP preview on a background thread; when it arrives,
-                    // update the SAME notification (same id) with rich content.
-                    new Thread(() -> {
-                        final com.souvera.workspace.mail.push.MailPushContentFetcher.MailPreview preview =
-                            com.souvera.workspace.mail.push.MailPushContentFetcher.INSTANCE.fetchLatest(
-                                getApplicationContext());
-                        if (preview != null) {
-                            MailPushNotifier.INSTANCE.show(
-                                getApplicationContext(),
-                                resolvedTitle, resolvedBody,
-                                preview.getSender(), preview.getSubject(), preview.getSnippet(),
-                                notifyId);
-                        }
-                    }, "mail-push-enrich").start();
-                    return;
-                }
-                // Non-new_mail Souvera push (e.g. test, unknown type, or FCM notification payload).
                 MailPushNotifier.INSTANCE.show(this, resolvedTitle, resolvedBody,
                     data.get("sender"), data.get("subject"), data.get("preview"));
             } catch (Exception e) {
