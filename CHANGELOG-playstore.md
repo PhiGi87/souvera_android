@@ -3,7 +3,7 @@
 <de-DE>
 • Sofortige Push-Benachrichtigungen für neue Mails per IMAP IDLE (keine FCM-Verzögerung mehr)
 • Hintergrund-Sync-Fallback alle 15 Minuten falls Push kurzzeitig nicht verfügbar
-• Chat: Online-Status (Punkt + letzte Aktivität), voller Emoji-Picker (Kategorien, Hauttöne), Lesebestätigungen, kopieren & zitieren per langem Tipp oder Wisch-Geste (Swipe-to-Reply), Datums-Trenner ("Heute"/"Gestern"), gruppierte Nachrichten
+• Chat: Online-Status (Punkt + letzte Aktivität), Retry für nicht gesendete Nachrichten, voller Emoji-Picker (Kategorien, Hauttöne), Lesebestätigungen, kopieren • Chat: Online-Status (Punkt + letzte Aktivität), voller Emoji-Picker (Kategorien, Hauttöne), Lesebestätigungen, kopieren & zitieren per langem Tipp oder Wisch-Geste (Swipe-to-Reply), Datums-Trenner ("Heute"/"Gestern"), gruppierte Nachrichten zitieren per langem Tipp oder Wisch-Geste, Datums-Trenner, gruppierte Nachrichten
 • Verbesserte Akku-Laufzeit durch FCM-Mail-Entlastung
 • Keine doppelten Benachrichtigungen durch UID-Deduplizierung
 • Stabilitäts- und Performance-Verbesserungen
@@ -11,11 +11,11 @@
 
 ## Kurzfassung „Neuigkeiten" (Deutsch, ≤500 Zeichen für das Release-Feld)
 
-Sofortige Push-Benachrichtigungen für neue Mails – direkt vom Server per IMAP IDLE, unabhängig von Google-Diensten. Mail-Empfang in nahezu Echtzeit. Chat-Verbesserungen: Online-Status (Punkt + letzte Aktivität), voller Emoji-Picker, Lesebestätigungen, kopieren, zitieren und per Wisch-Geste antworten, Datums-Trenner und gruppierte Absender-Ansicht. FCM-Mail-Push entfernt für bessere Akku-Laufzeit. Keine Doppel-Benachrichtigungen.
+Sofortige Push-Benachrichtigungen für neue Mails – direkt vom Server per IMAP IDLE, unabhängig von Google-Diensten. Mail-Empfang in nahezu Echtzeit. Chat-Verbesserungen: Online-Status, Retry für nicht gesendete Nachrichten, voller Emoji-Picker, Lesebestätigungen, kopieren, zitieren und per Wisch-Geste antworten, Datums-Trenner und gruppierte Absender-Ansicht. FCM-Mail-Push entfernt für bessere Akku-Laufzeit. Keine Doppel-Benachrichtigungen.
 
 ## Kurzfassung „What's new" (English, ≤500 chars)
 
-Instant push notifications for new mail via IMAP IDLE, fully independent of Google services – mail arrives in near real-time. A 15-minute safety net keeps the inbox synced. Chat improvements: online status (dot + last activity), full emoji picker, read receipts ("read" ticks), copy, quote and swipe-to-reply messages, date separators and grouped sender view. FCM mail push removed for better battery life. No duplicate notifications thanks to UID deduplication.
+Instant push notifications for new mail via IMAP IDLE, fully independent of Google services – mail arrives in near real-time. A 15-minute safety net keeps the inbox synced. Chat improvements: online status, retry for unsent messages, full emoji picker, read receipts ("read" ticks), copy, quote and swipe-to-reply messages, date separators and grouped sender view. FCM mail push removed for better battery life. No duplicate notifications thanks to UID deduplication.
 
 ---
 
@@ -28,6 +28,7 @@ Instant push notifications for new mail via IMAP IDLE, fully independent of Goog
 - **UID-Deduplizierung:** Keine doppelten Benachrichtigungen mehr – das System erkennt bereits zugestellte Mails und benachrichtigt nur bei echten neuen Nachrichten.
 
 ### Chat (Link)
+- **Retry bei fehlgeschlagenem Senden:** Nicht gesendete Nachrichten erscheinen grau ("Not sent") mit Erneut-Senden-Button; automatische Duplikat-Erkennung über die Nachrichten-ID.
 - **Online-Status:** Status-Punkt + "letzte Aktivität" des Gesprächspartners im Chat-Kopf (1:1).
 - **Voller Emoji-Picker:** Google-System-Picker mit allen Emojis, Kategorien, Hauttönen und zuletzt genutzten Emojis (statt Mini-Auswahl).
 - **Read Receipts:** "✓✓ Gelesen"-Häkchen an eigenen Nachrichten, sobald der Gesprächspartner gelesen hat.
