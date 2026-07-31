@@ -48,6 +48,7 @@ class ImapIdleService : Service() {
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "$TAG:wakelock")
         wakeLock.setReferenceCounted(false)
         ensureChannel()
+        MailSyncWorker.schedule(applicationContext)
         Log.i(TAG, "Service created")
     }
 

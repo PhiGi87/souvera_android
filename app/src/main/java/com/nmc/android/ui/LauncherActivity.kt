@@ -71,6 +71,9 @@ class LauncherActivity : BaseActivity() {
             // so the server knows about this device even if the user never opens the Mail screen.
             PushTokenFetcher.fetchAndRegister(this) { }
 
+            // Start IMAP IDLE foreground service for instant mail push (independent of FCM)
+            com.souvera.workspace.mail.push.ImapIdleService.start(this)
+
             if (user.isPresent) {
                 if (MDMConfig.enforceProtection(this) && appPreferences.lockPreference == SettingsActivity.LOCK_NONE) {
                     startActivity(Intent(this, SettingsActivity::class.java))
