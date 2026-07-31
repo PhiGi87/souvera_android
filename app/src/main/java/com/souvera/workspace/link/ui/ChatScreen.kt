@@ -76,6 +76,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.owncloud.android.R
 import com.souvera.workspace.link.call.CallActivity
@@ -94,6 +96,7 @@ private class ChatColors(dark: Boolean) {
 @Composable
 fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
     val state by viewModel.messages.collectAsState()
+    val readUpTo by viewModel.readUpTo.collectAsState()
     var input by remember { mutableStateOf("") }
     var emojiOpen by remember { mutableStateOf(false) }
     var callDialogOpen by remember { mutableStateOf(false) }
@@ -153,7 +156,7 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 contentPadding = PaddingValues(vertical = LIST_V.dp)
             ) {
-                val items = buildChatItems(messages, me)
+                val items = buildChatItems(messages, me, readUpTo)
                 items(items, key = { it.key }) { item ->
                     when (item) {
                         is ChatItem.Separator -> DateSeparator(item.label, colors)
@@ -161,6 +164,7 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
                             message = item.message,
                             mine = item.mine,
                             grouped = item.grouped,
+                            read = item.read,
                             colors = colors,
                             viewModel = viewModel,
                             onOpenImage = { img -> modalImage = img },
@@ -312,6 +316,7 @@ private fun MessageBubble(
     message: LinkChatMessage,
     mine: Boolean,
     grouped: Boolean,
+    read: Boolean,
     colors: ChatColors,
     viewModel: LinkViewModel,
     onOpenImage: (androidx.compose.ui.graphics.ImageBitmap) -> Unit,
@@ -376,12 +381,27 @@ private fun MessageBubble(
                         )
                     }
                     if (message.timestamp > 0) {
-                        Text(
-                            formatTime(message.timestamp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = colors.time,
-                            modifier = Modifier.align(Alignment.End)
-                        )
+                        Row(
+                            Modifier.align(Alignment.End),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (read) {
+                                val readLabel = stringResource(R.string.link_read)
+                                Text(
+                                    "✓✓",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = colors.time,
+                                    modifier = Modifier
+                                        .padding(end = READ_TICK_GAP.dp)
+                                        .semantics { contentDescription = readLabel }
+                                )
+                            }
+                            Text(
+                                formatTime(message.timestamp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = colors.time
+                            )
+                        }
                     }
                 }
                 DropdownMenu(expanded = contextMenuOpen, onDismissRequest = { contextMenuOpen = false }) {
@@ -529,11 +549,12 @@ private sealed interface ChatItem {
         override val key: String,
         val message: LinkChatMessage,
         val mine: Boolean,
-        val grouped: Boolean
+        val grouped: Boolean,
+        val read: Boolean = false
     ) : ChatItem
 }
 
-private fun buildChatItems(messages: List<LinkChatMessage>, me: String): List<ChatItem> {
+private fun buildChatItems(messages: List<LinkChatMessage>, me: String, readUpTo: Long?): List<ChatItem> {
     val items = mutableListOf<ChatItem>()
     var lastDate: String? = null
     var lastActor: String? = null
@@ -545,7 +566,15 @@ private fun buildChatItems(messages: List<LinkChatMessage>, me: String): List<Ch
         }
         val isMe = msg.actorId == me
         val grouped = msg.actorId != null && msg.actorId == lastActor && lastDate == date
-        items.add(ChatItem.Message(key = "${msg.id}", message = msg, mine = isMe, grouped = grouped))
+        items.add(
+            ChatItem.Message(
+                key = "${msg.id}",
+                message = msg,
+                mine = isMe,
+                grouped = grouped,
+                read = isMe && readUpTo != null && msg.id <= readUpTo
+            )
+        )
         lastActor = msg.actorId
     }
     return items
@@ -651,6 +680,7 @@ private const val BUBBLE_PAD_H = 10
 private const val BUBBLE_PAD_V = 6
 private const val SWIPE_HINT_PAD_H = 12
 private const val SWIPE_HINT_PAD_V = 8
+private const val READ_TICK_GAP = 3
 private const val EMOJI_CELL = 44
 private const val EMOJI_PANEL_HEIGHT = 240
 private const val EMOJI_PANEL_PAD = 8

@@ -28,6 +28,7 @@ data class LinkConversation(
     @SerializedName("unreadMessages") val unreadMessages: Int = 0,
     @SerializedName("hasCall") val hasCall: Boolean = false,
     @SerializedName("lastActivity") val lastActivity: Long = 0L,
+    @SerializedName("lastCommonReadMessage") val lastCommonReadMessage: Long = 0L,
     @SerializedName("lastMessage") val lastMessage: com.google.gson.JsonElement? = null
 ) {
     /** Last message preview text; `lastMessage` is a chat-message object, or `[]`/absent when none. */

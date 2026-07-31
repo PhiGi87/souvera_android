@@ -37,6 +37,7 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
     private var api: OcsApi? = null
     private var pollJob: Job? = null
     private var lastMessageId = 0L
+    private var conversationLoadSeq = 0L
 
     var currentUserId: String = ""
         private set
@@ -52,6 +53,10 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _messages = MutableStateFlow<LinkUiState<List<LinkChatMessage>>>(LinkUiState.Loading)
     val messages: StateFlow<LinkUiState<List<LinkChatMessage>>> = _messages.asStateFlow()
+
+    /** Highest message id the chat peer has read (read receipt), null while unknown. */
+    private val _readUpTo = MutableStateFlow<Long?>(null)
+    val readUpTo: StateFlow<Long?> = _readUpTo.asStateFlow()
 
     private val _uploading = MutableStateFlow(false)
     val uploading: StateFlow<Boolean> = _uploading.asStateFlow()
@@ -166,15 +171,22 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadConversations() {
         val client = api ?: return
+        val seq = ++conversationLoadSeq
         viewModelScope.launch {
-            _conversations.value = runCatching { withContext(Dispatchers.IO) { client.listConversations() } }
+            val result = runCatching { withContext(Dispatchers.IO) { client.listConversations() } }
                 .fold({ LinkUiState.Success(it) }, { LinkUiState.Error(it.message ?: "Error") })
+            if (seq != conversationLoadSeq) return@launch
+            _conversations.value = result
+            val chat = _route.value as? LinkRoute.Chat
+            val conversations = (result as? LinkUiState.Success)?.data.orEmpty()
+            _readUpTo.value = conversations.firstOrNull { it.token == chat?.token }?.lastCommonReadMessage
         }
     }
 
     fun openConversation(token: String, title: String) {
         _route.value = LinkRoute.Chat(token, title)
         _messages.value = LinkUiState.Loading
+        _readUpTo.value = null
         lastMessageId = 0L
         val client = api ?: return
         pollJob?.cancel()
@@ -192,6 +204,7 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
             val ordered = history.sortedBy { it.id }
             lastMessageId = ordered.lastOrNull()?.id ?: 0L
             _messages.value = LinkUiState.Success(ordered)
+            loadConversations()
             pollNewMessages(token)
         }
     }

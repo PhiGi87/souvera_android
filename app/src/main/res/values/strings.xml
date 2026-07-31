@@ -1535,6 +1535,7 @@
     <string name="link_no_conversations">No conversations</string>
     <string name="link_message_hint">Message</string>
     <string name="link_send">Send</string>
+    <string name="link_read">Read</string>
     <string name="link_new_chat">New chat</string>
     <string name="link_search_conversations">Search conversations</string>
     <string name="link_search_users">Search people</string>

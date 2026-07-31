@@ -37,7 +37,7 @@ class MailNamespacesTest {
         val folder = mockk<IMAPFolder>(relaxed = true) {
             every { this@mockk.fullName } returns fullName
             every { this@mockk.name } returns "INBOX"
-            every { attributes } returns arrayOf("\Inbox")
+            every { attributes } returns arrayOf("\\Inbox")
         }
         
         val entity = ImapFolderMapper.toEntity(
