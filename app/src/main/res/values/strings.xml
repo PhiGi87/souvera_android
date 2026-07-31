@@ -1539,6 +1539,8 @@
     <string name="link_online">Online</string>
     <string name="link_away">Away</string>
     <string name="link_dnd">Do not disturb</string>
+    <string name="link_not_sent">Not sent</string>
+    <string name="link_retry">Retry</string>
     <string name="link_last_active_now">Last active just now</string>
     <plurals name="link_last_active_min">
         <item quantity="one">Last active %d minute ago</item>

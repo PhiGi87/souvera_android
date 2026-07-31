@@ -41,6 +41,9 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
     private var conversationLoadSeq = 0L
     private var lastPeerStatusRefreshMs = 0L
     private val peerIdByToken = mutableMapOf<String, String?>()
+    private var localIdCounter = 0L
+
+    private fun nextLocalId(): Long = ++localIdCounter
 
     var currentUserId: String = ""
         private set
@@ -64,6 +67,14 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
     /** Presence of the one-to-one chat peer, null while unknown / in group rooms. */
     private val _peerStatus = MutableStateFlow<com.souvera.workspace.status.PeerStatus?>(null)
     val peerStatus: StateFlow<com.souvera.workspace.status.PeerStatus?> = _peerStatus.asStateFlow()
+
+    /** Locally tracked messages whose send failed; kept until a retry succeeds. */
+    private val _failedMessages = MutableStateFlow<List<FailedChatMessage>>(emptyList())
+    val failedMessages: StateFlow<List<FailedChatMessage>> = _failedMessages.asStateFlow()
+
+    /** Local ids currently being re-sent (retry button disabled while in flight). */
+    private val _retryInFlight = MutableStateFlow<Set<Long>>(emptySet())
+    val retryInFlight: StateFlow<Set<Long>> = _retryInFlight.asStateFlow()
 
     private val _uploading = MutableStateFlow(false)
     val uploading: StateFlow<Boolean> = _uploading.asStateFlow()
@@ -213,6 +224,7 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
             val ordered = history.sortedBy { it.id }
             lastMessageId = ordered.lastOrNull()?.id ?: 0L
             _messages.value = LinkUiState.Success(ordered)
+            dropFailedMatchedByReferenceId(ordered)
             loadConversations()
             loadPeerStatus(token)
             pollNewMessages(token)
@@ -281,6 +293,7 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
                 lastMessageId = fresh.maxOf { it.id }
                 val current = (_messages.value as? LinkUiState.Success)?.data.orEmpty()
                 _messages.value = LinkUiState.Success((current + fresh).distinctBy { it.id }.sortedBy { it.id })
+                dropFailedMatchedByReferenceId(fresh)
             }
             val now = android.os.SystemClock.elapsedRealtime()
             if (now - lastPeerStatusRefreshMs > PEER_STATUS_REFRESH_MS) {
@@ -294,7 +307,67 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
         val client = api ?: return
         val token = (_route.value as? LinkRoute.Chat)?.token ?: return
         if (text.isBlank()) return
-        viewModelScope.launch { withContext(Dispatchers.IO) { client.sendMessage(token, text.trim()) } }
+        val trimmed = text.trim()
+        val localId = nextLocalId()
+        val referenceId = referenceIdFor(localId)
+        val timestamp = System.currentTimeMillis() / 1000
+        viewModelScope.launch {
+            val ok = try {
+                withContext(Dispatchers.IO) { client.sendMessage(token, trimmed, referenceId) }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                false
+            }
+            if (ok) return@launch
+            _failedMessages.value = _failedMessages.value + FailedChatMessage(
+                localId = localId,
+                token = token,
+                text = trimmed,
+                timestamp = timestamp
+            )
+        }
+    }
+
+    /** Re-sends a failed message; removes it from the list once the server accepted it. */
+    fun retryMessage(localId: Long) {
+        val client = api ?: return
+        val failed = _failedMessages.value.firstOrNull { it.localId == localId } ?: return
+        if (localId in _retryInFlight.value) return
+        _retryInFlight.value = _retryInFlight.value + localId
+        viewModelScope.launch {
+            try {
+                val ok = try {
+                    withContext(Dispatchers.IO) {
+                        client.sendMessage(failed.token, failed.text, referenceIdFor(localId))
+                    }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    false
+                }
+                if (ok) {
+                    _failedMessages.value = _failedMessages.value.filterNot { it.localId == localId }
+                }
+            } finally {
+                _retryInFlight.value = _retryInFlight.value - localId
+            }
+        }
+    }
+
+    private fun referenceIdFor(localId: Long): String = "souv-$localId"
+
+    /**
+     * Drops failed entries whose message was already accepted server-side (response lost) — the
+     * message surfaces in history/poll with its referenceId; re-sending would create a duplicate.
+     */
+    private fun dropFailedMatchedByReferenceId(messages: List<LinkChatMessage>) {
+        val matchedLocalIds = messages.mapNotNull { it.referenceId }.mapNotNull { ref ->
+            if (ref.startsWith(REFERENCE_PREFIX)) ref.removePrefix(REFERENCE_PREFIX).toLongOrNull() else null
+        }
+        if (matchedLocalIds.isNotEmpty()) {
+            _failedMessages.value = _failedMessages.value.filterNot { it.localId in matchedLocalIds }
+        }
     }
 
     fun back(): Boolean {
@@ -313,5 +386,6 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
         private const val ROOM_TYPE_GROUP = 2
         private const val HISTORY_ANCHOR = 2_000_000_000L
         private const val PEER_STATUS_REFRESH_MS = 30_000L
+        private const val REFERENCE_PREFIX = "souv-"
     }
 }

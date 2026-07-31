@@ -15,6 +15,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -35,6 +36,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Face
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.AlertDialog
@@ -97,6 +99,8 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
     val state by viewModel.messages.collectAsState()
     val readUpTo by viewModel.readUpTo.collectAsState()
     val peerStatus by viewModel.peerStatus.collectAsState()
+    val failedMessages by viewModel.failedMessages.collectAsState()
+    val retryInFlight by viewModel.retryInFlight.collectAsState()
     var input by remember { mutableStateOf("") }
     var emojiOpen by remember { mutableStateOf(false) }
     var callDialogOpen by remember { mutableStateOf(false) }
@@ -117,8 +121,10 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
         uri?.let { viewModel.sendAttachment(it) }
     }
 
-    LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) listState.animateScrollToItem(messages.lastIndex)
+    val items = buildChatItems(messages, me, readUpTo, failedMessages, route.token)
+
+    LaunchedEffect(items.size) {
+        if (items.isNotEmpty()) listState.animateScrollToItem(items.lastIndex)
     }
 
     LaunchedEffect(route.token) {
@@ -156,10 +162,15 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 contentPadding = PaddingValues(vertical = LIST_V.dp)
             ) {
-                val items = buildChatItems(messages, me, readUpTo)
                 items(items, key = { it.key }) { item ->
                     when (item) {
                         is ChatItem.Separator -> DateSeparator(item.label, colors)
+                        is ChatItem.Failed -> FailedMessageBubble(
+                            text = item.text,
+                            colors = colors,
+                            retrying = item.localId in retryInFlight,
+                            onRetry = { viewModel.retryMessage(item.localId) }
+                        )
                         is ChatItem.Message -> MessageBubble(
                             message = item.message,
                             mine = item.mine,
@@ -489,6 +500,39 @@ private fun SwipeReplyHint(direction: SwipeToDismissBoxValue, colors: ChatColors
 }
 
 @Composable
+private fun FailedMessageBubble(text: String, colors: ChatColors, retrying: Boolean, onRetry: () -> Unit) {
+    val shape = RoundedCornerShape(BUBBLE_CORNER.dp, TAIL_CORNER.dp, BUBBLE_CORNER.dp, BUBBLE_CORNER.dp)
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = BUBBLE_H.dp, vertical = BUBBLE_V.dp),
+        horizontalArrangement = Arrangement.End
+    ) {
+        Surface(color = colors.other.copy(alpha = 0.55f), shape = shape) {
+            Column(Modifier.padding(horizontal = BUBBLE_PAD_H.dp, vertical = BUBBLE_PAD_V.dp)) {
+                Text(text, style = MaterialTheme.typography.bodyLarge, color = colors.time)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        stringResource(R.string.link_not_sent),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colors.time
+                    )
+                    IconButton(
+                        onClick = onRetry,
+                        enabled = !retrying,
+                        modifier = Modifier.size(FAILED_RETRY_SIZE.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.Refresh,
+                            contentDescription = stringResource(R.string.link_retry),
+                            tint = if (retrying) colors.time.copy(alpha = 0.4f) else colors.time
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun ImageAttachment(
     fileId: String,
     fileName: String?,
@@ -580,58 +624,6 @@ private fun InputBar(
     }
 }
 
-private sealed interface ChatItem {
-    val key: String
-    data class Separator(override val key: String, val label: String) : ChatItem
-    data class Message(
-        override val key: String,
-        val message: LinkChatMessage,
-        val mine: Boolean,
-        val grouped: Boolean,
-        val read: Boolean = false
-    ) : ChatItem
-}
-
-private fun buildChatItems(messages: List<LinkChatMessage>, me: String, readUpTo: Long?): List<ChatItem> {
-    val items = mutableListOf<ChatItem>()
-    var lastDate: String? = null
-    var lastActor: String? = null
-    messages.forEachIndexed { idx, msg ->
-        val date = dateLabel(msg.timestamp)
-        if (date != lastDate) {
-            items.add(ChatItem.Separator(key = "sep-${msg.id}", label = date))
-            lastDate = date
-        }
-        val isMe = msg.actorId == me
-        val grouped = msg.actorId != null && msg.actorId == lastActor && lastDate == date
-        items.add(
-            ChatItem.Message(
-                key = "${msg.id}",
-                message = msg,
-                mine = isMe,
-                grouped = grouped,
-                read = isMe && readUpTo != null && msg.id <= readUpTo
-            )
-        )
-        lastActor = msg.actorId
-    }
-    return items
-}
-
-private fun dateLabel(ts: Long): String {
-    if (ts <= 0) return ""
-    val now = java.util.Calendar.getInstance()
-    val msgTime = java.util.Calendar.getInstance().apply { timeInMillis = ts * 1000 }
-    return when {
-        now.get(java.util.Calendar.YEAR) == msgTime.get(java.util.Calendar.YEAR) &&
-        now.get(java.util.Calendar.DAY_OF_YEAR) == msgTime.get(java.util.Calendar.DAY_OF_YEAR) -> "Heute"
-        now.get(java.util.Calendar.YEAR) == msgTime.get(java.util.Calendar.YEAR) &&
-        now.get(java.util.Calendar.DAY_OF_YEAR) - 1 == msgTime.get(java.util.Calendar.DAY_OF_YEAR) -> "Gestern"
-        else -> java.text.SimpleDateFormat("dd.MM.yyyy", java.util.Locale.getDefault())
-            .format(java.util.Date(ts * 1000))
-    }
-}
-
 @Composable
 private fun DateSeparator(label: String, colors: ChatColors) {
     Box(Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
@@ -701,6 +693,7 @@ private const val READ_TICK_GAP = 3
 private const val EMOJI_PANEL_HEIGHT = 240
 private const val STATUS_DOT = 8
 private const val STATUS_DOT_GAP = 4
+private const val FAILED_RETRY_SIZE = 48
 private const val CALL_ROW_V = 14
 private const val CALL_ROW_GAP = 20
 private const val BANNER_PAD = 14

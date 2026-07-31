@@ -53,6 +53,7 @@ data class LinkChatMessage(
     @SerializedName("timestamp") val timestamp: Long = 0L,
     @SerializedName("message") val message: String = "",
     @SerializedName("systemMessage") val systemMessage: String = "",
+    @SerializedName("referenceId") val referenceId: String? = null,
     @SerializedName("messageParameters") val messageParameters: JsonElement? = null
 ) {
     /** File name if this message is a shared file (Talk puts a `file` rich-object parameter), else null. */

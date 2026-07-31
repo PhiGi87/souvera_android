@@ -60,12 +60,15 @@ class OcsApi(private val dav: DavAccount) {
         return gson.fromJson<OcsEnvelope<List<LinkChatMessage>>>(body, type).ocs.data.orEmpty()
     }
 
-    fun sendMessage(token: String, message: String) {
-        val payload = gson.toJson(mapOf("message" to message))
+    /** Sends a chat message; returns true when the server accepted it. */
+    fun sendMessage(token: String, message: String, referenceId: String? = null): Boolean {
+        val payload = gson.toJson(
+            mapOf("message" to message).plus(referenceId?.let { mapOf("referenceId" to it) }.orEmpty())
+        )
         val request = signed(Request.Builder().url("$base/api/v1/chat/$token"))
             .post(payload.toRequestBody(JSON))
             .build()
-        client.newCall(request).execute().use { /* fire-and-forget; poll surfaces the result */ }
+        return client.newCall(request).execute().use { it.isSuccessful }
     }
 
     /** Autocomplete users/groups to start a new conversation with. */
