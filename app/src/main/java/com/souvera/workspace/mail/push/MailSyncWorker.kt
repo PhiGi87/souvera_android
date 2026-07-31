@@ -27,7 +27,9 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.owncloud.android.R
 import com.souvera.workspace.dav.SouveraSyncManager
+import com.souvera.workspace.mail.repository.MailResult
 import com.souvera.workspace.mail.repository.MessageRepository
+import com.souvera.workspace.push.MailPushNotifier
 import java.util.concurrent.TimeUnit
 
 class MailSyncWorker(
@@ -62,20 +64,21 @@ class MailSyncWorker(
     private suspend fun syncInboxAndNotify(accountName: String, dav: com.souvera.workspace.dav.DavAccount): Int {
         val repository = MessageRepository(applicationContext)
         val result = repository.syncMessages(accountName, "INBOX", dav)
-        val entities = result.getOrNull() ?: return 0
+        if (result !is MailResult.Success) return 0
+        val entities = result.value
 
         val lastUid = IdlePreferences.getLastKnownUid(applicationContext, accountName)
         val newMessages = if (lastUid > 0) entities.filter { it.uid > lastUid } else emptyList()
 
         if (newMessages.isNotEmpty()) {
-            val newest = newMessages.maxByOrNull { it.uid } ?: return 0
+            val newest = newMessages.maxByOrNull { it.uid }!!
             MailPushNotifier.show(
                 applicationContext,
                 applicationContext.getString(R.string.mail_push_new_title),
                 applicationContext.getString(R.string.mail_push_new_body),
                 newest.fromDisplayName ?: newest.fromAddress,
                 newest.subject,
-                newest.snippet?.take(160),
+                newest.subject,
                 notificationId = MailPushNotifier.LATEST_ID
             )
         }
@@ -85,7 +88,7 @@ class MailSyncWorker(
             IdlePreferences.setLastKnownUid(applicationContext, accountName, maxUid)
         }
 
-        return newMessages.size
+        return newMessages.count()
     }
 
     companion object {

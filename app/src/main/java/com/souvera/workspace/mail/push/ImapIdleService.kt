@@ -31,10 +31,10 @@ import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.owncloud.android.R
-import com.souvera.workspace.dav.DavAccount
 import android.accounts.AccountManager
 import com.souvera.workspace.dav.SouveraSyncManager
 import com.souvera.workspace.mail.ui.MailActivity
+import com.souvera.workspace.push.MailPushNotifier
 
 class ImapIdleService : Service() {
 
