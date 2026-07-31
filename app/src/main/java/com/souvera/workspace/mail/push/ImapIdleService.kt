@@ -180,6 +180,7 @@ class ImapIdleService : Service() {
         private const val EXTRA_ACCOUNT_NAME = "account_name"
         private const val IDLE_RECONNECT_DELAY_MS = 15_000L
 
+        @JvmOverloads
         fun start(context: Context, accountName: String? = null) {
             val intent = Intent(context, ImapIdleService::class.java).apply {
                 if (accountName != null) putExtra(EXTRA_ACCOUNT_NAME, accountName)

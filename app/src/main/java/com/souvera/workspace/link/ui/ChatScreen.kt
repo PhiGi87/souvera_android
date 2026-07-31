@@ -12,9 +12,9 @@ import android.content.ClipboardManager
 import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -51,11 +51,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -66,6 +69,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -302,7 +306,7 @@ private fun startCall(context: android.content.Context, route: LinkRoute.Chat, w
     )
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun MessageBubble(
     message: LinkChatMessage,
@@ -338,47 +342,90 @@ private fun MessageBubble(
     bubbleModifier = bubbleModifier.padding(horizontal = BUBBLE_PAD_H.dp, vertical = BUBBLE_PAD_V.dp)
 
     val verticalPadding = if (grouped) 1 else BUBBLE_V
+    val dismissState = rememberSwipeToDismissBoxState()
 
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = BUBBLE_H.dp, vertical = verticalPadding.dp),
-        horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start
+    LaunchedEffect(dismissState.currentValue) {
+        if (dismissState.currentValue == SwipeToDismissBoxValue.StartToEnd ||
+            dismissState.currentValue == SwipeToDismissBoxValue.EndToStart
+        ) {
+            onReply(message.actorDisplayName ?: message.actorId ?: "")
+            dismissState.reset()
+        }
+    }
+
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = true,
+        enableDismissFromEndToStart = true,
+        backgroundContent = { SwipeReplyHint(dismissState.dismissDirection, colors) },
+        modifier = Modifier.fillMaxWidth().padding(horizontal = BUBBLE_H.dp, vertical = verticalPadding.dp)
     ) {
-        Box {
-            Column(bubbleModifier) {
-                if (isImage && fileId != null) {
-                    ImageAttachment(fileId, fileName, viewModel, onOpenImage)
-                } else {
-                    Text(
-                        if (fileName != null) "📎 $fileName" else message.message,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = colors.text
-                    )
+        Box(
+            Modifier.fillMaxSize(),
+            contentAlignment = if (mine) Alignment.CenterEnd else Alignment.CenterStart
+        ) {
+            Box {
+                Column(bubbleModifier) {
+                    if (isImage && fileId != null) {
+                        ImageAttachment(fileId, fileName, viewModel, onOpenImage)
+                    } else {
+                        Text(
+                            if (fileName != null) "📎 $fileName" else message.message,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = colors.text
+                        )
+                    }
+                    if (message.timestamp > 0) {
+                        Text(
+                            formatTime(message.timestamp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colors.time,
+                            modifier = Modifier.align(Alignment.End)
+                        )
+                    }
                 }
-                if (message.timestamp > 0) {
-                    Text(
-                        formatTime(message.timestamp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = colors.time,
-                        modifier = Modifier.align(Alignment.End)
+                DropdownMenu(expanded = contextMenuOpen, onDismissRequest = { contextMenuOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Kopieren") },
+                        onClick = {
+                            contextMenuOpen = false
+                            onCopy(message.message)
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Zitieren") },
+                        onClick = {
+                            contextMenuOpen = false
+                            onReply(message.actorDisplayName ?: message.actorId ?: "")
+                        }
                     )
                 }
             }
-            DropdownMenu(expanded = contextMenuOpen, onDismissRequest = { contextMenuOpen = false }) {
-                DropdownMenuItem(
-                    text = { Text("Kopieren") },
-                    onClick = {
-                        contextMenuOpen = false
-                        onCopy(message.message)
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text("Zitieren") },
-                    onClick = {
-                        contextMenuOpen = false
-                        onReply(message.actorDisplayName ?: message.actorId ?: "")
-                    }
-                )
-            }
+        }
+    }
+}
+
+@Composable
+private fun SwipeReplyHint(direction: SwipeToDismissBoxValue, colors: ChatColors) {
+    val alpha by animateFloatAsState(
+        if (direction == SwipeToDismissBoxValue.Settled) 0f else 1f,
+        label = "replyHintAlpha"
+    )
+    Box(
+        Modifier.fillMaxSize().alpha(alpha),
+        contentAlignment = if (direction == SwipeToDismissBoxValue.EndToStart) {
+            Alignment.CenterEnd
+        } else {
+            Alignment.CenterStart
+        }
+    ) {
+        Surface(color = colors.mine, shape = CircleShape, modifier = Modifier.padding(horizontal = 12.dp)) {
+            Text(
+                "↩",
+                style = MaterialTheme.typography.titleMedium,
+                color = colors.text,
+                modifier = Modifier.padding(horizontal = SWIPE_HINT_PAD_H.dp, vertical = SWIPE_HINT_PAD_V.dp)
+            )
         }
     }
 }
@@ -602,6 +649,8 @@ private const val BUBBLE_CORNER = 16
 private const val TAIL_CORNER = 4
 private const val BUBBLE_PAD_H = 10
 private const val BUBBLE_PAD_V = 6
+private const val SWIPE_HINT_PAD_H = 12
+private const val SWIPE_HINT_PAD_V = 8
 private const val EMOJI_CELL = 44
 private const val EMOJI_PANEL_HEIGHT = 240
 private const val EMOJI_PANEL_PAD = 8
