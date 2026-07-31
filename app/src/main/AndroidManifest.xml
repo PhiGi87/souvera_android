@@ -545,13 +545,6 @@
             android:theme="@style/Theme.ownCloud.Toolbar"
             android:windowSoftInputMode="adjustResize" />
 
-        <!-- Souvera Workspace: SnappyMail webmail WebView, kept as a fallback (not linked) -->
-        <activity
-            android:name="com.souvera.workspace.mail.SouveraMailWebViewActivity"
-            android:exported="false"
-            android:label="@string/drawer_item_mail"
-            android:theme="@style/Theme.ownCloud.Toolbar" />
-
         <service
             android:name="com.nextcloud.client.widget.DashboardWidgetService"
             android:exported="true"
