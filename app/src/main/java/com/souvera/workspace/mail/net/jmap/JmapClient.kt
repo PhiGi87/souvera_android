@@ -209,9 +209,21 @@ class JmapClient(
 
     private suspend fun resolveApiUrl(): String = withContext(Dispatchers.IO) {
         val base = dav.baseUrl.trimEnd('/')
-        val wellKnown = "$base/.well-known/jmap"
+        // Try the session endpoint directly (GET /jmap/session, no auth needed).
+        // This is what .well-known/jmap redirects to on Stalwart, and the
+        // redirect-follow via HttpURLConnection is unreliable on some devices.
+        val sessionUrl = "$base/jmap/session"
         try {
-            val resp = httpGet(wellKnown)
+            val resp = httpGet(sessionUrl)
+            if (resp != null) {
+                resolvedSession = resp
+                return@withContext resp.optString("apiUrl").takeIf { it.isNotBlank() }
+                    ?: base + "/jmap"
+            }
+        } catch (_: Exception) { }
+        // Fallback: well-known discovery (may fail due to redirect handling).
+        try {
+            val resp = httpGet("$base/.well-known/jmap")
             if (resp != null) {
                 resolvedSession = resp
                 return@withContext resp.optString("apiUrl").takeIf { it.isNotBlank() }
