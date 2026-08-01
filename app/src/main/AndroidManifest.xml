@@ -676,9 +676,6 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
         <service
-            android:exported="false"
-            android:foregroundServiceType="dataSync" />
-        <service
             android:name="com.nextcloud.client.media.PlayerService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
