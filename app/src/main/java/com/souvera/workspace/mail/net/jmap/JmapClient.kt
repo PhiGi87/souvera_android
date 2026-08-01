@@ -62,7 +62,7 @@ class JmapClient(
             ?.takeIf { it.isNotBlank() }
             ?: caps[JmapCapabilities.MAIL]?.optString("accountId", null)
                 ?.takeIf { it.isNotBlank() }
-        val accId = primaryAccId ?: dav.username
+        val accId = dav.username
         val apiUrl = json.optString("apiUrl", "").takeIf { it.isNotBlank() }
             ?: (resolvedApiUrl ?: "")
         return JmapSessionInfo(
@@ -70,7 +70,7 @@ class JmapClient(
             downloadUrl = json.optString("downloadUrl", apiUrl + "download/{accountId}/{blobId}/{name}?accept={type}"),
             uploadUrl = json.optString("uploadUrl", apiUrl + "upload/{accountId}/"),
             accountId = accId,
-            primaryAccountId = primaryAccId ?: accId,
+            primaryAccountId = accId,
             username = json.optString("username", dav.username).takeIf { it.isNotBlank() } ?: dav.username,
             capabilities = caps,
             state = json.optString("state", null).takeIf { !it.isNullOrBlank() }
