@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -48,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -99,7 +101,7 @@ fun ConversationListScreen(viewModel: LinkViewModel, onOpenDrawer: () -> Unit) {
                 onValueChange = { query = it },
                 placeholder = stringResource(R.string.link_search_conversations)
             )
-            ConversationContent(state, query) { c ->
+            ConversationContent(state, query, viewModel) { c ->
                 if (c.type == TYPE_NOTE_TO_SELF) {
                     openNotes(context)
                 } else {
@@ -131,6 +133,7 @@ fun ConversationListScreen(viewModel: LinkViewModel, onOpenDrawer: () -> Unit) {
 private fun ConversationContent(
     state: LinkUiState<List<LinkConversation>>,
     query: String,
+    viewModel: LinkViewModel,
     onOpen: (LinkConversation) -> Unit
 ) {
     when (state) {
@@ -139,7 +142,6 @@ private fun ConversationContent(
         is LinkUiState.Error -> Centered { Text(state.message) }
 
         is LinkUiState.Success -> {
-            // Hide system conversations (changelog / "Talk updates" bot); keep note-to-self.
             val filtered = state.data
                 .filter { it.type != TYPE_CHANGELOG }
                 .filter { it.displayName.contains(query, ignoreCase = true) }
@@ -147,7 +149,9 @@ private fun ConversationContent(
                 Centered { Text(stringResource(R.string.link_no_conversations)) }
             } else {
                 LazyColumn(Modifier.fillMaxSize()) {
-                    items(filtered, key = { it.token }) { c -> ConversationRow(c) { onOpen(c) } }
+                    items(filtered, key = { it.token }) { c -> 
+                        ConversationRow(c, viewModel) { onOpen(c) } 
+                    }
                 }
             }
         }
@@ -224,13 +228,16 @@ private fun NewChatSheet(
 }
 
 @Composable
-private fun ConversationRow(conversation: LinkConversation, onClick: () -> Unit) {
+private fun ConversationRow(conversation: LinkConversation, viewModel: LinkViewModel, onClick: () -> Unit) {
+    val peerId by androidx.compose.runtime.produceState<String?>(null, conversation.token) {
+        value = viewModel.peerIdFor(conversation.token)
+    }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
             .padding(horizontal = PAD.dp, vertical = ROW_V.dp)
     ) {
-        Avatar(conversation.displayName)
+        PeerAvatar(name = conversation.displayName, peerId = peerId, viewModel = viewModel)
         Column(Modifier.weight(1f).padding(start = PAD.dp)) {
             Text(
                 conversation.displayName,
@@ -276,18 +283,43 @@ private fun ConversationRow(conversation: LinkConversation, onClick: () -> Unit)
 }
 
 @Composable
+private fun PeerAvatar(name: String, peerId: String?, viewModel: LinkViewModel) {
+    val bytes by androidx.compose.runtime.produceState<ByteArray?>(null, peerId) {
+        value = peerId?.let { viewModel.loadAvatar(it, AVATAR_SIZE) }
+    }
+    val bitmap = bytes?.toImageBitmap()
+    if (bitmap != null) {
+        androidx.compose.foundation.Image(
+            bitmap = bitmap,
+            contentDescription = null,
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            modifier = Modifier.size(AVATAR_SIZE.dp).clip(CircleShape)
+        )
+    } else {
+        val palette = AVATAR_PALETTE
+        val color = palette[(name.hashCode().mod(palette.size))]
+        val initial = name.trim().firstOrNull()?.uppercase() ?: "?"
+        Box(
+            Modifier.size(AVATAR_SIZE.dp).clip(CircleShape).background(color),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(initial, style = MaterialTheme.typography.titleMedium, color = Color.White)
+        }
+    }
+}
+
+private val AVATAR_PALETTE = listOf(
+    Color(0xFF00897B), Color(0xFF3949AB), Color(0xFF8E24AA), Color(0xFFD81B60),
+    Color(0xFFF4511E), Color(0xFF43A047), Color(0xFF1E88E5), Color(0xFF6D4C41)
+)
+
+private fun ByteArray.toImageBitmap(): androidx.compose.ui.graphics.ImageBitmap? = runCatching {
+    android.graphics.BitmapFactory.decodeByteArray(this, 0, size)?.asImageBitmap()
+}.getOrNull()
+
+@Composable
 private fun Avatar(name: String) {
-    val palette = listOf(
-        Color(0xFF00897B),
-        Color(0xFF3949AB),
-        Color(0xFF8E24AA),
-        Color(0xFFD81B60),
-        Color(0xFFF4511E),
-        Color(0xFF43A047),
-        Color(0xFF1E88E5),
-        Color(0xFF6D4C41)
-    )
-    val color = palette[(name.hashCode().mod(palette.size))]
+    val color = AVATAR_PALETTE[(name.hashCode().mod(AVATAR_PALETTE.size))]
     val initial = name.trim().firstOrNull()?.uppercase() ?: "?"
     Box(
         Modifier.size(AVATAR_SIZE.dp).clip(CircleShape).background(color),

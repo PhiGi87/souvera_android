@@ -95,9 +95,21 @@ private class ChatColors(dark: Boolean) {
     val time = if (dark) Color(0xFF8AA0B3) else Color(0xFF5A7184)
 }
 
+private fun openProfile(context: android.content.Context, peerId: String?, baseUrl: String) {
+    if (peerId.isNullOrBlank() || baseUrl.isBlank()) return
+    val url = baseUrl.trimEnd('/') + "/index.php/u/" + peerId
+    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)).apply {
+        addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    runCatching { context.startActivity(intent) }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
+    val context = LocalContext.current
+    val baseUrl = viewModel.baseUrl
+    
     val state by viewModel.messages.collectAsState()
     val readUpTo by viewModel.readUpTo.collectAsState()
     val peerStatus by viewModel.peerStatus.collectAsState()
@@ -112,7 +124,6 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
     val messages = (state as? LinkUiState.Success)?.data.orEmpty().filter { it.systemMessage.isEmpty() }
     val me = viewModel.currentUserId
     val colors = ChatColors(isSystemInDarkTheme())
-    val context = LocalContext.current
 
     val conversations by viewModel.conversations.collectAsState()
     val uploading by viewModel.uploading.collectAsState()
@@ -141,7 +152,16 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
         topBar = {
             TopAppBar(
                 windowInsets = WindowInsets(0, 0, 0, 0),
-                title = { ChatTitle(route.title, peerStatus, viewModel.chatPeerId.collectAsState().value, viewModel) },
+                title = {
+                    val peerId = viewModel.chatPeerId.collectAsState().value
+                    Row(
+                        Modifier.clickable {
+                            openProfile(context, peerId, viewModel.baseUrl)
+                        }
+                    ) {
+                        ChatTitle(route.title, peerStatus, peerId, viewModel)
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.back() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)

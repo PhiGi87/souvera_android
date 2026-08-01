@@ -71,6 +71,14 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
     private val _chatPeerId = MutableStateFlow<String?>(null)
     val chatPeerId: StateFlow<String?> = _chatPeerId.asStateFlow()
 
+    /** Resolved peer user IDs for 1:1 conversation tokens (cached, lazy). */
+    private val peerIdCache = mutableMapOf<String, String?>()
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    val baseUrl: String get() = dav?.baseUrl ?: ""
+
     /** Locally tracked messages whose send failed; kept until a retry succeeds. */
     private val _failedMessages = MutableStateFlow<List<FailedChatMessage>>(emptyList())
     val failedMessages: StateFlow<List<FailedChatMessage>> = _failedMessages.asStateFlow()
@@ -205,18 +213,41 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
         val client = api ?: return
         val seq = ++conversationLoadSeq
         viewModelScope.launch {
-            val result = runCatching { withContext(Dispatchers.IO) { client.listConversations() } }
-                .fold(
-                    { list -> LinkUiState.Success(list.sortedByDescending { it.lastActivity }) },
-                    { LinkUiState.Error(it.message ?: "Error") }
-                )
-            if (seq != conversationLoadSeq) return@launch
-            _conversations.value = result
-            val chat = _route.value as? LinkRoute.Chat
-            val conversations = (result as? LinkUiState.Success)?.data.orEmpty()
-            _readUpTo.value = conversations.firstOrNull { it.token == chat?.token }?.lastCommonReadMessage
+            _isRefreshing.value = true
+            try {
+                val result = runCatching { withContext(Dispatchers.IO) { client.listConversations() } }
+                    .fold(
+                        { list -> LinkUiState.Success(list.sortedByDescending { it.lastActivity }) },
+                        { LinkUiState.Error(it.message ?: "Error") }
+                    )
+                if (seq != conversationLoadSeq) return@launch
+                _conversations.value = result
+                val chat = _route.value as? LinkRoute.Chat
+                val conversations = (result as? LinkUiState.Success)?.data.orEmpty()
+                _readUpTo.value = conversations.firstOrNull { it.token == chat?.token }?.lastCommonReadMessage
+                // Pre-resolve peer IDs for 1:1 chats (avatar in conversation list).
+                resolvePeerIdsForAvatars(conversations)
+            } finally {
+                _isRefreshing.value = false
+            }
         }
     }
+
+    /** Fills [peerIdCache] for 1:1 conversations (lazy background resolution). */
+    private fun resolvePeerIdsForAvatars(conversations: List<LinkConversation>) {
+        val client = api ?: return
+        val me = currentUserId ?: return
+        viewModelScope.launch {
+            conversations.filter { it.type == ROOM_TYPE_ONE_TO_ONE && it.token !in peerIdCache }.forEach { c ->
+                runCatching {
+                    withContext(Dispatchers.IO) { client.getPeerUserId(c.token, me) }
+                }.getOrNull()?.let { peerIdCache[c.token] = it }
+            }
+        }
+    }
+
+    /** Returns the resolved peer user ID for a conversation, or null. */
+    fun peerIdFor(token: String): String? = peerIdCache[token]
 
     fun openConversation(token: String, title: String) {
         _route.value = LinkRoute.Chat(token, title)
