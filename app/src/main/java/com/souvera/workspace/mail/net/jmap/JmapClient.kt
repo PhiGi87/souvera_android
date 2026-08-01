@@ -36,76 +36,48 @@ class JmapClient(
 
     /* ---------- session ------------------------------------------------- */
 
+    private var resolvedSession: JSONObject? = null
+
     /**
      * Ensures a JMAP session exists (discovers the endpoint, fetches the
      * session resource). Idempotent; on success the session is cached.
      */
     suspend fun refreshSession(): JmapSessionInfo = withContext(Dispatchers.IO) {
         val apiUrl = resolveApiUrl()
-        // Stalwart's JMAP endpoint does NOT support GET — only POST (RFC 8620
-        // allows the session via authenticated POST). Send a minimal echo to
-        // obtain the session object and parse capabilities/accounts from it.
-        // Minimal valid JMAP request: empty methodCalls, only core capability.
-        // Core/echo is optional in RFC 8620 and some servers reject it.
-        val requestObj = JSONObject().apply {
-            put("using", JSONArray(listOf(JmapCapabilities.CORE)))
-            put("methodCalls", JSONArray())
-        }
-        try {
-            val json = httpPost(apiUrl, requestObj.toString())
-            val caps = parseSession(json)
-            resolvedApiUrl = apiUrl
-            session = caps
-            caps
-        } catch (e: JmapException) {
-            // If the first attempt failed, try with echo.
-            android.util.Log.w("JmapClient", "Empty-call session failed; trying Core/echo", e)
-            val echoObj = JSONObject().apply {
-                put("using", JSONArray(listOf(JmapCapabilities.CORE)))
-                put("methodCalls", JSONArray(listOf(
-                    JSONArray().put("Core/echo").put(JSONObject()).put("c1")
-                )))
-            }
-            val json = httpPost(apiUrl, echoObj.toString())
-            val caps = parseSession(json)
-            resolvedApiUrl = apiUrl
-            session = caps
-            caps
-        }
+        val sessionJson = resolvedSession
+            ?: throw JmapException("Cannot fetch JMAP session from $apiUrl")
+        val caps = parseSession(sessionJson)
+        resolvedApiUrl = apiUrl
+        session = caps
+        caps
     }
 
     private fun parseSession(json: JSONObject): JmapSessionInfo {
         val caps = mutableMapOf<String, JSONObject>()
-        val capsNode = json.optJSONObject("capabilities")
-        capsNode?.let { c -> c.keys().forEach { k -> caps[k] = c.getJSONObject(k) } }
-        val primaryMap = json.optJSONObject("primaryAccounts")
-        val accountsMap = json.optJSONObject("accounts")
-        val mailAccIdFromCap = caps[JmapCapabilities.MAIL]?.optString("accountId", null)
-            ?.takeIf { it.isNotBlank() }
-        val primaryAccId = primaryMap?.optString(JmapCapabilities.MAIL, null)
-            ?.takeIf { it.isNotBlank() }
-            ?: mailAccIdFromCap
-        val fallbackAccId = accountsMap?.keys()?.asSequence()?.firstOrNull { key ->
-            val acc = accountsMap.optJSONObject(key)
-            acc?.optBoolean("isPersonal", false) == true && acc?.has("name") == true
+        json.optJSONObject("capabilities")?.let { c ->
+            c.keys().forEach { k -> caps[k] = c.getJSONObject(k) }
         }
-        val accId = primaryAccId ?: fallbackAccId
-        // Stalwart via POST returns only methodResponses+sessionState, no
-        // capabilities/accounts in the body. The accountId is resolved from
-        // the auth identity — use the login name as fallback.
-        val resolvedId = accId ?: dav.username
-        val apiUrl = resolvedApiUrl ?: json.optString("apiUrl", "")
+        val primaryAccId = json.optJSONObject("primaryAccounts")
+            ?.optString(JmapCapabilities.MAIL, null)
+            ?.takeIf { it.isNotBlank() }
+            ?: caps[JmapCapabilities.MAIL]?.optString("accountId", null)
+                ?.takeIf { it.isNotBlank() }
+        val accId = primaryAccId ?: dav.username
+        val apiUrl = json.optString("apiUrl", "").takeIf { it.isNotBlank() }
+            ?: (resolvedApiUrl ?: "")
         return JmapSessionInfo(
             apiUrl = apiUrl,
-            downloadUrl = json.optString("downloadUrl", apiUrl + "/download/{account}/{blobId}/{type}/{name}"),
-            uploadUrl = json.optString("uploadUrl", apiUrl + "/upload/{account}"),
-            accountId = resolvedId,
-            primaryAccountId = primaryAccId ?: accId ?: resolvedId,
-            username = json.optString("username", dav.username),
+            downloadUrl = json.optString("downloadUrl", apiUrl + "download/{accountId}/{blobId}/{name}?accept={type}"),
+            uploadUrl = json.optString("uploadUrl", apiUrl + "upload/{accountId}/"),
+            accountId = accId,
+            primaryAccountId = primaryAccId ?: accId,
+            username = json.optString("username", dav.username).takeIf { it.isNotBlank() } ?: dav.username,
             capabilities = caps,
-            state = json.optString("sessionState", null).takeIf { it != null }
+            state = json.optString("state", null).takeIf { !it.isNullOrBlank() }
         )
     }
+
+    /** Like [httpGet] but returns null on non-2xx instead of throwing. */
 
     /* ---------- method calls -------------------------------------------- */
 
@@ -240,12 +212,13 @@ class JmapClient(
         val wellKnown = "$base/.well-known/jmap"
         try {
             val resp = httpGet(wellKnown)
-            resp?.optString("apiUrl")?.takeIf { it.isNotBlank() }
-                ?: resp?.optString("downloadUrl")?.takeIf { it.contains("/jmap") }
-                ?.let { it.substringBefore("/download") } ?: base + "/jmap"
-        } catch (_: Exception) {
-            base + "/jmap"
-        }
+            if (resp != null) {
+                resolvedSession = resp
+                return@withContext resp.optString("apiUrl").takeIf { it.isNotBlank() }
+                    ?: base + "/jmap"
+            }
+        } catch (_: Exception) { }
+        base + "/jmap"
     }
 
     private suspend fun httpGet(urlStr: String): JSONObject? = withContext(Dispatchers.IO) {
