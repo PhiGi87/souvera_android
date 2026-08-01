@@ -16,6 +16,7 @@ import android.net.Uri
 import com.souvera.workspace.link.net.LinkChatMessage
 import com.souvera.workspace.link.net.LinkConversation
 import com.souvera.workspace.link.net.LinkSuggestion
+import com.souvera.workspace.link.net.UserProfile
 import com.souvera.workspace.link.net.OcsApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.coroutineScope
@@ -79,6 +80,9 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    private val _profilePeer = MutableStateFlow<UserProfile?>(null)
+    val profilePeer: StateFlow<UserProfile?> = _profilePeer.asStateFlow()
 
     val baseUrl: String get() = dav?.baseUrl ?: ""
 
@@ -257,6 +261,20 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Returns the resolved peer user ID for a conversation, or null. */
     fun peerIdFor(token: String): String? = peerIdCache[token]
+
+    fun showUserProfile(peerId: String) {
+        val client = api ?: return
+        viewModelScope.launch {
+            val profile = withContext(Dispatchers.IO) {
+                runCatching { client.getUserProfile(peerId) }.getOrNull()
+            }
+            _profilePeer.value = profile
+        }
+    }
+
+    fun closeUserProfile() {
+        _profilePeer.value = null
+    }
 
     fun openConversation(token: String, title: String) {
         _route.value = LinkRoute.Chat(token, title)

@@ -82,6 +82,33 @@ class OcsApi(private val dav: DavAccount) {
         return gson.fromJson<OcsEnvelope<List<LinkSuggestion>>>(body, type).ocs.data.orEmpty()
     }
 
+    fun getUserProfile(userId: String): UserProfile? {
+        val root = dav.baseUrl.trimEnd('/')
+        val url = "$root/ocs/v2.php/cloud/users/$userId"
+        val body = get(url) ?: return null
+        val map = try {
+            gson.fromJson<Map<String, Any?>>(body, Map::class.java)
+        } catch (_: Exception) {
+            return null
+        } ?: return null
+        @Suppress("UNCHECKED_CAST")
+        val ocs = map["ocs"] as? Map<String, Any?> ?: return null
+        @Suppress("UNCHECKED_CAST")
+        val data = ocs["data"] as? Map<String, Any?> ?: return null
+        return UserProfile(
+            userId = data["id"]?.toString() ?: userId,
+            displayName = data["display-name"]?.toString() ?: data["displayname"]?.toString() ?: userId,
+            email = data["email"]?.toString() ?: "",
+            phone = data["phone"]?.toString() ?: "",
+            address = data["address"]?.toString() ?: "",
+            website = data["website"]?.toString() ?: "",
+            twitter = data["twitter"]?.toString() ?: "",
+            groups = (data["groups"] as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList(),
+            quotaTotal = (data["quota"] as? Number)?.toLong() ?: -1L,
+            quotaUsed = (data["quota"]?.toString()?.toLongOrNull() ?: 0L)
+        )
+    }
+
     /** Creates (or returns) a conversation with [invite]; roomType 1 = one-to-one user, 2 = group. */
     fun createConversation(invite: String, roomType: Int): String? {
         val encoded = java.net.URLEncoder.encode(invite, "UTF-8")

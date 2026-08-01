@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
@@ -46,10 +48,12 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
@@ -93,15 +97,6 @@ private class ChatColors(dark: Boolean) {
     val other = if (dark) Color(0xFF1B2733) else Color(0xFFFFFFFF)
     val text = if (dark) Color(0xFFE7EDF3) else Color(0xFF0B1F33)
     val time = if (dark) Color(0xFF8AA0B3) else Color(0xFF5A7184)
-}
-
-private fun openProfile(context: android.content.Context, peerId: String?, baseUrl: String) {
-    if (peerId.isNullOrBlank() || baseUrl.isBlank()) return
-    val url = baseUrl.trimEnd('/') + "/index.php/u/" + peerId
-    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)).apply {
-        addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-    }
-    runCatching { context.startActivity(intent) }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -156,7 +151,7 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
                     val peerId = viewModel.chatPeerId.collectAsState().value
                     Row(
                         Modifier.clickable {
-                            openProfile(context, peerId, viewModel.baseUrl)
+                            peerId?.let { viewModel.showUserProfile(it) }
                         }
                     ) {
                         ChatTitle(route.title, peerStatus, peerId, viewModel)
@@ -269,6 +264,55 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
                 startCall(context, route, withVideo)
             }
         )
+    }
+
+    val profile by viewModel.profilePeer.collectAsState()
+    profile?.let { p ->
+        ModalBottomSheet(onDismissRequest = { viewModel.closeUserProfile() }) {
+            Column(
+                Modifier.fillMaxWidth().padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                val avatarBytes by androidx.compose.runtime.produceState<ByteArray?>(null, p.userId) {
+                    value = viewModel.loadAvatar(p.userId, 120)
+                }
+                val avatarBitmap = avatarBytes?.toImageBitmap()
+                if (avatarBitmap != null) {
+                    androidx.compose.foundation.Image(
+                        bitmap = avatarBitmap,
+                        contentDescription = null,
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        modifier = Modifier.size(96.dp).clip(CircleShape)
+                    )
+                } else {
+                    val color = MaterialTheme.colorScheme.primary
+                    Box(
+                        Modifier.size(96.dp).clip(CircleShape).background(color),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(p.displayName.firstOrNull()?.uppercase() ?: "?",
+                            style = MaterialTheme.typography.headlineMedium, color = Color.White)
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+                Text(p.displayName, style = MaterialTheme.typography.headlineSmall)
+                if (p.email.isNotBlank()) {
+                    Text(p.email, style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (p.userId.isNotBlank()) {
+                    Text("@${p.userId}", style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (p.phone.isNotBlank()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("📞 ", style = MaterialTheme.typography.bodyMedium)
+                        Text(p.phone, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+                Spacer(Modifier.height(24.dp))
+            }
+        }
     }
 }
 
