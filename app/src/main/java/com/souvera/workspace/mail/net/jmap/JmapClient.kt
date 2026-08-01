@@ -254,10 +254,10 @@ class JmapClient(
         if (code == 401) {
             throw JmapException("JMAP auth rejected — needs Bearer token", "HTTP 401")
         }
-        val body = if (code in 200..299) {
+        val body =         if (code in 200..299) {
             String(conn.inputStream.readBytes(), Charsets.UTF_8)
         } else {
-            throw JmapException("JMAP HTTP $code", readErrorBody(conn))
+            throw JmapException("JMAP HTTP $code: " + readErrorBody(conn).take(500))
         }
         try {
             JSONObject(body)

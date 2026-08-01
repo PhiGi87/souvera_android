@@ -34,6 +34,7 @@ class MailboxRepository(context: Context) {
         val entities = (0 until list.length()).mapNotNull { i ->
             list.optJSONObject(i)?.let { JmapMapper.mapMailbox(accountName, it) }
         }
+        db.mailboxDao().upsertAll(entities)
         entities
     }
 
