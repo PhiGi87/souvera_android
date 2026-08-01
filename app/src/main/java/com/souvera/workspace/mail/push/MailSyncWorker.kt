@@ -79,7 +79,9 @@ class MailSyncWorker(
                 newest.fromDisplayName ?: newest.fromAddress,
                 newest.subject,
                 newest.subject,
-                notificationId = MailPushNotifier.LATEST_ID
+                notificationId = MailPushNotifier.LATEST_ID,
+                mailboxPath = "INBOX",
+                mailUid = newest.uid
             )
         }
 

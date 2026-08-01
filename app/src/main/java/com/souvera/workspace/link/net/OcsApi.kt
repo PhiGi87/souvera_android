@@ -156,6 +156,17 @@ class OcsApi(private val dav: DavAccount) {
         }
     }
 
+    /** Downloads a user avatar by NC user id, or null on failure. */
+    fun avatarBytes(actorId: String, size: Int): ByteArray? {
+        val root = dav.baseUrl.trimEnd('/')
+        val url = "$root/index.php/avatar/${java.net.URLEncoder.encode(actorId, "UTF-8")}/$size"
+        val request = Request.Builder().url(url).header("Authorization", credential).get().build()
+        return client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) return null
+            response.body.bytes()
+        }
+    }
+
     /** Downloads a shared file's raw bytes over WebDAV (by its server path), or null on failure. */
     fun downloadFile(path: String): ByteArray? {
         val root = dav.baseUrl.trimEnd('/')

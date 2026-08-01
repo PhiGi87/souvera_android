@@ -14,6 +14,7 @@ import com.souvera.workspace.mail.MailSettings
 import com.souvera.workspace.mail.db.SouveraMailDatabase
 import com.souvera.workspace.mail.db.entity.MailboxKind
 import com.souvera.workspace.mail.db.entity.MessageEntity
+import com.souvera.workspace.mail.model.AttachmentDownload
 import com.souvera.workspace.mail.model.LoadedAttachment
 import com.souvera.workspace.mail.model.MessageBody
 import com.souvera.workspace.mail.model.OutgoingMessage
@@ -39,6 +40,9 @@ class MessageRepository(context: Context) {
 
     fun observeMessages(accountName: String, mailboxPath: String): Flow<List<MessageEntity>> =
         db.messageDao().observeMessages(mailboxId(accountName, mailboxPath), settings.messageLimit)
+
+    suspend fun messageByUid(accountName: String, mailboxPath: String, uid: Long): MessageEntity? =
+        db.messageDao().getByMailboxAndUid(mailboxId(accountName, mailboxPath), uid)
 
     fun searchMessages(accountName: String, query: String): Flow<List<MessageEntity>> =
         db.messageDao().searchMessages(accountName, query, settings.messageLimit)
@@ -153,7 +157,7 @@ class MessageRepository(context: Context) {
         appendToSent(accountName, dav, message)
     }
 
-    suspend fun fetchAttachment(mailboxPath: String, uid: Long, index: Int, dav: DavAccount): MailResult<File> =
+    suspend fun fetchAttachment(mailboxPath: String, uid: Long, index: Int, dav: DavAccount): MailResult<AttachmentDownload> =
         mailCall("Loading attachment failed") {
             val store = MailSession(dav).openImapStore()
             val folder = store.getFolder(mailboxPath) as IMAPFolder
@@ -166,7 +170,8 @@ class MessageRepository(context: Context) {
             val file = File(directory, "${uid}_${index}_$safeName")
             part.inputStream.use { input -> file.outputStream().use { output -> input.copyTo(output) } }
             folder.close(false)
-            file
+            val rawType = runCatching { part.contentType }.getOrNull() ?: "application/octet-stream"
+            AttachmentDownload(file, rawType.substringBefore(';').trim())
         }
 
     suspend fun setRead(

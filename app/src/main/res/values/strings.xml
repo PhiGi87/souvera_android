@@ -1634,6 +1634,8 @@
     <string name="mail_blocked_remote_content">External content blocked for your privacy.</string>
     <string name="mail_load_remote_content">Load</string>
     <string name="mail_delete">Delete</string>
+    <string name="mail_delete_title">Delete mail</string>
+    <string name="mail_delete_confirm">Delete this mail?</string>
     <string name="mail_flag">Flag</string>
     <string name="mail_unflag">Remove flag</string>
     <string name="mail_no_subject">(no subject)</string>

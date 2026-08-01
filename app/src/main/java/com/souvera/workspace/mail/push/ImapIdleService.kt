@@ -100,7 +100,7 @@ class ImapIdleService : Service() {
         val conn = ImapIdleConnection(
             context = applicationContext,
             dav = dav,
-            onNewMail = { sender, subject, snippet ->
+            onNewMail = { sender, subject, snippet, mailboxPath, uid ->
                 MailPushNotifier.show(
                     applicationContext,
                     title = applicationContext.getString(R.string.mail_push_new_title),
@@ -108,7 +108,9 @@ class ImapIdleService : Service() {
                     sender = sender,
                     subject = subject,
                     preview = snippet,
-                    notificationId = MailPushNotifier.LATEST_ID
+                    notificationId = MailPushNotifier.LATEST_ID,
+                    mailboxPath = mailboxPath,
+                    mailUid = uid
                 )
             },
             onDisconnect = {
@@ -157,6 +159,19 @@ class ImapIdleService : Service() {
             startForeground(FOREGROUND_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
         } else {
             startForeground(FOREGROUND_ID, notification)
+        }
+
+        // The "Mail sync active" notification is Android's mandatory foreground-service
+        // notification. On API 33+ we detach it right away: the notification stays in the
+        // tray (dismissable by the user) while the service keeps running in the background,
+        // so it no longer sits there permanently.
+        //
+        // Product decision: the operator wants no permanent notification. Reliability is
+        // covered by two independent paths — the FCM push handler (NCFirebaseMessagingService,
+        // new_mail messages are displayed there again) and the periodic MailSyncWorker
+        // fallback — so IMAP IDLE becoming killable in the background is acceptable.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            stopForeground(STOP_FOREGROUND_DETACH)
         }
     }
 

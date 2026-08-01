@@ -120,6 +120,10 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
     suspend fun loadPreview(fileId: String, size: Int): ByteArray? =
         withContext(Dispatchers.IO) { runCatching { api?.previewBytes(fileId, size) }.getOrNull() }
 
+    /** Downloads a user avatar by NC user id, or null on failure. */
+    suspend fun loadAvatar(actorId: String, size: Int): ByteArray? =
+        withContext(Dispatchers.IO) { runCatching { api?.avatarBytes(actorId, size) }.getOrNull() }
+
     /** Downloads a shared file to the cache and opens it with the system viewer (not the browser). */
     fun openSharedFile(message: LinkChatMessage) {
         val client = api ?: return
@@ -192,7 +196,10 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
         val seq = ++conversationLoadSeq
         viewModelScope.launch {
             val result = runCatching { withContext(Dispatchers.IO) { client.listConversations() } }
-                .fold({ LinkUiState.Success(it) }, { LinkUiState.Error(it.message ?: "Error") })
+                .fold(
+                    { list -> LinkUiState.Success(list.sortedByDescending { it.lastActivity }) },
+                    { LinkUiState.Error(it.message ?: "Error") }
+                )
             if (seq != conversationLoadSeq) return@launch
             _conversations.value = result
             val chat = _route.value as? LinkRoute.Chat

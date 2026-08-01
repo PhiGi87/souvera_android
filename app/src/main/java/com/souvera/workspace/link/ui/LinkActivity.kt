@@ -7,6 +7,7 @@
 package com.souvera.workspace.link.ui
 
 import android.accounts.AccountManager
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
@@ -40,12 +41,31 @@ class LinkActivity : DrawerActivity() {
         viewModel.start(account)
         registerBackHandler()
 
+        handlePushDeepLink(intent)
+
         val colorScheme = viewThemeUtils.getColorScheme(this)
         findViewById<ComposeView>(R.id.link_compose_view).setContent {
             MaterialTheme(colorScheme = colorScheme) {
                 LinkRoot(viewModel = viewModel, onOpenDrawer = { openDrawer() })
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // SINGLE_TOP notification taps land here instead of onCreate.
+        setIntent(intent)
+        handlePushDeepLink(intent)
+    }
+
+    /** Push deep link: open the exact chat the notification pointed at. */
+    private fun handlePushDeepLink(intent: Intent?) {
+        intent?.getStringExtra(com.souvera.workspace.push.MailPushNotifier.EXTRA_CHAT_TOKEN)
+            ?.takeIf { it.isNotBlank() }
+            ?.let { token ->
+                val title = intent?.getStringExtra(Intent.EXTRA_TITLE) ?: ""
+                viewModel.openConversation(token, title)
+            }
     }
 
     override fun getMenuItemId(): Int = R.id.nav_link

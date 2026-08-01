@@ -86,6 +86,9 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
+    private val _isDeleting = MutableStateFlow(false)
+    val isDeleting: StateFlow<Boolean> = _isDeleting.asStateFlow()
+
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
@@ -104,6 +107,7 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
     private var messagesJob: Job? = null
     private var syncJob: Job? = null
     private var appliedMessageLimit = 0
+    private var pendingDeepLink: Pair<String, Long>? = null
 
     fun start(account: Account) {
         if (this::account.isInitialized) return
@@ -125,6 +129,12 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
                 return@launch
             }
             dav = resolved
+            // A push deep link requested before credential init completed is
+            // replayed here (dav was still null when openMessageByUid ran).
+            pendingDeepLink?.let { (path, uid) ->
+                pendingDeepLink = null
+                openMessageByUid(path, uid)
+            }
             launch { _fromAddress.value = resolveFromAddress(resolved) }
             launch {
                 mailboxRepository.observeMailboxes(account.name).collect { list ->
@@ -265,9 +275,48 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteMessage(message: MessageEntity) {
         val current = dav ?: return
+        if (_isDeleting.value) return
         viewModelScope.launch {
-            messageRepository.delete(account.name, message.mailboxPath(), message.uid, current)
-            back()
+            _isDeleting.value = true
+            try {
+                val result = messageRepository.delete(account.name, message.mailboxPath(), message.uid, current)
+                if (result is MailResult.Success) {
+                    back()
+                } else {
+                    Toast.makeText(
+                        getApplication(),
+                        (result as? MailResult.Failure)?.message ?: "Delete failed",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            } finally {
+                _isDeleting.value = false
+            }
+        }
+    }
+
+    /**
+     * Opens the message referenced by a push notification ("open exactly this
+     * mail" deep link). Resolves the cached entity by mailbox+uid and shows
+     * the detail screen; falls back to the home screen when the message is
+     * not (yet) in the local cache.
+     */
+    fun openMessageByUid(mailboxPath: String, uid: Long) {
+        if (dav == null) {
+            // Credentials are still initializing (cold start from a push tap) —
+            // remember the target and replay it once start() has resolved them.
+            pendingDeepLink = mailboxPath to uid
+            return
+        }
+        viewModelScope.launch {
+            val entity = withContext(Dispatchers.IO) {
+                messageRepository.messageByUid(account.name, mailboxPath, uid)
+            }
+            if (entity != null) {
+                openMessage(entity)
+            } else {
+                _route.value = MailRoute.Home
+            }
         }
     }
 
@@ -287,9 +336,17 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
             when (result) {
                 is MailResult.Success -> {
                     val authority = app.getString(R.string.file_provider_authority)
-                    val uri = FileProvider.getUriForFile(app, authority, result.value)
+                    val file = result.value.file
+                    val uri = FileProvider.getUriForFile(app, authority, file)
+                    // MIME type straight from the IMAP part; fall back to the
+                    // resolver and finally octet-stream so ACTION_VIEW always
+                    // has a concrete type to match apps against.
+                    val mime = result.value.mimeType
+                        .takeIf { it.isNotBlank() }
+                        ?: app.contentResolver.getType(uri)
+                        ?: "application/octet-stream"
                     val intent = Intent(Intent.ACTION_VIEW)
-                        .setDataAndType(uri, app.contentResolver.getType(uri))
+                        .setDataAndType(uri, mime)
                         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
                     try {
                         app.startActivity(intent)

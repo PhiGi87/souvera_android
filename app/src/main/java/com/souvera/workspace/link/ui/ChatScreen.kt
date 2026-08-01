@@ -414,10 +414,18 @@ private fun MessageBubble(
         backgroundContent = { SwipeReplyHint(dismissState.dismissDirection, colors) },
         modifier = Modifier.fillMaxWidth().padding(horizontal = BUBBLE_H.dp, vertical = verticalPadding.dp)
     ) {
-        Box(
+        Row(
             Modifier.fillMaxSize(),
-            contentAlignment = if (mine) Alignment.CenterEnd else Alignment.CenterStart
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start
         ) {
+            if (!mine && !grouped) {
+                MessageAvatar(
+                    viewModel = viewModel,
+                    actorId = message.actorId,
+                    modifier = Modifier.padding(end = AVATAR_GAP.dp)
+                )
+            }
             Box {
                 Column(bubbleModifier) {
                     if (isImage && fileId != null) {
@@ -470,6 +478,36 @@ private fun MessageBubble(
                     )
                 }
             }
+        }
+    }
+}
+
+/** Avatar of a chat participant: real profile picture via `avatar/{actorId}`, initial as fallback. */
+@Composable
+private fun MessageAvatar(viewModel: LinkViewModel, actorId: String?, modifier: Modifier = Modifier) {
+    val bytes by androidx.compose.runtime.produceState<ByteArray?>(null, actorId) {
+        value = actorId?.let { viewModel.loadAvatar(it, AVATAR_MSG_SIZE) }
+    }
+    val bitmap = bytes?.toImageBitmap()
+    if (bitmap != null) {
+        androidx.compose.foundation.Image(
+            bitmap = bitmap,
+            contentDescription = null,
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            modifier = modifier.size(AVATAR_MSG_SIZE.dp).clip(CircleShape)
+        )
+    } else {
+        val palette = AVATAR_PALETTE
+        val color = palette[(actorId ?: "?").hashCode().mod(palette.size)]
+        Box(
+            modifier.size(AVATAR_MSG_SIZE.dp).clip(CircleShape).background(color),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                actorId?.trim()?.firstOrNull()?.uppercase() ?: "?",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White
+            )
         }
     }
 }
@@ -704,3 +742,16 @@ private const val PREVIEW_SIZE = 600
 private const val PREVIEW_DP = 200
 private const val IMAGE_CORNER = 10
 private const val IMAGE_MODAL_PAD = 12
+private const val AVATAR_MSG_SIZE = 32
+private const val AVATAR_GAP = 8
+
+private val AVATAR_PALETTE = listOf(
+    Color(0xFF00897B),
+    Color(0xFF3949AB),
+    Color(0xFF8E24AA),
+    Color(0xFFD81B60),
+    Color(0xFFF4511E),
+    Color(0xFF43A047),
+    Color(0xFF1E88E5),
+    Color(0xFF6D4C41)
+)

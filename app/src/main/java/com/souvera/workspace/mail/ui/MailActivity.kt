@@ -34,6 +34,7 @@ import androidx.core.view.updatePadding
 import com.owncloud.android.R
 import com.owncloud.android.ui.activity.DrawerActivity
 import com.owncloud.android.ui.activity.SettingsActivity
+import com.souvera.workspace.push.MailPushNotifier
 import com.souvera.workspace.push.PushTokenFetcher
 
 /**
@@ -76,6 +77,8 @@ class MailActivity : DrawerActivity() {
         requestNotificationPermission()
         registerBackHandler()
 
+        handlePushDeepLink(intent)
+
         val colorScheme = viewThemeUtils.getColorScheme(this)
         themeSystemBars(colorScheme.surface.toArgb())
         findViewById<ComposeView>(R.id.mail_compose_view).setContent {
@@ -86,6 +89,25 @@ class MailActivity : DrawerActivity() {
                     onOpenSettings = { startActivity(Intent(this, SettingsActivity::class.java)) }
                 )
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // SINGLE_TOP notification taps land here instead of onCreate.
+        setIntent(intent)
+        handlePushDeepLink(intent)
+    }
+
+    /**
+     * Push deep link: open the exact mail the notification pointed at
+     * (mailbox path + UID extras from MailPushNotifier).
+     */
+    private fun handlePushDeepLink(intent: Intent?) {
+        val mailboxPath = intent?.getStringExtra(MailPushNotifier.EXTRA_MAILBOX_PATH)
+        val mailUid = intent?.getLongExtra(MailPushNotifier.EXTRA_MAIL_UID, 0L)
+        if (!mailboxPath.isNullOrBlank() && mailUid != null && mailUid > 0L) {
+            viewModel.openMessageByUid(mailboxPath, mailUid)
         }
     }
 

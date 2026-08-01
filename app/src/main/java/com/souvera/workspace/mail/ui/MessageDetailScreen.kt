@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
@@ -30,7 +31,9 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -39,6 +42,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -64,7 +68,9 @@ import com.souvera.workspace.mail.model.MessageBody
 @Composable
 fun MessageDetailScreen(viewModel: MailViewModel, message: MessageEntity) {
     val bodyState by viewModel.body.collectAsState()
+    val isDeleting by viewModel.isDeleting.collectAsState()
     var flagged by rememberSaveable(message.uid) { mutableStateOf(message.isFlagged) }
+    var confirmDelete by rememberSaveable(message.uid) { mutableStateOf(false) }
     val starTint =
         if (flagged) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
 
@@ -92,8 +98,20 @@ fun MessageDetailScreen(viewModel: MailViewModel, message: MessageEntity) {
                             tint = starTint
                         )
                     }
-                    IconButton(onClick = { viewModel.deleteMessage(message) }) {
-                        Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.mail_delete))
+                    if (isDeleting) {
+                        Box(
+                            Modifier.size(48.dp).padding(12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                strokeWidth = 2.5.dp,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    } else {
+                        IconButton(onClick = { confirmDelete = true }) {
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.mail_delete))
+                        }
                     }
                 }
             )
@@ -120,6 +138,29 @@ fun MessageDetailScreen(viewModel: MailViewModel, message: MessageEntity) {
             bodyState = bodyState,
             onOpenAttachment = { index -> viewModel.openAttachment(message, index) },
             modifier = Modifier.fillMaxSize().padding(padding)
+        )
+    }
+
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text(stringResource(R.string.mail_delete_title)) },
+            text = { Text(stringResource(R.string.mail_delete_confirm)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmDelete = false
+                        viewModel.deleteMessage(message)
+                    }
+                ) {
+                    Text(stringResource(R.string.mail_delete), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
         )
     }
 }

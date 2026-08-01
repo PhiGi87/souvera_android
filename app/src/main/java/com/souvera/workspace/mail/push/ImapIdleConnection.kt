@@ -18,6 +18,7 @@ import com.souvera.workspace.dav.DavAccount
 import com.souvera.workspace.mail.net.MailSession
 import jakarta.mail.Folder
 import jakarta.mail.Message
+import jakarta.mail.UIDFolder
 import jakarta.mail.event.ConnectionEvent
 import jakarta.mail.event.ConnectionListener
 import jakarta.mail.event.MessageCountEvent
@@ -31,7 +32,7 @@ import org.eclipse.angus.mail.imap.IMAPStore
 class ImapIdleConnection(
     private val context: Context,
     private val dav: DavAccount,
-    private val onNewMail: (sender: String?, subject: String?, snippet: String?) -> Unit,
+    private val onNewMail: (sender: String?, subject: String?, snippet: String?, mailboxPath: String?, uid: Long?) -> Unit,
     private val onDisconnect: () -> Unit,
 ) {
     private var thread: Thread? = null
@@ -106,6 +107,7 @@ class ImapIdleConnection(
     private fun handleNewMessages(folder: IMAPFolder, messages: Array<Message>) {
         try {
             val newest = messages.maxByOrNull { it.messageNumber } ?: return
+            val uid = runCatching { (folder as UIDFolder).getUID(newest) }.getOrNull()?.takeIf { it > 0 }
             val sender = runCatching {
                 (newest.from?.firstOrNull() as? InternetAddress)?.personal
                     ?: (newest.from?.firstOrNull() as? InternetAddress)?.address
@@ -129,12 +131,13 @@ class ImapIdleConnection(
                 } else null
             }.getOrNull()
 
-            Log.d(TAG, "EXISTS for ${dav.username}: sender=$sender subject=$subject")
-            onNewMail(sender, subject, snippet)
+            Log.d(TAG, "EXISTS for ${dav.username}: sender=$sender subject=$subject uid=$uid")
+            val mailboxPath = runCatching { folder.fullName }.getOrNull() ?: "INBOX"
+            onNewMail(sender, subject, snippet, mailboxPath, uid)
         } catch (e: Exception) {
             Log.w(TAG, "Handle new messages failed for ${dav.username}: ${e.message}")
             // Still notify — even without enrichment the user should know
-            onNewMail(null, null, null)
+            onNewMail(null, null, null, null, null)
         }
     }
 

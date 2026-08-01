@@ -16,19 +16,27 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.owncloud.android.R
 import com.owncloud.android.ui.notifications.NotificationUtils
+import com.souvera.workspace.link.ui.LinkActivity
 import com.souvera.workspace.mail.ui.MailActivity
 
 /**
- * Shows the status-bar notification for an incoming "new mail" FCM push. This is the display side of
- * the push pipeline (Stalwart webhook -> souvera_mail -> FCM -> device); it is deliberately free of
- * any Firebase dependency so it lives in the shared source set and the notification looks identical
- * regardless of how it was triggered. The small icon is the alpha-only Souvera "S" so the workspace,
- * not Nextcloud, appears in the status bar.
+ * Shows the status-bar notification for an incoming "new mail" / "new chat" push. This is the
+ * display side of the push pipeline (Stalwart webhook -> souvera_mail -> FCM -> device); it is
+ * deliberately free of any Firebase dependency so it lives in the shared source set and the
+ * notification looks identical regardless of how it was triggered. The small icon is the
+ * alpha-only Souvera "S" so the workspace, not Nextcloud, appears in the status bar.
  */
 object MailPushNotifier {
 
     private const val TAG = "MailPushNotifier"
     private const val GROUP_KEY = "souvera_mail_group"
+
+    const val EXTRA_MAILBOX_PATH = "com.souvera.workspace.push.EXTRA_MAILBOX_PATH"
+    const val EXTRA_MAIL_UID = "com.souvera.workspace.push.EXTRA_MAIL_UID"
+    const val EXTRA_CHAT_TOKEN = "com.souvera.workspace.push.EXTRA_CHAT_TOKEN"
+
+    /** Which app screen a push opens on tap. */
+    enum class Target { MAIL, LINK }
 
     /**
      * Notification ID used for the "show generic first, enrich later" pattern.
@@ -45,7 +53,11 @@ object MailPushNotifier {
         sender: String? = null,
         subject: String? = null,
         preview: String? = null,
-        notificationId: Int? = null
+        notificationId: Int? = null,
+        mailboxPath: String? = null,
+        mailUid: Long? = null,
+        chatToken: String? = null,
+        target: Target = Target.MAIL
     ) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -53,11 +65,27 @@ object MailPushNotifier {
         // not run yet (process start from a push before Application.onCreate completes).
         ensureChannel(manager, context)
 
-        val intent = Intent(context, MailActivity::class.java)
+        // Unique request code per notification target+content so the extras of one push can never
+        // be replaced by another push's PendingIntent (same request code + FLAG_UPDATE_CURRENT).
+        val requestCode = when (target) {
+            Target.MAIL -> (mailboxPath + "|" + (mailUid ?: 0L)).hashCode()
+            Target.LINK -> (chatToken ?: "").hashCode()
+        }
+
+        val activityClass = when (target) {
+            Target.MAIL -> MailActivity::class.java
+            Target.LINK -> LinkActivity::class.java
+        }
+        val intent = Intent(context, activityClass)
             .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            .apply {
+                if (mailboxPath != null) putExtra(EXTRA_MAILBOX_PATH, mailboxPath)
+                if (mailUid != null) putExtra(EXTRA_MAIL_UID, mailUid)
+                if (chatToken != null) putExtra(EXTRA_CHAT_TOKEN, chatToken)
+            }
         val pending = PendingIntent.getActivity(
             context,
-            0,
+            requestCode,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -80,7 +108,7 @@ object MailPushNotifier {
             .build()
 
         val id = notificationId ?: (headline + summary).hashCode()
-        Log.d(TAG, "Showing push notification id=$id headline=\"$headline\" summary=\"$summary\"")
+        Log.d(TAG, "Showing push notification id=$id target=$target headline=\"$headline\" summary=\"$summary\"")
         manager.notify(id, notification)
     }
 

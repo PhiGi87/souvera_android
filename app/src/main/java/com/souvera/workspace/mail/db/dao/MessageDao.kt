@@ -19,6 +19,9 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE mailboxId = :mailboxId ORDER BY dateSent DESC LIMIT :limit")
     fun observeMessages(mailboxId: String, limit: Int): Flow<List<MessageEntity>>
 
+    @Query("SELECT * FROM messages WHERE mailboxId = :mailboxId AND uid = :uid LIMIT 1")
+    suspend fun getByMailboxAndUid(mailboxId: String, uid: Long): MessageEntity?
+
     @Query(
         "SELECT * FROM messages WHERE accountName = :accountName AND (subject LIKE '%' || :query || '%' " +
             "OR fromAddress LIKE '%' || :query || '%' OR fromDisplayName LIKE '%' || :query || '%') " +
