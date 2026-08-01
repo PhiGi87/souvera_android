@@ -42,7 +42,15 @@ class JmapClient(
      */
     suspend fun refreshSession(): JmapSessionInfo = withContext(Dispatchers.IO) {
         val apiUrl = resolveApiUrl()
-        val json = httpGet(apiUrl) ?: throw JmapException("Cannot fetch JMAP session from $apiUrl")
+        // Stalwart's JMAP endpoint does NOT support GET — only POST (RFC 8620
+        // allows the session via authenticated POST). Send a minimal echo to
+        // obtain the session object and parse capabilities/accounts from it.
+        val requestObj = JSONObject().apply {
+            put("using", JSONArray(listOf(JmapCapabilities.CORE, JmapCapabilities.MAIL,
+                JmapCapabilities.SUBMISSION, JmapCapabilities.BLOB)))
+            put("methodCalls", JSONArray())
+        }
+        val json = httpPost(apiUrl, requestObj.toString())
         val caps = mutableMapOf<String, JSONObject>()
         json.optJSONObject("capabilities")?.let { c ->
             c.keys().forEach { k -> caps[k] = c.getJSONObject(k) }
