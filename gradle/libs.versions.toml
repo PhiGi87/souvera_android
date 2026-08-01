@@ -11,7 +11,6 @@ androidPluginVersion = "9.2.1"
 androidsvgVersion = "1.4"
 androidxMediaVersion = "1.5.1"
 androidxTestVersion = "1.7.0"
-angusMailVersion = "2.0.5"
 richEditorVersion = "1.0.0-rc14"
 talkWebrtcVersion = "132.6834.0"
 annotationVersion = "1.10.0"
@@ -203,7 +202,6 @@ media3-session = { module = "androidx.media3:media3-session", version.ref = "med
 media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3" }
 
 # Mail (IMAP/SMTP)
-angus-mail = { module = "org.eclipse.angus:angus-mail", version.ref = "angusMailVersion" }
 richeditor-compose = { module = "com.mohamedrejeb.richeditor:richeditor-compose", version.ref = "richEditorVersion" }
 talk-webrtc = { module = "com.github.nextcloud-deps:android-talk-webrtc", version.ref = "talkWebrtcVersion" }
 

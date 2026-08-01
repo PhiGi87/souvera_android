@@ -35,8 +35,11 @@ interface MailboxDao {
     @Query("DELETE FROM mailboxes WHERE accountName = :accountName AND id NOT IN (:keepIds)")
     suspend fun pruneRemoved(accountName: String, keepIds: List<String>)
 
-    @Query("UPDATE mailboxes SET uidValidity = :uidValidity, lastSeenUid = :lastSeenUid WHERE id = :id")
-    suspend fun updateSyncState(id: String, uidValidity: Long, lastSeenUid: Long)
+    @Query("UPDATE mailboxes SET state = :state WHERE id = :id")
+    suspend fun updateSyncState(id: String, state: String?)
+
+    @Query("SELECT * FROM mailboxes WHERE jmapId = :jmapId LIMIT 1")
+    suspend fun findByJmapId(jmapId: String): MailboxEntity?
 
     @Query("SELECT * FROM mailboxes WHERE accountName = :accountName")
     suspend fun getMailboxes(accountName: String): List<MailboxEntity>

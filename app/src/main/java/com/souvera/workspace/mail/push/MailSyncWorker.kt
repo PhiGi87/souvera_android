@@ -4,12 +4,9 @@
  * SPDX-FileCopyrightText: 2026 Host-On Service Provider GmbH (Souvera)
  * SPDX-License-Identifier: AGPL-3.0-or-later
  *
- * Periodic mail sync worker — safety-net fallback when IMAP IDLE drops.
- * Runs every 15 minutes, syncs INBOX for all Souvera accounts, and shows
- * a notification ONLY for truly new messages (UID-based deduplication).
- *
- * This worker does NOT overlap with IMAP IDLE — it serves as a backup
- * when the device kills the foreground service or the connection drops.
+ * Periodic mail sync worker — safety-net fallback. Runs every 15 minutes,
+ * syncs INBOX for all Souvera accounts via JMAP Email/queryChanges, and
+ * shows a notification for recently arrived messages.
  */
 
 package com.souvera.workspace.mail.push
@@ -67,31 +64,24 @@ class MailSyncWorker(
         if (result !is MailResult.Success) return 0
         val entities = result.value
 
-        val lastUid = IdlePreferences.getLastKnownUid(applicationContext, accountName)
-        val newMessages = if (lastUid > 0) entities.filter { it.uid > lastUid } else emptyList()
-
-        if (newMessages.isNotEmpty()) {
-            val newest = newMessages.maxByOrNull { it.uid }!!
+        if (entities.isNotEmpty()) {
+            val newest = entities.maxByOrNull { it.dateSent }!!
+            val newestSender = newest.fromDisplayName ?: newest.fromAddress
             MailPushNotifier.show(
                 applicationContext,
                 applicationContext.getString(R.string.mail_push_new_title),
                 applicationContext.getString(R.string.mail_push_new_body),
-                newest.fromDisplayName ?: newest.fromAddress,
+                newestSender,
                 newest.subject,
                 newest.subject,
                 notificationId = MailPushNotifier.LATEST_ID,
                 mailboxPath = "INBOX",
-                mailUid = newest.uid,
+                mailId = newest.emailId,
                 accountName = accountName
             )
         }
 
-        val maxUid = entities.maxOfOrNull { it.uid } ?: lastUid
-        if (maxUid > lastUid) {
-            IdlePreferences.setLastKnownUid(applicationContext, accountName, maxUid)
-        }
-
-        return newMessages.count()
+        return entities.count()
     }
 
     companion object {
@@ -105,7 +95,7 @@ class MailSyncWorker(
                 .build()
             val request = PeriodicWorkRequestBuilder<MailSyncWorker>(
                 INTERVAL_MINUTES, TimeUnit.MINUTES,
-                5, TimeUnit.MINUTES // flex interval
+                5, TimeUnit.MINUTES
             )
                 .setConstraints(constraints)
                 .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.SECONDS)

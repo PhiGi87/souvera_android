@@ -9,7 +9,7 @@ package com.souvera.workspace.mail.db.entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-/** Local cache of one IMAP mailbox. [id] is `accountName:path`, unique per account. */
+/** Local cache of one JMAP mailbox. [id] is `accountName:path`, unique per account. */
 @Entity(tableName = "mailboxes")
 data class MailboxEntity(
     @PrimaryKey val id: String,
@@ -21,6 +21,7 @@ data class MailboxEntity(
     val ownerIdentity: String? = null,
     val unreadCount: Int,
     val messageCount: Int,
-    val uidValidity: Long,
-    val lastSeenUid: Long
+    val jmapId: String? = null,
+    val role: String? = null,
+    val state: String? = null
 )

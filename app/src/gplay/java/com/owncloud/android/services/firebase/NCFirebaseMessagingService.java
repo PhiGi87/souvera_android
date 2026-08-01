@@ -142,7 +142,7 @@ public class NCFirebaseMessagingService extends FirebaseMessagingService {
                 if (mailboxPath == null) {
                     mailboxPath = "INBOX";
                 }
-                final long uid = safeLong(data.get("uid"));
+                final String emailId = data.get("emailId");
                 final String chatToken = data.get("token");
                 // Stable per-chat id so chat pushes never overwrite the latest
                 // mail notification (and vice versa); mail keeps LATEST_ID.
@@ -159,7 +159,7 @@ public class NCFirebaseMessagingService extends FirebaseMessagingService {
                     preview,
                     isChatPush ? chatId : MailPushNotifier.LATEST_ID,
                     isMailPush ? mailboxPath : null,
-                    isMailPush ? (uid > 0 ? uid : null) : null,
+                    isMailPush ? emailId : null,
                     isChatPush ? chatToken : null,
                     isChatPush ? MailPushNotifier.Target.LINK : MailPushNotifier.Target.MAIL,
                     accountName

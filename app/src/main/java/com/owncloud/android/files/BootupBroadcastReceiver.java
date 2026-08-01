@@ -73,9 +73,6 @@ public class BootupBroadcastReceiver extends BroadcastReceiver {
             Log_OC.d(TAG, "scheduleContentObserverJob, called");
             backgroundJobManager.scheduleContentObserverJob();
             MainApp.initContactsBackup(accountManager, backgroundJobManager);
-
-            // Start IMAP IDLE for instant mail push
-            com.souvera.workspace.mail.push.ImapIdleService.Companion.start(context);
         } else {
             Log_OC.d(TAG, "Getting wrong intent: " + intent.getAction());
         }

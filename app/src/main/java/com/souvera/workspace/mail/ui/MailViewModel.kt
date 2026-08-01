@@ -107,7 +107,7 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
     private var messagesJob: Job? = null
     private var syncJob: Job? = null
     private var appliedMessageLimit = 0
-    private var pendingDeepLink: Pair<String, Long>? = null
+    private var pendingDeepLink: Pair<String, String>? = null
 
     fun start(account: Account) {
         if (this::account.isInitialized) return
@@ -130,10 +130,10 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
             }
             dav = resolved
             // A push deep link requested before credential init completed is
-            // replayed here (dav was still null when openMessageByUid ran).
-            pendingDeepLink?.let { (path, uid) ->
+            // replayed here (dav was still null when openMessageByEmailId ran).
+            pendingDeepLink?.let { (path, id) ->
                 pendingDeepLink = null
-                openMessageByUid(path, uid)
+                openMessageByEmailId(path, id)
             }
             launch { _fromAddress.value = resolveFromAddress(resolved) }
             launch {
@@ -238,12 +238,12 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
         _body.value = MailUiState.Loading
         val path = message.mailboxPath()
         viewModelScope.launch {
-            _body.value = when (val result = messageRepository.fetchMessageBody(path, message.uid, current)) {
+            _body.value = when (val result = messageRepository.fetchMessageBody(path, message.emailId, current)) {
                 is MailResult.Success -> MailUiState.Success(result.value)
                 is MailResult.Failure -> MailUiState.Error(result.message)
             }
             if (!message.isRead) {
-                messageRepository.setRead(account.name, path, message.uid, true, current)
+                messageRepository.setRead(account.name, path, message.emailId, true, current)
             }
         }
     }
@@ -258,7 +258,7 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val from = _selectedFrom.value.ifBlank { _fromAddress.value.ifBlank { current.username } }
             _sendState.value =
-                when (val result = messageRepository.sendMessage(account.name, from, outgoing, current)) {
+                when (val result = messageRepository.sendMessage(account.name, current, from, outgoing)) {
                     is MailResult.Success -> SendState.Sent
                     is MailResult.Failure -> SendState.Error(result.message)
                 }
@@ -279,7 +279,7 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _isDeleting.value = true
             try {
-                val result = messageRepository.delete(account.name, message.mailboxPath(), message.uid, current)
+                val result = messageRepository.delete(account.name, message.mailboxPath(), message.emailId, current)
                 if (result is MailResult.Success) {
                     back()
                 } else {
@@ -302,24 +302,20 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
      * the detail screen; falls back to the home screen when the message is
      * not (yet) in the local cache.
      */
-    fun openMessageByUid(mailboxPath: String, uid: Long) {
+    fun openMessageByEmailId(mailboxPath: String, emailId: String) {
         if (dav == null) {
-            // Credentials are still initializing (cold start from a push tap) —
-            // remember the target and replay it once start() has resolved them.
-            pendingDeepLink = mailboxPath to uid
+            pendingDeepLink = mailboxPath to emailId
             return
         }
         val current = dav ?: return
         viewModelScope.launch {
             var entity = withContext(Dispatchers.IO) {
-                messageRepository.messageByUid(account.name, mailboxPath, uid)
+                messageRepository.messageById(account.name, mailboxPath, emailId)
             }
             if (entity == null) {
-                // Not in the local cache yet (fresh push) — sync the mailbox
-                // once and retry before giving up.
                 messageRepository.syncMessages(account.name, mailboxPath, current)
                 entity = withContext(Dispatchers.IO) {
-                    messageRepository.messageByUid(account.name, mailboxPath, uid)
+                    messageRepository.messageById(account.name, mailboxPath, emailId)
                 }
             }
             if (entity != null) {
@@ -333,7 +329,7 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleFlagged(message: MessageEntity, flagged: Boolean) {
         val current = dav ?: return
         viewModelScope.launch {
-            messageRepository.setFlagged(account.name, message.mailboxPath(), message.uid, flagged, current)
+            messageRepository.setFlagged(account.name, message.mailboxPath(), message.emailId, flagged, current)
         }
     }
 
@@ -342,7 +338,7 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val app = getApplication<Application>()
             val result =
-                messageRepository.fetchAttachment(message.mailboxPath(), message.uid, index, current)
+                messageRepository.fetchAttachment(message.mailboxPath(), message.emailId, index, current)
             when (result) {
                 is MailResult.Success -> {
                     val authority = app.getString(R.string.file_provider_authority)

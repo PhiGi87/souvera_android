@@ -32,7 +32,7 @@ object MailPushNotifier {
     private const val GROUP_KEY = "souvera_mail_group"
 
     const val EXTRA_MAILBOX_PATH = "com.souvera.workspace.push.EXTRA_MAILBOX_PATH"
-    const val EXTRA_MAIL_UID = "com.souvera.workspace.push.EXTRA_MAIL_UID"
+    const val EXTRA_MAIL_ID = "com.souvera.workspace.push.EXTRA_MAIL_ID"
     const val EXTRA_CHAT_TOKEN = "com.souvera.workspace.push.EXTRA_CHAT_TOKEN"
     const val EXTRA_ACCOUNT_NAME = "com.souvera.workspace.push.EXTRA_ACCOUNT_NAME"
 
@@ -56,7 +56,7 @@ object MailPushNotifier {
         preview: String? = null,
         notificationId: Int? = null,
         mailboxPath: String? = null,
-        mailUid: Long? = null,
+        mailId: String? = null,
         chatToken: String? = null,
         target: Target = Target.MAIL,
         accountName: String? = null
@@ -70,7 +70,7 @@ object MailPushNotifier {
         // Unique request code per notification target+content so the extras of one push can never
         // be replaced by another push's PendingIntent (same request code + FLAG_UPDATE_CURRENT).
         val requestCode = when (target) {
-            Target.MAIL -> (mailboxPath + "|" + (mailUid ?: 0L)).hashCode()
+            Target.MAIL -> (mailboxPath + "|" + (mailId ?: "0")).hashCode()
             Target.LINK -> (chatToken ?: "").hashCode()
         }
 
@@ -85,7 +85,7 @@ object MailPushNotifier {
             .apply {
                 if (accountName != null) putExtra(EXTRA_ACCOUNT_NAME, accountName)
                 if (mailboxPath != null) putExtra(EXTRA_MAILBOX_PATH, mailboxPath)
-                if (mailUid != null) putExtra(EXTRA_MAIL_UID, mailUid)
+                if (mailId != null) putExtra(EXTRA_MAIL_ID, mailId)
                 if (chatToken != null) putExtra(EXTRA_CHAT_TOKEN, chatToken)
                 // Chat title for LinkActivity's deep link handling.
                 if (target == Target.LINK) putExtra(Intent.EXTRA_TITLE, headline)

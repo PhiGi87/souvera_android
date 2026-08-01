@@ -72,7 +72,7 @@ configurations.configureEach {
 // version this fork started from - reset to 1.0.0 for the first public release.
 val versionMajor = 1
 val versionMinor = 0
-val versionPatch = 128
+val versionPatch = 129
 val versionBuild = 99 // 0-50=Alpha / 51-98=RC / 90-99=stable
 
 val ndkEnv = buildMap {
@@ -440,7 +440,6 @@ dependencies {
     // endregion
 
     // region Mail (IMAP/SMTP)
-    implementation(libs.angus.mail)
     // endregion
 
     // region Rich text (WYSIWYG)

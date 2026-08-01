@@ -11,18 +11,18 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
- * Local cache of one message's envelope (not its full body - that's fetched on demand, see
- * plans/cheeky-splashing-lampson.md Phase 3).
+ * Local cache of one message's envelope (not its full body - that's fetched on demand via
+ * JMAP Email/get bodyProperties).
  */
 @Entity(
     tableName = "messages",
-    indices = [Index(value = ["mailboxId", "uid"], unique = true)]
+    indices = [Index(value = ["mailboxId", "emailId"], unique = true)]
 )
 data class MessageEntity(
     @PrimaryKey(autoGenerate = true) val rowId: Long = 0,
     val accountName: String,
     val mailboxId: String,
-    val uid: Long,
+    val emailId: String,
     val messageId: String?,
     val subject: String,
     val fromAddress: String,
@@ -32,5 +32,8 @@ data class MessageEntity(
     val isRead: Boolean,
     val isFlagged: Boolean,
     val hasAttachments: Boolean,
-    val sizeBytes: Long
+    val sizeBytes: Long,
+    val blobId: String? = null,
+    val threadId: String? = null,
+    val keywords: String? = null
 )

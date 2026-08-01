@@ -108,9 +108,9 @@ class MailActivity : DrawerActivity() {
      */
     private fun handlePushDeepLink(intent: Intent?) {
         val mailboxPath = intent?.getStringExtra(MailPushNotifier.EXTRA_MAILBOX_PATH)
-        val mailUid = intent?.getLongExtra(MailPushNotifier.EXTRA_MAIL_UID, 0L)
-        if (!mailboxPath.isNullOrBlank() && mailUid != null && mailUid > 0L) {
-            viewModel.openMessageByUid(mailboxPath, mailUid)
+        val emailId = intent?.getStringExtra(MailPushNotifier.EXTRA_MAIL_ID)
+        if (!mailboxPath.isNullOrBlank() && !emailId.isNullOrBlank()) {
+            viewModel.openMessageByEmailId(mailboxPath, emailId)
         }
     }
 
@@ -118,7 +118,7 @@ class MailActivity : DrawerActivity() {
     private fun consumePushExtras(intent: Intent?) {
         if (intent == null) return
         intent.removeExtra(MailPushNotifier.EXTRA_MAILBOX_PATH)
-        intent.removeExtra(MailPushNotifier.EXTRA_MAIL_UID)
+        intent.removeExtra(MailPushNotifier.EXTRA_MAIL_ID)
         intent.removeExtra(MailPushNotifier.EXTRA_ACCOUNT_NAME)
     }
 

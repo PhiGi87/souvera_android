@@ -7,277 +7,277 @@
 package com.souvera.workspace.mail.repository
 
 import android.content.Context
-import android.net.Uri
-import android.util.Log
 import com.souvera.workspace.dav.DavAccount
-import com.souvera.workspace.mail.MailSettings
 import com.souvera.workspace.mail.db.SouveraMailDatabase
 import com.souvera.workspace.mail.db.entity.MailboxKind
 import com.souvera.workspace.mail.db.entity.MessageEntity
 import com.souvera.workspace.mail.model.AttachmentDownload
-import com.souvera.workspace.mail.model.LoadedAttachment
 import com.souvera.workspace.mail.model.MessageBody
 import com.souvera.workspace.mail.model.OutgoingMessage
-import com.souvera.workspace.mail.net.ImapMessageMapper
-import com.souvera.workspace.mail.net.MailSession
-import com.souvera.workspace.mail.net.MimeBodyExtractor
-import com.souvera.workspace.mail.net.mailboxId
-import jakarta.mail.FetchProfile
-import jakarta.mail.Flags
-import jakarta.mail.Folder
-import jakarta.mail.Message
-import jakarta.mail.UIDFolder
-import jakarta.mail.internet.MimeMessage
-import java.io.File
+import com.souvera.workspace.mail.net.jmap.JmapApi
+import com.souvera.workspace.mail.net.jmap.JmapClient
+import com.souvera.workspace.mail.net.jmap.JmapMapper
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import org.eclipse.angus.mail.imap.IMAPFolder
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import java.io.File
 
 class MessageRepository(context: Context) {
 
     private val appContext = context.applicationContext
     private val db = SouveraMailDatabase.getInstance(context)
-    private val settings = MailSettings(context)
 
     fun observeMessages(accountName: String, mailboxPath: String): Flow<List<MessageEntity>> =
-        db.messageDao().observeMessages(mailboxId(accountName, mailboxPath), settings.messageLimit)
+        db.messageDao().observeMessages(mailboxId(accountName, mailboxPath), 50)
 
-    suspend fun messageByUid(accountName: String, mailboxPath: String, uid: Long): MessageEntity? =
-        db.messageDao().getByMailboxAndUid(mailboxId(accountName, mailboxPath), uid)
+    suspend fun messageById(accountName: String, mailboxPath: String, emailId: String): MessageEntity? =
+        db.messageDao().getByMailboxAndId(mailboxId(accountName, mailboxPath), emailId)
 
     fun searchMessages(accountName: String, query: String): Flow<List<MessageEntity>> =
-        db.messageDao().searchMessages(accountName, query, settings.messageLimit)
+        db.messageDao().searchMessages(accountName, query, 50)
 
     suspend fun syncMessages(
         accountName: String,
         mailboxPath: String,
         dav: DavAccount
     ): MailResult<List<MessageEntity>> = mailCall("Message sync failed") {
-        val id = mailboxId(accountName, mailboxPath)
-        val cached = db.mailboxDao().findById(id)
-        val store = MailSession(dav).openImapStore()
-        val folder = store.getFolder(mailboxPath) as IMAPFolder
-        folder.open(Folder.READ_ONLY)
-        if (cached != null && cached.uidValidity != folder.uidValidity) {
-            db.messageDao().deleteAllInMailbox(id)
-        }
-        val total = folder.messageCount
-        val first = maxOf(1, total - settings.messageLimit + 1)
-        val messages = if (total > 0) folder.getMessages(first, total) else emptyArray()
+        val client = jmapClient(dav)
+        val api = JmapApi(client)
+        val accountId = client.refreshSession().primaryAccountId
+        val mid = mailboxId(accountName, mailboxPath)
 
-        var envelopeFailed = false
-        val entities = if (messages.isNotEmpty()) {
-            try {
-                folder.fetch(
-                    messages,
-                    FetchProfile().apply {
-                        add(FetchProfile.Item.ENVELOPE)
-                        add(FetchProfile.Item.FLAGS)
-                        add(FetchProfile.Item.SIZE)
-                        add(UIDFolder.FetchProfileItem.UID)
-                    }
-                )
-                messages.mapNotNull { msg ->
-                    mapEntityOrNull(accountName, id, folder, msg)
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "Batch envelope fetch failed for $mailboxPath, fallback per-message: ${e.message}")
-                envelopeFailed = true
-                messages.mapNotNull { msg ->
-                    try {
-                        folder.fetch(
-                            arrayOf(msg),
-                            FetchProfile().apply {
-                                add(FetchProfile.Item.ENVELOPE)
-                                add(FetchProfile.Item.FLAGS)
-                                add(FetchProfile.Item.SIZE)
-                                add(UIDFolder.FetchProfileItem.UID)
-                            }
-                        )
-                        mapEntityOrNull(accountName, id, folder, msg)
-                    } catch (ignored: Exception) {
-                        Log.w(TAG, "Skipping message in $mailboxPath: ${ignored.message}")
-                        null
+        // Find the JMAP-id of this mailbox.
+        val jmapMailboxId = db.mailboxDao().findById(mid)?.jmapId
+            ?: run {
+                // First sync — lookup via name in the mailbox list.
+                val mboxes = api.getMailboxes(accountId)
+                var found: String? = null
+                for (i in 0 until mboxes.length()) {
+                    val mb = mboxes.getJSONObject(i)
+                    if (mb.optString("name") == mailboxPath) {
+                        found = mb.optString("id")
+                        // Save the jmapId so next sync is faster.
+                        val entity = JmapMapper.mapMailbox(accountName, mb, mailboxPath)
+                        db.mailboxDao().upsertAll(listOf(entity.copy(jmapId = entity.jmapId ?: found)))
+                        break
                     }
                 }
+                found ?: mailboxPath
             }
-        } else {
-            emptyList()
-        }
 
-        if (entities.isNotEmpty()) {
-            db.messageDao().upsertAll(entities)
-            val fetchedUids = entities.map { it.uid }
-            db.messageDao().deleteMissingInRange(id, fetchedUids.min(), fetchedUids.max(), fetchedUids)
-            db.mailboxDao().updateSyncState(id, folder.uidValidity, entities.maxOfOrNull { it.uid } ?: 0L)
-        } else if (total > 0 && envelopeFailed) {
-            Log.w(TAG, "All $total messages in $mailboxPath could not be parsed — keeping cached data")
+        val sort = JSONArray().apply {
+            put(JSONArray().put("receivedAt").put(false))
         }
-
-        folder.close(false)
+        val queryResp = api.queryEmails(accountId, jmapMailboxId, sort, limit = 100)
+        val emailIds = queryResp.optJSONArray("ids") ?: JSONArray()
+        if (emailIds.length() == 0) {
+            // Still upsert empty to prune removed messages from the DB.
+            db.messageDao().deleteMissing(mid, emptyList())
+            db.messageDao().upsertAll(emptyList())
+            return@mailCall emptyList<MessageEntity>()
+        }
+        val idList = (0 until emailIds.length()).map { emailIds.getString(it) }
+        val list = api.getEmails(accountId, idList)
+        val entities = (0 until list.length()).mapNotNull { i ->
+            val json = list.getJSONObject(i)
+            JmapMapper.mapEmail(accountName, mid, json)
+        }
+        db.messageDao().deleteMissing(mid, idList)
+        db.messageDao().upsertAll(entities)
         entities
     }
 
-    private fun mapEntityOrNull(
-        accountName: String,
-        mailboxId: String,
-        folder: IMAPFolder,
-        message: Message
-    ): MessageEntity? = try {
-        ImapMessageMapper.toEntity(accountName, mailboxId, folder, message)
-    } catch (e: Exception) {
-        Log.w(TAG, "Skipping message (envelope parse failed): ${e.message}")
-        null
-    }
+    suspend fun fetchMessageBody(
+        mailboxPath: String,
+        emailId: String,
+        dav: DavAccount
+    ): MailResult<MessageBody> = mailCall("Body fetch failed") {
+        val client = jmapClient(dav)
+        val api = JmapApi(client)
+        val accountId = client.refreshSession().primaryAccountId
 
-    suspend fun fetchMessageBody(mailboxPath: String, uid: Long, dav: DavAccount): MailResult<MessageBody> =
-        mailCall("Loading message failed") {
-            val store = MailSession(dav).openImapStore()
-            val folder = store.getFolder(mailboxPath) as IMAPFolder
-            folder.open(Folder.READ_ONLY)
-            val message = folder.getMessageByUID(uid)
-            val body = if (message != null) MimeBodyExtractor.extract(message) else MessageBody(null, null)
-            folder.close(false)
-            body
+        val bodyProps = JSONArray(listOf(
+            "partId", "blobId", "size", "type", "name"
+        ))
+        val list = api.getEmails(accountId, listOf(emailId), bodyProps)
+        val json = list.getJSONObject(0)
+        val mapped = JmapMapper.mapBody(json)
+
+        val textBlobId = json.optJSONArray("textBody")
+            ?.optJSONObject(0)?.optString("blobId", null)
+            ?.takeIf { it.isNotBlank() }
+        val htmlBlobId = json.optJSONArray("htmlBody")
+            ?.optJSONObject(0)?.optString("blobId", null)
+            ?.takeIf { it.isNotBlank() }
+
+        val plainText = textBlobId?.let {
+            String(client.downloadBlob(accountId, it, "text/plain"), Charsets.UTF_8)
         }
+        val html = htmlBlobId?.let {
+            String(client.downloadBlob(accountId, it, "text/html"), Charsets.UTF_8)
+        }
+        MessageBody(plainText, html, mapped.attachments)
+    }
 
     suspend fun sendMessage(
         accountName: String,
+        dav: DavAccount,
         fromAddress: String,
-        outgoing: OutgoingMessage,
-        dav: DavAccount
-    ): MailResult<Unit> = mailCall("Sending message failed") {
-        val session = MailSession(dav)
-        val message = session.buildMessage(fromAddress, outgoing, loadAttachments(outgoing))
-        val transport = session.openSmtpTransport()
-        try {
-            transport.sendMessage(message, message.allRecipients)
-        } finally {
-            transport.close()
+        outgoing: OutgoingMessage
+    ): MailResult<Unit> = mailCall("Send failed") {
+        val client = jmapClient(dav)
+        val api = JmapApi(client)
+        val accountId = client.refreshSession().primaryAccountId
+
+        // Upload attachment blobs.
+        val blobIds = outgoing.attachments.map { att ->
+            val bytes = withContext(Dispatchers.IO) {
+                appContext.contentResolver.openInputStream(android.net.Uri.parse(att.uri))
+                    ?.use { it.readBytes() }
+            } ?: throw RuntimeException("Cannot read attachment ${att.name}")
+            client.uploadBlob(accountId, bytes, att.mimeType).blobId
         }
-        appendToSent(accountName, dav, message)
+
+        // Find drafts mailbox.
+        val draftsPath = db.mailboxDao().findByKind(accountName, MailboxKind.DRAFTS)?.path ?: "Drafts"
+        val draftsJmapId = db.mailboxDao().findById(mailboxId(accountName, draftsPath))?.jmapId
+            ?: draftsPath
+
+        val draftResp = api.createDraft(
+            accountId = accountId,
+            mailboxId = draftsJmapId,
+            fromAddress = fromAddress,
+            toAddresses = outgoing.to,
+            ccAddresses = outgoing.cc,
+            bccAddresses = outgoing.bcc,
+            subject = outgoing.subject,
+            htmlBody = outgoing.bodyHtml,
+            plainText = if (outgoing.bodyHtml.isNullOrBlank()) outgoing.body else null,
+            inReplyTo = outgoing.inReplyTo,
+            blobIds = blobIds
+        )
+        val draftId = draftResp.optJSONObject("created")?.keys()?.next()
+            ?: throw RuntimeException("Draft not created")
+
+        // Submit.
+        api.submitEmail(accountId, draftId, fromAddress)
     }
 
     suspend fun fetchAttachment(
-        mailboxPath: String, uid: Long, index: Int, dav: DavAccount
-    ): MailResult<AttachmentDownload> =
-        mailCall("Loading attachment failed") {
-            val store = MailSession(dav).openImapStore()
-            val folder = store.getFolder(mailboxPath) as IMAPFolder
-            folder.open(Folder.READ_ONLY)
-            val message = folder.getMessageByUID(uid) ?: error("Message no longer exists")
-            val part = MimeBodyExtractor.attachmentParts(message).getOrNull(index)
-                ?: error("Attachment no longer exists")
-            val safeName = MimeBodyExtractor.decodedName(part).replace(Regex("[^A-Za-z0-9._-]"), "_")
-            val directory = File(appContext.cacheDir, ATTACHMENT_CACHE_DIR).apply { mkdirs() }
-            val file = File(directory, "${uid}_${index}_$safeName")
-            part.inputStream.use { input -> file.outputStream().use { output -> input.copyTo(output) } }
-            folder.close(false)
-            val rawType = runCatching { part.contentType }.getOrNull() ?: "application/octet-stream"
-            AttachmentDownload(file, rawType.substringBefore(';').trim())
-        }
+        mailboxPath: String,
+        emailId: String,
+        index: Int,
+        dav: DavAccount
+    ): MailResult<AttachmentDownload> = mailCall("Attachment fetch failed") {
+        val client = jmapClient(dav)
+        val api = JmapApi(client)
+        val accountId = client.refreshSession().primaryAccountId
+
+        val bodyProps = JSONArray(listOf("partId", "blobId", "size", "type", "name"))
+        val list = api.getEmails(accountId, listOf(emailId), bodyProps)
+        val json = list.getJSONObject(0)
+        val attArr = json.optJSONArray("attachments")
+            ?: throw RuntimeException("No attachments")
+        val att = attArr.getJSONObject(index)
+            ?: throw RuntimeException("Attachment index out of bounds")
+        val blobId = att.optString("blobId")
+            ?: throw RuntimeException("Attachment has no blobId")
+        val mimeType = att.optString("type", "application/octet-stream")
+        val name = att.optString("name", "attachment")
+            .replace(Regex("[^A-Za-z0-9._-]"), "_")
+
+        val bytes = client.downloadBlob(accountId, blobId, mimeType)
+        val directory = File(appContext.cacheDir, ATTACHMENT_CACHE_DIR).apply { mkdirs() }
+        val file = File(directory, "${emailId}_${index}_$name")
+        file.writeBytes(bytes)
+        AttachmentDownload(file, mimeType)
+    }
 
     suspend fun setRead(
         accountName: String,
         mailboxPath: String,
-        uid: Long,
+        emailId: String,
         isRead: Boolean,
         dav: DavAccount
-    ): MailResult<Unit> = setFlag(mailboxPath, uid, Flags.Flag.SEEN, isRead, dav) {
-        db.messageDao().markRead(mailboxId(accountName, mailboxPath), uid, isRead)
-    }
+    ): MailResult<Unit> = setKeyword(emailId, mailboxId(accountName, mailboxPath), dav,
+        if (isRead) mapOf("\$seen" to true) else mapOf(),
+        if (isRead) emptyList() else listOf("\$seen")
+    )
 
     suspend fun setFlagged(
         accountName: String,
         mailboxPath: String,
-        uid: Long,
+        emailId: String,
         isFlagged: Boolean,
         dav: DavAccount
-    ): MailResult<Unit> = setFlag(mailboxPath, uid, Flags.Flag.FLAGGED, isFlagged, dav) {
-        db.messageDao().markFlagged(mailboxId(accountName, mailboxPath), uid, isFlagged)
-    }
+    ): MailResult<Unit> = setKeyword(emailId, mailboxId(accountName, mailboxPath), dav,
+        if (isFlagged) mapOf("\$flagged" to true) else mapOf(),
+        if (isFlagged) emptyList() else listOf("\$flagged")
+    )
 
-    suspend fun delete(accountName: String, mailboxPath: String, uid: Long, dav: DavAccount): MailResult<Unit> =
-        mailCall("Moving message failed") {
-            val trash = db.mailboxDao().findByKind(accountName, MailboxKind.TRASH)
-            relocate(accountName, mailboxPath, trash?.path?.takeIf { it != mailboxPath }, uid, dav)
+    suspend fun delete(
+        accountName: String,
+        mailboxPath: String,
+        emailId: String,
+        dav: DavAccount
+    ): MailResult<Unit> = mailCall("Delete failed") {
+        val client = jmapClient(dav)
+        val api = JmapApi(client)
+        val accountId = client.refreshSession().primaryAccountId
+        val trash = db.mailboxDao().findByKind(accountName, MailboxKind.TRASH)
+        val mid = mailboxId(accountName, mailboxPath)
+        if (trash != null && trash.id != mid) {
+            val trashJmap = trash.jmapId ?: trash.path
+            api.moveEmails(accountId, listOf(emailId), trashJmap)
+        } else {
+            api.deleteEmails(accountId, listOf(emailId))
         }
+        db.messageDao().delete(mid, emailId)
+    }
 
     suspend fun move(
         accountName: String,
         sourcePath: String,
+        emailId: String,
         targetPath: String,
-        uid: Long,
         dav: DavAccount
-    ): MailResult<Unit> = mailCall("Moving message failed") {
-        relocate(accountName, sourcePath, targetPath, uid, dav)
+    ): MailResult<Unit> = mailCall("Move failed") {
+        val client = jmapClient(dav)
+        val api = JmapApi(client)
+        val accountId = client.refreshSession().primaryAccountId
+        val targetMailbox = db.mailboxDao().findById(mailboxId(accountName, targetPath))
+        val targetJmap = targetMailbox?.jmapId ?: targetPath
+        api.moveEmails(accountId, listOf(emailId), targetJmap)
+        db.messageDao().delete(mailboxId(accountName, sourcePath), emailId)
     }
 
-    private suspend fun setFlag(
-        mailboxPath: String,
-        uid: Long,
-        flag: Flags.Flag,
-        value: Boolean,
+    /* ---------- helpers ----------------------------------------------- */
+
+    private suspend fun setKeyword(
+        emailId: String,
+        mailboxId: String,
         dav: DavAccount,
-        onLocalUpdate: suspend () -> Unit
-    ): MailResult<Unit> = mailCall("Updating message failed") {
-        val store = MailSession(dav).openImapStore()
-        val folder = store.getFolder(mailboxPath) as IMAPFolder
-        folder.open(Folder.READ_WRITE)
-        folder.getMessageByUID(uid)?.setFlag(flag, value)
-        folder.close(false)
-        onLocalUpdate()
-    }
-
-    private fun loadAttachments(outgoing: OutgoingMessage): List<LoadedAttachment> {
-        val loaded = outgoing.attachments.map { attachment ->
-            val bytes = appContext.contentResolver.openInputStream(Uri.parse(attachment.uri))
-                ?.use { it.readBytes() }
-                ?: error("Cannot read attachment ${attachment.name}")
-            LoadedAttachment(attachment.name, attachment.mimeType, bytes)
+        add: Map<String, Boolean>,
+        remove: List<String>
+    ): MailResult<Unit> = mailCall("Flag change failed") {
+        val client = jmapClient(dav)
+        val api = JmapApi(client)
+        val accountId = client.refreshSession().primaryAccountId
+        api.setEmailFlags(accountId, listOf(emailId), add, remove)
+        if (add.containsKey("\$seen") || remove.contains("\$seen")) {
+            db.messageDao().markRead(mailboxId, emailId, add.containsKey("\$seen"))
         }
-        val totalBytes = loaded.sumOf { it.bytes.size.toLong() }
-        require(totalBytes <= MAX_ATTACHMENT_BYTES) { "Attachments exceed 25 MB in total" }
-        return loaded
-    }
-
-    private suspend fun appendToSent(accountName: String, dav: DavAccount, message: MimeMessage) {
-        val sent = db.mailboxDao().findByKind(accountName, MailboxKind.SENT) ?: return
-        try {
-            val store = MailSession(dav).openImapStore()
-            val folder = store.getFolder(sent.path)
-            folder.open(Folder.READ_WRITE)
-            message.setFlag(Flags.Flag.SEEN, true)
-            folder.appendMessages(arrayOf(message))
-            folder.close(false)
-        } catch (ignored: Exception) {
-            Log.w(TAG, "Sent-folder append failed (message was still sent): ${ignored.message}")
+        if (add.containsKey("\$flagged") || remove.contains("\$flagged")) {
+            db.messageDao().markFlagged(mailboxId, emailId, add.containsKey("\$flagged"))
         }
     }
 
-    private suspend fun relocate(
-        accountName: String,
-        sourcePath: String,
-        targetPath: String?,
-        uid: Long,
-        dav: DavAccount
-    ) {
-        val store = MailSession(dav).openImapStore()
-        val source = store.getFolder(sourcePath) as IMAPFolder
-        source.open(Folder.READ_WRITE)
-        source.getMessageByUID(uid)?.let { message ->
-            if (targetPath != null) {
-                source.copyMessages(arrayOf(message), store.getFolder(targetPath))
-            }
-            message.setFlag(Flags.Flag.DELETED, true)
-            source.expunge()
-        }
-            source.close(false)
-        db.messageDao().delete(mailboxId(accountName, sourcePath), uid)
-    }
+    private fun jmapClient(dav: DavAccount): JmapClient = JmapClient(dav)
 
     companion object {
-        private const val TAG = "MessageRepository"
         private const val ATTACHMENT_CACHE_DIR = "attachments"
-        private const val MAX_ATTACHMENT_BYTES = 25L * 1024 * 1024
+
+        fun mailboxId(accountName: String, path: String): String = "$accountName:$path"
     }
 }

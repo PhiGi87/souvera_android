@@ -69,8 +69,8 @@ import com.souvera.workspace.mail.model.MessageBody
 fun MessageDetailScreen(viewModel: MailViewModel, message: MessageEntity) {
     val bodyState by viewModel.body.collectAsState()
     val isDeleting by viewModel.isDeleting.collectAsState()
-    var flagged by rememberSaveable(message.uid) { mutableStateOf(message.isFlagged) }
-    var confirmDelete by rememberSaveable(message.uid) { mutableStateOf(false) }
+    var flagged by rememberSaveable(message.emailId) { mutableStateOf(message.isFlagged) }
+    var confirmDelete by rememberSaveable(message.emailId) { mutableStateOf(false) }
     val starTint =
         if (flagged) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
 
