@@ -86,10 +86,9 @@ class JmapClient(
      * Each [JmapMethodCall] produces exactly one [JmapCallResult] (success
      * or error) in the returned list, preserving order.
      */
-    suspend fun call(calls: List<JmapMethodCall>): JmapBatchResult = withContext(Dispatchers.IO) {
+    suspend fun call(calls: List<JmapMethodCall>, using: List<String> = listOf(JmapCapabilities.CORE, JmapCapabilities.MAIL)): JmapBatchResult = withContext(Dispatchers.IO) {
         val apiUrl = resolvedApiUrl ?: resolveApiUrl()
-        val using = listOf(JmapCapabilities.CORE, JmapCapabilities.MAIL,
-            JmapCapabilities.SUBMISSION, JmapCapabilities.BLOB)
+        val using = using
         val requestObj = JSONObject().apply {
             put("using", JSONArray(using))
             put("methodCalls", JSONArray().apply {
