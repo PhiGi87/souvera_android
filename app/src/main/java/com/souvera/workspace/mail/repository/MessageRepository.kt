@@ -157,7 +157,9 @@ class MessageRepository(context: Context) {
         appendToSent(accountName, dav, message)
     }
 
-    suspend fun fetchAttachment(mailboxPath: String, uid: Long, index: Int, dav: DavAccount): MailResult<AttachmentDownload> =
+    suspend fun fetchAttachment(
+        mailboxPath: String, uid: Long, index: Int, dav: DavAccount
+    ): MailResult<AttachmentDownload> =
         mailCall("Loading attachment failed") {
             val store = MailSession(dav).openImapStore()
             val folder = store.getFolder(mailboxPath) as IMAPFolder

@@ -130,8 +130,10 @@ public class NCFirebaseMessagingService extends FirebaseMessagingService {
         final boolean isChatPush = "new_chat".equals(type) || "chat".equals(type);
         if (isMailPush || isChatPush) {
             try {
-                final String resolvedTitle = notification != null ? notification.getTitle() : data.get(SOUVERA_KEY_TITLE);
-                final String resolvedBody = notification != null ? notification.getBody() : data.get(SOUVERA_KEY_BODY);
+                final String resolvedTitle = notification != null
+                    ? notification.getTitle() : data.get(SOUVERA_KEY_TITLE);
+                final String resolvedBody = notification != null
+                    ? notification.getBody() : data.get(SOUVERA_KEY_BODY);
                 final String sender = data.get("sender");
                 final String mailSubject = data.get("subject");
                 final String preview = data.get("preview");
@@ -142,6 +144,11 @@ public class NCFirebaseMessagingService extends FirebaseMessagingService {
                 }
                 final long uid = safeLong(data.get("uid"));
                 final String chatToken = data.get("token");
+                // Stable per-chat id so chat pushes never overwrite the latest
+                // mail notification (and vice versa); mail keeps LATEST_ID.
+                final Integer chatId = isChatPush && chatToken != null ? chatToken.hashCode() : null;
+                final String accountName = accountManager.getAccounts().length > 0
+                    ? accountManager.getAccounts()[0].name : null;
 
                 MailPushNotifier.INSTANCE.show(
                     this,
@@ -150,20 +157,23 @@ public class NCFirebaseMessagingService extends FirebaseMessagingService {
                     sender,
                     mailSubject,
                     preview,
-                    MailPushNotifier.LATEST_ID,
+                    isChatPush ? chatId : MailPushNotifier.LATEST_ID,
                     isMailPush ? mailboxPath : null,
                     isMailPush ? (uid > 0 ? uid : null) : null,
                     isChatPush ? chatToken : null,
-                    isChatPush ? MailPushNotifier.Target.LINK : MailPushNotifier.Target.MAIL
+                    isChatPush ? MailPushNotifier.Target.LINK : MailPushNotifier.Target.MAIL,
+                    accountName
                 );
             } catch (Exception e) {
                 Log_OC.e(TAG, "Souvera push handler failed", e);
                 final String fallbackTitle = notification != null
                     ? notification.getTitle()
-                    : (data.get(SOUVERA_KEY_TITLE) != null ? data.get(SOUVERA_KEY_TITLE) : getString(R.string.mail_push_new_title));
+                    : (data.get(SOUVERA_KEY_TITLE) != null
+                        ? data.get(SOUVERA_KEY_TITLE) : getString(R.string.mail_push_new_title));
                 final String fallbackBody = notification != null
                     ? notification.getBody()
-                    : (data.get(SOUVERA_KEY_BODY) != null ? data.get(SOUVERA_KEY_BODY) : getString(R.string.mail_push_new_body));
+                    : (data.get(SOUVERA_KEY_BODY) != null
+                        ? data.get(SOUVERA_KEY_BODY) : getString(R.string.mail_push_new_body));
                 MailPushNotifier.INSTANCE.show(this,
                     fallbackTitle, fallbackBody, null, null, null);
             }
@@ -182,10 +192,12 @@ public class NCFirebaseMessagingService extends FirebaseMessagingService {
                 Log_OC.e(TAG, "Souvera push handler failed", e);
                 final String fallbackTitle = notification != null
                     ? notification.getTitle()
-                    : (data.get(SOUVERA_KEY_TITLE) != null ? data.get(SOUVERA_KEY_TITLE) : getString(R.string.mail_push_new_title));
+                    : (data.get(SOUVERA_KEY_TITLE) != null
+                        ? data.get(SOUVERA_KEY_TITLE) : getString(R.string.mail_push_new_title));
                 final String fallbackBody = notification != null
                     ? notification.getBody()
-                    : (data.get(SOUVERA_KEY_BODY) != null ? data.get(SOUVERA_KEY_BODY) : getString(R.string.mail_push_new_body));
+                    : (data.get(SOUVERA_KEY_BODY) != null
+                        ? data.get(SOUVERA_KEY_BODY) : getString(R.string.mail_push_new_body));
                 MailPushNotifier.INSTANCE.show(this,
                     fallbackTitle, fallbackBody, null, null, null);
             }

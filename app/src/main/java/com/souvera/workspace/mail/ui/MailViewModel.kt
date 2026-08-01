@@ -283,9 +283,10 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
                 if (result is MailResult.Success) {
                     back()
                 } else {
+                    val app = getApplication<Application>()
                     Toast.makeText(
-                        getApplication(),
-                        (result as? MailResult.Failure)?.message ?: "Delete failed",
+                        app,
+                        (result as? MailResult.Failure)?.message ?: app.getString(R.string.mail_delete_failed),
                         Toast.LENGTH_LONG
                     ).show()
                 }
@@ -308,9 +309,18 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
             pendingDeepLink = mailboxPath to uid
             return
         }
+        val current = dav ?: return
         viewModelScope.launch {
-            val entity = withContext(Dispatchers.IO) {
+            var entity = withContext(Dispatchers.IO) {
                 messageRepository.messageByUid(account.name, mailboxPath, uid)
+            }
+            if (entity == null) {
+                // Not in the local cache yet (fresh push) — sync the mailbox
+                // once and retry before giving up.
+                messageRepository.syncMessages(account.name, mailboxPath, current)
+                entity = withContext(Dispatchers.IO) {
+                    messageRepository.messageByUid(account.name, mailboxPath, uid)
+                }
             }
             if (entity != null) {
                 openMessage(entity)
@@ -373,7 +383,9 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
                 _messages.value = MailUiState.Success(emptyList())
         }
         // Refresh unread/total counts so the folder dropdown badges update.
-        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) { mailboxRepository.refreshMailboxCounts(account.name, current) }
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            mailboxRepository.refreshMailboxCounts(account.name, current)
+        }
     }
 
     private suspend fun resolveFromAddress(dav: DavAccount): String = withContext(Dispatchers.IO) {

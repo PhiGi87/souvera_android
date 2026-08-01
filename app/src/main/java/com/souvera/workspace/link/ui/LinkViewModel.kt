@@ -120,9 +120,16 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
     suspend fun loadPreview(fileId: String, size: Int): ByteArray? =
         withContext(Dispatchers.IO) { runCatching { api?.previewBytes(fileId, size) }.getOrNull() }
 
-    /** Downloads a user avatar by NC user id, or null on failure. */
-    suspend fun loadAvatar(actorId: String, size: Int): ByteArray? =
-        withContext(Dispatchers.IO) { runCatching { api?.avatarBytes(actorId, size) }.getOrNull() }
+    private val avatarCache = mutableMapOf<String, ByteArray>()
+
+    /** Downloads a user avatar by NC user id, or null on failure. Cached per actor+size. */
+    suspend fun loadAvatar(actorId: String, size: Int): ByteArray? {
+        val key = "$actorId@$size"
+        avatarCache[key]?.let { return it }
+        return withContext(Dispatchers.IO) {
+            runCatching { api?.avatarBytes(actorId, size) }.getOrNull()
+        }?.also { avatarCache[key] = it }
+    }
 
     /** Downloads a shared file to the cache and opens it with the system viewer (not the browser). */
     fun openSharedFile(message: LinkChatMessage) {

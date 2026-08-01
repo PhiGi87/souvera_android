@@ -27,6 +27,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -419,12 +421,17 @@ private fun MessageBubble(
             verticalAlignment = Alignment.Bottom,
             horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start
         ) {
-            if (!mine && !grouped) {
-                MessageAvatar(
-                    viewModel = viewModel,
-                    actorId = message.actorId,
-                    modifier = Modifier.padding(end = AVATAR_GAP.dp)
-                )
+            if (!mine) {
+                if (grouped) {
+                    // Reserve the avatar slot so grouped bubbles stay aligned.
+                    Spacer(Modifier.width(AVATAR_MSG_SIZE.dp).padding(end = AVATAR_GAP.dp))
+                } else {
+                    MessageAvatar(
+                        viewModel = viewModel,
+                        actorId = message.actorId,
+                        modifier = Modifier.padding(end = AVATAR_GAP.dp)
+                    )
+                }
             }
             Box {
                 Column(bubbleModifier) {

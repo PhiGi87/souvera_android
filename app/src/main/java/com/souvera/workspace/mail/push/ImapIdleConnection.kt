@@ -32,7 +32,10 @@ import org.eclipse.angus.mail.imap.IMAPStore
 class ImapIdleConnection(
     private val context: Context,
     private val dav: DavAccount,
-    private val onNewMail: (sender: String?, subject: String?, snippet: String?, mailboxPath: String?, uid: Long?) -> Unit,
+    private val onNewMail: (
+        sender: String?, subject: String?, snippet: String?,
+        mailboxPath: String?, uid: Long?
+    ) -> Unit,
     private val onDisconnect: () -> Unit,
 ) {
     private var thread: Thread? = null

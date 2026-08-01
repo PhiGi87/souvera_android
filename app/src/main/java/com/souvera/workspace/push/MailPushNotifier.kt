@@ -34,6 +34,7 @@ object MailPushNotifier {
     const val EXTRA_MAILBOX_PATH = "com.souvera.workspace.push.EXTRA_MAILBOX_PATH"
     const val EXTRA_MAIL_UID = "com.souvera.workspace.push.EXTRA_MAIL_UID"
     const val EXTRA_CHAT_TOKEN = "com.souvera.workspace.push.EXTRA_CHAT_TOKEN"
+    const val EXTRA_ACCOUNT_NAME = "com.souvera.workspace.push.EXTRA_ACCOUNT_NAME"
 
     /** Which app screen a push opens on tap. */
     enum class Target { MAIL, LINK }
@@ -57,7 +58,8 @@ object MailPushNotifier {
         mailboxPath: String? = null,
         mailUid: Long? = null,
         chatToken: String? = null,
-        target: Target = Target.MAIL
+        target: Target = Target.MAIL,
+        accountName: String? = null
     ) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -76,12 +78,17 @@ object MailPushNotifier {
             Target.MAIL -> MailActivity::class.java
             Target.LINK -> LinkActivity::class.java
         }
+        val headline = sender ?: title ?: context.getString(R.string.mail_push_new_title)
+
         val intent = Intent(context, activityClass)
             .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             .apply {
+                if (accountName != null) putExtra(EXTRA_ACCOUNT_NAME, accountName)
                 if (mailboxPath != null) putExtra(EXTRA_MAILBOX_PATH, mailboxPath)
                 if (mailUid != null) putExtra(EXTRA_MAIL_UID, mailUid)
                 if (chatToken != null) putExtra(EXTRA_CHAT_TOKEN, chatToken)
+                // Chat title for LinkActivity's deep link handling.
+                if (target == Target.LINK) putExtra(Intent.EXTRA_TITLE, headline)
             }
         val pending = PendingIntent.getActivity(
             context,
@@ -90,7 +97,6 @@ object MailPushNotifier {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val headline = sender ?: title ?: context.getString(R.string.mail_push_new_title)
         val summary = subject ?: body ?: context.getString(R.string.mail_push_new_body)
         val expanded = preview?.takeIf { it.isNotBlank() }
             ?: listOfNotNull(subject, body).joinToString("\n").ifBlank { summary }

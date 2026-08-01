@@ -1636,6 +1636,7 @@
     <string name="mail_delete">Delete</string>
     <string name="mail_delete_title">Delete mail</string>
     <string name="mail_delete_confirm">Delete this mail?</string>
+    <string name="mail_delete_failed">Deleting the mail failed</string>
     <string name="mail_flag">Flag</string>
     <string name="mail_unflag">Remove flag</string>
     <string name="mail_no_subject">(no subject)</string>

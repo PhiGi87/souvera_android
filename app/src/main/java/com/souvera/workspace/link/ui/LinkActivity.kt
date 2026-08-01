@@ -42,6 +42,7 @@ class LinkActivity : DrawerActivity() {
         registerBackHandler()
 
         handlePushDeepLink(intent)
+        consumePushExtras(intent)
 
         val colorScheme = viewThemeUtils.getColorScheme(this)
         findViewById<ComposeView>(R.id.link_compose_view).setContent {
@@ -56,6 +57,7 @@ class LinkActivity : DrawerActivity() {
         // SINGLE_TOP notification taps land here instead of onCreate.
         setIntent(intent)
         handlePushDeepLink(intent)
+        consumePushExtras(intent)
     }
 
     /** Push deep link: open the exact chat the notification pointed at. */
@@ -66,6 +68,13 @@ class LinkActivity : DrawerActivity() {
                 val title = intent?.getStringExtra(Intent.EXTRA_TITLE) ?: ""
                 viewModel.openConversation(token, title)
             }
+    }
+
+    /** Removes push extras so a configuration recreation does not replay the deep link. */
+    private fun consumePushExtras(intent: Intent?) {
+        if (intent == null) return
+        intent.removeExtra(com.souvera.workspace.push.MailPushNotifier.EXTRA_CHAT_TOKEN)
+        intent.removeExtra(Intent.EXTRA_TITLE)
     }
 
     override fun getMenuItemId(): Int = R.id.nav_link

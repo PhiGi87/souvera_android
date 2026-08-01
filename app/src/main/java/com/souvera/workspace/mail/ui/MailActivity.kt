@@ -62,9 +62,10 @@ class MailActivity : DrawerActivity() {
         findViewById<View>(R.id.appbar)?.visibility = View.GONE
         installInsetHandling()
 
-        val account = AccountManager.get(this)
-            .getAccountsByType(getString(R.string.account_type))
-            .firstOrNull()
+        val accounts = AccountManager.get(this).getAccountsByType(getString(R.string.account_type))
+        // Prefer the account a push notification was for; fall back to the first one.
+        val pushAccountName = intent?.getStringExtra(MailPushNotifier.EXTRA_ACCOUNT_NAME)
+        val account = accounts.firstOrNull { it.name == pushAccountName } ?: accounts.firstOrNull()
         if (account == null) {
             Toast.makeText(this, R.string.souvera_no_account, Toast.LENGTH_LONG).show()
             finish()
@@ -78,6 +79,7 @@ class MailActivity : DrawerActivity() {
         registerBackHandler()
 
         handlePushDeepLink(intent)
+        consumePushExtras(intent)
 
         val colorScheme = viewThemeUtils.getColorScheme(this)
         themeSystemBars(colorScheme.surface.toArgb())
@@ -97,6 +99,7 @@ class MailActivity : DrawerActivity() {
         // SINGLE_TOP notification taps land here instead of onCreate.
         setIntent(intent)
         handlePushDeepLink(intent)
+        consumePushExtras(intent)
     }
 
     /**
@@ -109,6 +112,14 @@ class MailActivity : DrawerActivity() {
         if (!mailboxPath.isNullOrBlank() && mailUid != null && mailUid > 0L) {
             viewModel.openMessageByUid(mailboxPath, mailUid)
         }
+    }
+
+    /** Removes push extras so a configuration recreation does not replay the deep link. */
+    private fun consumePushExtras(intent: Intent?) {
+        if (intent == null) return
+        intent.removeExtra(MailPushNotifier.EXTRA_MAILBOX_PATH)
+        intent.removeExtra(MailPushNotifier.EXTRA_MAIL_UID)
+        intent.removeExtra(MailPushNotifier.EXTRA_ACCOUNT_NAME)
     }
 
     override fun onResume() {
