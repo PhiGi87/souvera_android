@@ -21,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 
 class MessageRepository(context: Context) {
@@ -67,7 +68,10 @@ class MessageRepository(context: Context) {
             }
 
         val sort = JSONArray().apply {
-            put(JSONArray().put("receivedAt").put(false))
+            put(JSONObject().apply {
+                put("property", "receivedAt")
+                put("isAscending", false)
+            })
         }
         val queryResp = api.queryEmails(accountId, jmapMailboxId, sort, limit = 100)
         val emailIds = queryResp.optJSONArray("ids") ?: JSONArray()
