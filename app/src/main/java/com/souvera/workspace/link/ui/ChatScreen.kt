@@ -141,7 +141,7 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
         topBar = {
             TopAppBar(
                 windowInsets = WindowInsets(0, 0, 0, 0),
-                title = { ChatTitle(route.title, peerStatus) },
+                title = { ChatTitle(route.title, peerStatus, viewModel.chatPeerId.collectAsState().value, viewModel) },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.back() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
@@ -253,18 +253,51 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
 }
 
 @Composable
-private fun ChatTitle(title: String, peer: com.souvera.workspace.status.PeerStatus?) {
-    Column {
-        Text(title)
-        if (peer != null) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(STATUS_DOT.dp).clip(CircleShape).background(peer.status.dotColor))
+private fun ChatTitle(
+    title: String,
+    peer: com.souvera.workspace.status.PeerStatus?,
+    peerId: String?,
+    viewModel: LinkViewModel
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        // Peer avatar (Nextcloud profile picture via avatar/{peerId}).
+        val bytes by androidx.compose.runtime.produceState<ByteArray?>(null, peerId) {
+            value = peerId?.let { viewModel.loadAvatar(it, 40) }
+        }
+        val bitmap = bytes?.toImageBitmap()
+        if (bitmap != null) {
+            androidx.compose.foundation.Image(
+                bitmap = bitmap,
+                contentDescription = null,
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = Modifier.size(40.dp).clip(CircleShape)
+            )
+        } else {
+            val color = AVATAR_PALETTE[(title.hashCode().mod(AVATAR_PALETTE.size))]
+            Box(
+                Modifier.size(40.dp).clip(CircleShape).background(color),
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
-                    lastActiveLabel(peer),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = STATUS_DOT_GAP.dp)
+                    title.trim().firstOrNull()?.uppercase() ?: "?",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = Color.White
                 )
+            }
+        }
+        Spacer(Modifier.width(12.dp))
+        Column {
+            Text(title)
+            if (peer != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(STATUS_DOT.dp).clip(CircleShape).background(peer.status.dotColor))
+                    Text(
+                        lastActiveLabel(peer),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = STATUS_DOT_GAP.dp)
+                    )
+                }
             }
         }
     }

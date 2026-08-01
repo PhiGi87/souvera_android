@@ -68,6 +68,9 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
     private val _peerStatus = MutableStateFlow<com.souvera.workspace.status.PeerStatus?>(null)
     val peerStatus: StateFlow<com.souvera.workspace.status.PeerStatus?> = _peerStatus.asStateFlow()
 
+    private val _chatPeerId = MutableStateFlow<String?>(null)
+    val chatPeerId: StateFlow<String?> = _chatPeerId.asStateFlow()
+
     /** Locally tracked messages whose send failed; kept until a retry succeeds. */
     private val _failedMessages = MutableStateFlow<List<FailedChatMessage>>(emptyList())
     val failedMessages: StateFlow<List<FailedChatMessage>> = _failedMessages.asStateFlow()
@@ -256,6 +259,7 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
             if (conversation != null && conversation.type != ROOM_TYPE_ONE_TO_ONE) {
                 if ((_route.value as? LinkRoute.Chat)?.token == token) {
                     _peerStatus.value = null
+                    _chatPeerId.value = null
                 }
                 return@launch
             }
@@ -273,8 +277,10 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
             if ((_route.value as? LinkRoute.Chat)?.token != token) return@launch
             if (peer == null) {
                 _peerStatus.value = null
+                _chatPeerId.value = null
                 return@launch
             }
+            _chatPeerId.value = peer
             val parsed = try {
                 withContext(Dispatchers.IO) { com.souvera.workspace.status.StatusApi(dav).peerStatus(peer) }
             } catch (e: kotlinx.coroutines.CancellationException) {
