@@ -45,14 +45,36 @@ class JmapClient(
         // Stalwart's JMAP endpoint does NOT support GET — only POST (RFC 8620
         // allows the session via authenticated POST). Send a minimal echo to
         // obtain the session object and parse capabilities/accounts from it.
+        // Minimal valid JMAP request: empty methodCalls, only core capability.
+        // Core/echo is optional in RFC 8620 and some servers reject it.
         val requestObj = JSONObject().apply {
-            put("using", JSONArray(listOf(JmapCapabilities.CORE, JmapCapabilities.MAIL)))
-            put("methodCalls", JSONArray(listOf(
-                JSONArray().put("Core/echo").put(JSONObject().put("ping", true)).put("s")
-            )))
+            put("using", JSONArray(listOf(JmapCapabilities.CORE)))
+            put("methodCalls", JSONArray())
         }
-        val json = httpPost(apiUrl, requestObj.toString())
-        // Log the raw capabilities keys for debugging session parsing.
+        try {
+            val json = httpPost(apiUrl, requestObj.toString())
+            val caps = parseSession(json)
+            resolvedApiUrl = apiUrl
+            session = caps
+            caps
+        } catch (e: JmapException) {
+            // If the first attempt failed, try with echo.
+            android.util.Log.w("JmapClient", "Empty-call session failed; trying Core/echo", e)
+            val echoObj = JSONObject().apply {
+                put("using", JSONArray(listOf(JmapCapabilities.CORE)))
+                put("methodCalls", JSONArray(listOf(
+                    JSONArray().put("Core/echo").put(JSONObject()).put("c1")
+                )))
+            }
+            val json = httpPost(apiUrl, echoObj.toString())
+            val caps = parseSession(json)
+            resolvedApiUrl = apiUrl
+            session = caps
+            caps
+        }
+    }
+
+    private fun parseSession(json: JSONObject): JmapSessionInfo {
         val caps = mutableMapOf<String, JSONObject>()
         val capsNode = json.optJSONObject("capabilities")
         android.util.Log.d("JmapClient", "Session caps keys: ${capsNode?.keys()?.asSequence()?.toList()}")
@@ -66,16 +88,18 @@ class JmapClient(
         val primaryAccId = primaryMap?.optString(JmapCapabilities.MAIL, null)
             ?.takeIf { it.isNotBlank() }
             ?: mailAccIdFromCap
-        // Last resort: walk the accounts map for a personal mail account.
         val fallbackAccId = accountsMap?.keys()?.asSequence()?.firstOrNull { key ->
             val acc = accountsMap.optJSONObject(key)
             acc?.optBoolean("isPersonal", false) == true && acc?.has("name") == true
         }
         val accId = primaryAccId ?: fallbackAccId ?: ""
         if (accId.isBlank()) {
-            throw JmapException("JMAL session: could not resolve accountId (caps=$capsNode, primary=$primaryMap, accounts=$accountsMap)")
+            throw JmapException(
+                "Could not resolve accountId: caps=$capsNode, primary=$primaryMap, accounts=$accountsMap"
+            )
         }
-        val info = JmapSessionInfo(
+        val apiUrl = resolvedApiUrl ?: json.optString("apiUrl", "")
+        return JmapSessionInfo(
             apiUrl = apiUrl,
             downloadUrl = json.optString("downloadUrl", apiUrl + "/download/{account}/{blobId}/{type}/{name}"),
             uploadUrl = json.optString("uploadUrl", apiUrl + "/upload/{account}"),
@@ -85,9 +109,6 @@ class JmapClient(
             capabilities = caps,
             state = json.optString("sessionState", null).takeIf { it != null }
         )
-        resolvedApiUrl = apiUrl
-        session = info
-        info
     }
 
     /* ---------- method calls -------------------------------------------- */
