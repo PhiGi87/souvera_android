@@ -17,6 +17,9 @@ import com.souvera.workspace.link.net.LinkChatMessage
 import com.souvera.workspace.link.net.LinkConversation
 import com.souvera.workspace.link.net.LinkSuggestion
 import com.souvera.workspace.link.net.OcsApi
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -131,15 +134,17 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
     suspend fun loadPreview(fileId: String, size: Int): ByteArray? =
         withContext(Dispatchers.IO) { runCatching { api?.previewBytes(fileId, size) }.getOrNull() }
 
-    private val avatarCache = mutableMapOf<String, ByteArray>()
 
     /** Downloads a user avatar by NC user id, or null on failure. Cached per actor+size. */
     suspend fun loadAvatar(actorId: String, size: Int): ByteArray? {
-        val key = "$actorId@$size"
-        avatarCache[key]?.let { return it }
+        val cacheDir = java.io.File(getApplication<Application>().cacheDir, "avatars").apply { mkdirs() }
+        val file = java.io.File(cacheDir, "${actorId}_$size")
+        if (file.exists() && file.lastModified() > System.currentTimeMillis() - AVATAR_CACHE_TTL) {
+            return file.readBytes()
+        }
         return withContext(Dispatchers.IO) {
             runCatching { api?.avatarBytes(actorId, size) }.getOrNull()
-        }?.also { avatarCache[key] = it }
+        }?.also { bytes -> runCatching { file.writeBytes(bytes) } }
     }
 
     /** Downloads a shared file to the cache and opens it with the system viewer (not the browser). */
@@ -233,15 +238,19 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** Fills [peerIdCache] for 1:1 conversations (lazy background resolution). */
-    private fun resolvePeerIdsForAvatars(conversations: List<LinkConversation>) {
+    /** Fills [peerIdCache] for 1:1 conversations (runs eagerly in the current scope). */
+    private suspend fun resolvePeerIdsForAvatars(conversations: List<LinkConversation>) {
         val client = api ?: return
         val me = currentUserId ?: return
-        viewModelScope.launch {
-            conversations.filter { it.type == ROOM_TYPE_ONE_TO_ONE && it.token !in peerIdCache }.forEach { c ->
-                runCatching {
-                    withContext(Dispatchers.IO) { client.getPeerUserId(c.token, me) }
-                }.getOrNull()?.let { peerIdCache[c.token] = it }
+        val missing = conversations.filter { it.type == ROOM_TYPE_ONE_TO_ONE && it.token !in peerIdCache }
+        if (missing.isEmpty()) return
+        coroutineScope {
+            missing.forEach { c ->
+                launch {
+                    runCatching {
+                        withContext(Dispatchers.IO) { client.getPeerUserId(c.token, me) }
+                    }.getOrNull()?.let { peerIdCache[c.token] = it }
+                }
             }
         }
     }
@@ -438,5 +447,6 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
         private const val HISTORY_ANCHOR = 2_000_000_000L
         private const val PEER_STATUS_REFRESH_MS = 30_000L
         private const val REFERENCE_PREFIX = "souv-"
+        private const val AVATAR_CACHE_TTL = 24L * 3600 * 1000
     }
 }

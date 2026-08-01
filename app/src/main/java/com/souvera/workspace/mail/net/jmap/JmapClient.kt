@@ -51,22 +51,33 @@ class JmapClient(
             put("methodCalls", JSONArray())
         }
         val json = httpPost(apiUrl, requestObj.toString())
+        // Stalwart via POST returns capabilities/accounts at the top level;
+        // the mail capability may or may not carry `accountId` — resolve
+        // from the accounts map as fallback.
         val caps = mutableMapOf<String, JSONObject>()
         json.optJSONObject("capabilities")?.let { c ->
             c.keys().forEach { k -> caps[k] = c.getJSONObject(k) }
         }
-        val mailCap = caps[JmapCapabilities.MAIL]
-        val accId = mailCap?.optString("accountId")
-            ?: json.optJSONObject("primaryAccounts")
-                ?.optString(JmapCapabilities.MAIL, "")
-        val primaryAccId = json.optJSONObject("primaryAccounts")
-            ?.optString(JmapCapabilities.MAIL, accId ?: "")
+        // Resolve the primary mail account ID: try capability → primaryAccounts → accounts map.
+        val primaryMap = json.optJSONObject("primaryAccounts")
+        val mailAccIdFromCap = caps[JmapCapabilities.MAIL]?.optString("accountId", null)
+            ?.takeIf { it.isNotBlank() }
+        val primaryAccId = primaryMap?.optString(JmapCapabilities.MAIL, null)
+            ?.takeIf { it.isNotBlank() }
+            ?: mailAccIdFromCap
+        // Last resort: walk the accounts map for a personal mail account.
+        val accountsMap = json.optJSONObject("accounts")
+        val fallbackAccId = accountsMap?.keys()?.asSequence()?.firstOrNull { key ->
+            val acc = accountsMap.optJSONObject(key)
+            acc?.optBoolean("isPersonal", false) == true && acc.optString("name").isNotBlank()
+        }
+        val accId = primaryAccId ?: fallbackAccId ?: ""
         val info = JmapSessionInfo(
             apiUrl = apiUrl,
             downloadUrl = json.optString("downloadUrl", apiUrl + "/download/{account}/{blobId}/{type}/{name}"),
             uploadUrl = json.optString("uploadUrl", apiUrl + "/upload/{account}"),
-            accountId = accId ?: "",
-            primaryAccountId = primaryAccId ?: accId ?: "",
+            accountId = accId,
+            primaryAccountId = primaryAccId ?: accId,
             username = json.optString("username", dav.username),
             capabilities = caps,
             state = json.optString("sessionState", null).takeIf { it != null }
