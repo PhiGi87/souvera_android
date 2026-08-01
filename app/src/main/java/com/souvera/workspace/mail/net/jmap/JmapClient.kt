@@ -46,32 +46,35 @@ class JmapClient(
         // allows the session via authenticated POST). Send a minimal echo to
         // obtain the session object and parse capabilities/accounts from it.
         val requestObj = JSONObject().apply {
-            put("using", JSONArray(listOf(JmapCapabilities.CORE, JmapCapabilities.MAIL,
-                JmapCapabilities.SUBMISSION, JmapCapabilities.BLOB)))
-            put("methodCalls", JSONArray())
+            put("using", JSONArray(listOf(JmapCapabilities.CORE, JmapCapabilities.MAIL)))
+            put("methodCalls", JSONArray(listOf(
+                JSONArray().put("Core/echo").put(JSONObject().put("ping", true)).put("s")
+            )))
         }
         val json = httpPost(apiUrl, requestObj.toString())
-        // Stalwart via POST returns capabilities/accounts at the top level;
-        // the mail capability may or may not carry `accountId` — resolve
-        // from the accounts map as fallback.
+        // Log the raw capabilities keys for debugging session parsing.
         val caps = mutableMapOf<String, JSONObject>()
-        json.optJSONObject("capabilities")?.let { c ->
-            c.keys().forEach { k -> caps[k] = c.getJSONObject(k) }
-        }
-        // Resolve the primary mail account ID: try capability → primaryAccounts → accounts map.
+        val capsNode = json.optJSONObject("capabilities")
+        android.util.Log.d("JmapClient", "Session caps keys: ${capsNode?.keys()?.asSequence()?.toList()}")
+        capsNode?.let { c -> c.keys().forEach { k -> caps[k] = c.getJSONObject(k) } }
         val primaryMap = json.optJSONObject("primaryAccounts")
+        android.util.Log.d("JmapClient", "primaryAccounts: ${primaryMap?.toString(2)}")
+        val accountsMap = json.optJSONObject("accounts")
+        android.util.Log.d("JmapClient", "accounts keys: ${accountsMap?.keys()?.asSequence()?.toList()}")
         val mailAccIdFromCap = caps[JmapCapabilities.MAIL]?.optString("accountId", null)
             ?.takeIf { it.isNotBlank() }
         val primaryAccId = primaryMap?.optString(JmapCapabilities.MAIL, null)
             ?.takeIf { it.isNotBlank() }
             ?: mailAccIdFromCap
         // Last resort: walk the accounts map for a personal mail account.
-        val accountsMap = json.optJSONObject("accounts")
         val fallbackAccId = accountsMap?.keys()?.asSequence()?.firstOrNull { key ->
             val acc = accountsMap.optJSONObject(key)
-            acc?.optBoolean("isPersonal", false) == true && acc.optString("name").isNotBlank()
+            acc?.optBoolean("isPersonal", false) == true && acc?.has("name") == true
         }
         val accId = primaryAccId ?: fallbackAccId ?: ""
+        if (accId.isBlank()) {
+            throw JmapException("JMAL session: could not resolve accountId (caps=$capsNode, primary=$primaryMap, accounts=$accountsMap)")
+        }
         val info = JmapSessionInfo(
             apiUrl = apiUrl,
             downloadUrl = json.optString("downloadUrl", apiUrl + "/download/{account}/{blobId}/{type}/{name}"),
