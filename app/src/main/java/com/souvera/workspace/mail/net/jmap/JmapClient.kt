@@ -182,7 +182,8 @@ class JmapClient(
             conn.outputStream.close()
             val code = conn.responseCode
             if (code !in 200..299) {
-                throw JmapException("Blob upload HTTP $code", readErrorBody(conn))
+                val err = try { String(conn.errorStream?.readBytes() ?: ByteArray(0), Charsets.UTF_8).take(300) } catch (_: Exception) { "" }
+                throw JmapException("Blob upload HTTP $code: $err")
             }
             val json = JSONObject(String(conn.inputStream.readBytes(), Charsets.UTF_8))
             JmapBlobUploadResponse(
@@ -211,7 +212,8 @@ class JmapClient(
             }
             val code = conn.responseCode
             if (code !in 200..299) {
-                throw JmapException("Blob download HTTP $code", readErrorBody(conn))
+                val err = try { String(conn.errorStream?.readBytes() ?: ByteArray(0), Charsets.UTF_8).take(300) } catch (_: Exception) { "" }
+                throw JmapException("Blob download HTTP $code: $err")
             }
             conn.inputStream.readBytes()
         }
@@ -274,38 +276,35 @@ class JmapClient(
 
     private suspend fun httpPost(urlStr: String, jsonBody: String): JSONObject = withContext(Dispatchers.IO) {
         val u = URL(urlStr)
+        val bodyBytes = jsonBody.toByteArray(Charsets.UTF_8)
         val conn = (u.openConnection() as HttpURLConnection).apply {
-            requestMethod = "POST"
+            doOutput = true
+            setFixedLengthStreamingMode(bodyBytes.size)
             setRequestProperty("Content-Type", "application/json; charset=utf-8")
             setRequestProperty("Authorization", authHeader())
             setRequestProperty("Accept", "application/json")
-            doOutput = true
             connectTimeout = 15_000
             readTimeout = 30_000
         }
-        conn.outputStream.write(jsonBody.toByteArray(Charsets.UTF_8))
-        conn.outputStream.close()
+        conn.outputStream.use { it.write(bodyBytes) }
         val code = conn.responseCode
+        val responseBody = try {
+            if (code in 200..299) String(conn.inputStream.readBytes(), Charsets.UTF_8)
+            else String(conn.errorStream?.readBytes() ?: ByteArray(0), Charsets.UTF_8).take(500)
+        } catch (_: Exception) { "" }
         if (code == 401) {
-            throw JmapException("JMAP auth rejected — needs Bearer token", "HTTP 401")
+            throw JmapException("JMAP auth rejected — needs Bearer token: $responseBody")
         }
-        val body =         if (code in 200..299) {
-            String(conn.inputStream.readBytes(), Charsets.UTF_8)
-        } else {
-            throw JmapException("JMAP HTTP $code: " + readErrorBody(conn).take(500))
+        if (code !in 200..299) {
+            throw JmapException("JMAP HTTP $code: $responseBody")
         }
         try {
-            JSONObject(body)
+            JSONObject(responseBody)
         } catch (e: JSONException) {
-            throw JmapException("JMAP response is not valid JSON: ${body.take(200)}")
+            throw JmapException("JMAP response not JSON (${responseBody.take(200)})")
         }
     }
 
-    private fun readErrorBody(conn: HttpURLConnection): String {
-        return try {
-            String(conn.errorStream?.readBytes() ?: ByteArray(0), Charsets.UTF_8).take(300)
-        } catch (_: Exception) { "" }
-    }
 }
 
 class JmapException(
