@@ -40,6 +40,7 @@ class LinkActivity : DrawerActivity() {
         }
         viewModel.start(account)
         registerBackHandler()
+        registerForChatPush()
 
         handlePushDeepLink(intent)
         consumePushExtras(intent)
@@ -68,6 +69,21 @@ class LinkActivity : DrawerActivity() {
                 val title = intent?.getStringExtra(Intent.EXTRA_TITLE) ?: ""
                 viewModel.openConversation(token, title)
             }
+    }
+
+    /** Registers this device for chat push notifications (FCM via NC push proxy). */
+    private fun registerForChatPush() {
+        com.souvera.workspace.push.PushTokenFetcher.fetchAndRegister(this) { }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            val granted = androidx.core.content.ContextCompat.checkSelfPermission(
+                this, android.Manifest.permission.POST_NOTIFICATIONS
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                registerForActivityResult(
+                    androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+                ) { }.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
     }
 
     /** Removes push extras so a configuration recreation does not replay the deep link. */
