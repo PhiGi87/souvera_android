@@ -29,11 +29,44 @@ class MailboxRepository(context: Context) {
     ): MailResult<List<MailboxEntity>> = mailCall("Mailbox sync failed") {
         val client = JmapClient(dav)
         val api = JmapApi(client)
-        val accountId = client.refreshSession().primaryAccountId
-        val list = api.getMailboxes(accountId)
-        val entities = (0 until list.length()).mapNotNull { i ->
-            list.optJSONObject(i)?.let { JmapMapper.mapMailbox(accountName, it) }
+        val session = client.refreshSession()
+        val accountId = session.primaryAccountId
+        val entities = mutableListOf<MailboxEntity>()
+
+        // Primary (personal) mailboxes.
+        val personalList = api.getMailboxes(accountId)
+        for (i in 0 until personalList.length()) {
+            personalList.optJSONObject(i)?.let {
+                entities.add(JmapMapper.mapMailbox(accountName, it))
+            }
         }
+
+        // Shared mailboxes: accounts in the session with isPersonal=false.
+        client.getSessionJson()?.optJSONObject("accounts")?.let { accounts ->
+            for (key in accounts.keys()) {
+                val acc = accounts.optJSONObject(key) ?: continue
+                val isPersonal = acc.optBoolean("isPersonal", true)
+                val accName = acc.optString("name", null) ?: continue
+                if (isPersonal || key == accountId || key == session.primaryAccountId) continue
+                try {
+                    val sharedList = api.getMailboxes(key)
+                    for (i in 0 until sharedList.length()) {
+                        sharedList.optJSONObject(i)?.let { json ->
+                            val entity = JmapMapper.mapMailbox(accountName, json)
+                            // Prefix path to distinguish from personal mailboxes.
+                            val sharedEntity = entity.copy(
+                                path = json.optString("name", entity.path),
+                                id = "$accountName:${json.optString("name", entity.path)}",
+                                namespaceType = com.souvera.workspace.mail.db.entity.NamespaceType.SHARED,
+                                ownerIdentity = accName
+                            )
+                            entities.add(sharedEntity)
+                        }
+                    }
+                } catch (_: Exception) { /* shared mailbox might not be accessible */ }
+            }
+        }
+
         db.mailboxDao().upsertAll(entities)
         entities
     }

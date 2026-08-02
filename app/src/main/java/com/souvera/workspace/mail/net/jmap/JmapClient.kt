@@ -38,6 +38,9 @@ class JmapClient(
 
     private var resolvedSession: JSONObject? = null
 
+    /** Returns the raw session JSON (includes accounts, primaryAccounts). Null until refreshSession() runs. */
+    fun getSessionJson(): JSONObject? = resolvedSession
+
     /**
      * Ensures a JMAP session exists (discovers the endpoint, fetches the
      * session resource). Idempotent; on success the session is cached.
