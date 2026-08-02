@@ -45,26 +45,43 @@ class MessageRepository(context: Context) {
     ): MailResult<List<MessageEntity>> = mailCall("Message sync failed") {
         val client = jmapClient(dav)
         val api = JmapApi(client)
-        val accountId = client.refreshSession().primaryAccountId
+        val session = client.refreshSession()
+
+        // Shared mailbox: resolve the JMAP account ID from the session.
+        val (jmapAccountId, lookupPath) = if (mailboxPath.contains('/')) {
+            val owner = mailboxPath.substringBefore('/')
+            val subPath = mailboxPath.substringAfter('/')
+            val sessionJson = client.getSessionJson()
+            val accounts = sessionJson?.optJSONObject("accounts")
+            var sharedAccId: String? = null
+            accounts?.keys()?.forEach { key ->
+                val acc = accounts.optJSONObject(key) ?: return@forEach
+                if (acc.optString("name") == owner && !acc.optBoolean("isPersonal", true)) {
+                    sharedAccId = key
+                }
+            }
+            Pair(sharedAccId ?: session.primaryAccountId, subPath)
+        } else {
+            Pair(session.primaryAccountId, mailboxPath)
+        }
+
         val mid = mailboxId(accountName, mailboxPath)
 
         // Find the JMAP-id of this mailbox.
         val jmapMailboxId = db.mailboxDao().findById(mid)?.jmapId
             ?: run {
-                // First sync — lookup via name in the mailbox list.
-                val mboxes = api.getMailboxes(accountId)
+                val mboxes = api.getMailboxes(jmapAccountId)
                 var found: String? = null
                 for (i in 0 until mboxes.length()) {
                     val mb = mboxes.getJSONObject(i)
-                    if (mb.optString("name") == mailboxPath) {
+                    if (mb.optString("name") == lookupPath) {
                         found = mb.optString("id")
-                        // Save the jmapId so next sync is faster.
-                        val entity = JmapMapper.mapMailbox(accountName, mb, mailboxPath)
+                        val entity = JmapMapper.mapMailbox(accountName, mb, lookupPath)
                         db.mailboxDao().upsertAll(listOf(entity.copy(jmapId = entity.jmapId ?: found)))
                         break
                     }
                 }
-                found ?: mailboxPath
+                found ?: lookupPath
             }
 
         val sort = JSONArray().apply {
@@ -73,7 +90,7 @@ class MessageRepository(context: Context) {
                 put("isAscending", false)
             })
         }
-        val queryResp = api.queryEmails(accountId, jmapMailboxId, sort, limit = 100)
+        val queryResp = api.queryEmails(jmapAccountId, jmapMailboxId, sort, limit = 100)
         val emailIds = queryResp.optJSONArray("ids") ?: JSONArray()
         if (emailIds.length() == 0) {
             // Still upsert empty to prune removed messages from the DB.
@@ -82,10 +99,22 @@ class MessageRepository(context: Context) {
             return@mailCall emptyList<MessageEntity>()
         }
         val idList = (0 until emailIds.length()).map { emailIds.getString(it) }
-        val list = api.getEmails(accountId, idList)
+        val list = api.getEmails(jmapAccountId, idList)
+        // Preserve locally-set read/flagged state — upsertAll would overwrite
+        // them with the server state when a parallel JMAP flag update hasn't
+        // been committed yet.
+        val oldState = mutableMapOf<String, Pair<Boolean, Boolean>>()
+        for (id in idList) {
+            val mbId = mid
+            db.messageDao().getByMailboxAndId(mbId, id)?.let {
+                oldState[id] = Pair(it.isRead, it.isFlagged)
+            }
+        }
         val entities = (0 until list.length()).mapNotNull { i ->
             val json = list.getJSONObject(i)
-            JmapMapper.mapEmail(accountName, mid, json)
+            val entity = JmapMapper.mapEmail(accountName, mid, json)
+            val saved = oldState[entity.emailId]
+            if (saved != null) entity.copy(isRead = saved.first, isFlagged = saved.second) else entity
         }
         db.messageDao().deleteMissing(mid, idList)
         db.messageDao().upsertAll(entities)

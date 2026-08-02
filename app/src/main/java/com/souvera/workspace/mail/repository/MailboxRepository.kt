@@ -55,8 +55,8 @@ class MailboxRepository(context: Context) {
                             val entity = JmapMapper.mapMailbox(accountName, json)
                             // Prefix path to distinguish from personal mailboxes.
                             val sharedEntity = entity.copy(
-                                path = json.optString("name", entity.path),
-                                id = "$accountName:${json.optString("name", entity.path)}",
+                                path = "$accName/${json.optString("name", entity.path)}",
+                                id = "$accountName:$accName/${json.optString("name", entity.path)}",
                                 namespaceType = com.souvera.workspace.mail.db.entity.NamespaceType.SHARED,
                                 ownerIdentity = accName
                             )
