@@ -119,21 +119,9 @@ class MessageRepository(context: Context) {
         }
         val idList = (0 until emailIds.length()).map { emailIds.getString(it) }
         val list = api.getEmails(jmapAccountId, idList)
-        // Preserve locally-set read/flagged state — upsertAll would overwrite
-        // them with the server state when a parallel JMAP flag update hasn't
-        // been committed yet.
-        val oldState = mutableMapOf<String, Pair<Boolean, Boolean>>()
-        for (id in idList) {
-            val mbId = mid
-            db.messageDao().getByMailboxAndId(mbId, id)?.let {
-                oldState[id] = Pair(it.isRead, it.isFlagged)
-            }
-        }
         val entities = (0 until list.length()).mapNotNull { i ->
             val json = list.getJSONObject(i)
-            val entity = JmapMapper.mapEmail(accountName, mid, json)
-            val saved = oldState[entity.emailId]
-            if (saved != null) entity.copy(isRead = saved.first, isFlagged = saved.second) else entity
+            JmapMapper.mapEmail(accountName, mid, json)
         }
         db.messageDao().deleteMissing(mid, idList)
         db.messageDao().upsertAll(entities)
@@ -346,18 +334,17 @@ class MessageRepository(context: Context) {
         add: Map<String, Boolean>,
         remove: List<String>
     ): MailResult<Unit> = mailCall("Flag change failed") {
-        // Optimistic local update — mark first, then sync to server.
-        // This prevents the parallel sync from reverting the flag.
+        val client = jmapClient(dav)
+        val api = JmapApi(client)
+        val accountId = resolveAccountId(mailboxPath, dav)
+        api.setEmailFlags(accountId, listOf(emailId), add, remove)
+        // Local update AFTER server confirmation — no window for parallel sync to revert.
         if (add.containsKey("\$seen") || remove.contains("\$seen")) {
             db.messageDao().markRead(mailboxId, emailId, add.containsKey("\$seen"))
         }
         if (add.containsKey("\$flagged") || remove.contains("\$flagged")) {
             db.messageDao().markFlagged(mailboxId, emailId, add.containsKey("\$flagged"))
         }
-        val client = jmapClient(dav)
-        val api = JmapApi(client)
-        val accountId = resolveAccountId(mailboxPath, dav)
-        api.setEmailFlags(accountId, listOf(emailId), add, remove)
     }
 
     private fun jmapClient(dav: DavAccount): JmapClient = JmapClient(dav)
