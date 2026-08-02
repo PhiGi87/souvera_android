@@ -62,14 +62,14 @@ class JmapClient(
             ?.takeIf { it.isNotBlank() }
             ?: caps[JmapCapabilities.MAIL]?.optString("accountId", null)
                 ?.takeIf { it.isNotBlank() }
-        val accId = dav.username
+        val accId = primaryAccId ?: dav.username
         val apiUrl = json.optString("apiUrl", "").takeIf { it.isNotBlank() }
             ?: (resolvedApiUrl ?: "")
         return JmapSessionInfo(
             apiUrl = apiUrl,
             downloadUrl = json.optString("downloadUrl", apiUrl + "download/{accountId}/{blobId}/{name}?accept={type}"),
             uploadUrl = json.optString("uploadUrl", apiUrl + "upload/{accountId}/"),
-            accountId = "",   // empty — Stalwart resolves from auth
+            accountId = accId,
             primaryAccountId = accId,
             username = json.optString("username", dav.username).takeIf { it.isNotBlank() } ?: dav.username,
             capabilities = caps,
