@@ -155,7 +155,8 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
                     val peerId = viewModel.chatPeerId.collectAsState().value
                     Row(
                         Modifier.clickable {
-                            peerId?.let { viewModel.showUserProfile(it) }
+                            val id = peerId ?: route.title
+                            viewModel.showUserProfile(id)
                         }
                     ) {
                         ChatTitle(route.title, peerStatus, peerId, viewModel)
