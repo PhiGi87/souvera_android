@@ -201,7 +201,8 @@ private fun MailFolderSelector(mailbox: MailboxEntity, onOpenFolders: () -> Unit
 @Composable
 private fun MailMessageList(state: MailUiState<List<MessageEntity>>, viewModel: MailViewModel) {
     when (state) {
-        is MailUiState.Loading -> MailLoading()
+        is MailUiState.Loading ->
+            if (!isRefreshing) MailLoading()
 
         is MailUiState.Error -> MailPlaceholder(state.message, Icons.Filled.Warning)
 
