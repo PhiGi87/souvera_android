@@ -35,8 +35,27 @@ class MessageRepository(context: Context) {
     suspend fun messageById(accountName: String, mailboxPath: String, emailId: String): MessageEntity? =
         db.messageDao().getByMailboxAndId(mailboxId(accountName, mailboxPath), emailId)
 
-    fun searchMessages(accountName: String, query: String): Flow<List<MessageEntity>> =
-        db.messageDao().searchMessages(accountName, query, 50)
+    suspend fun searchMessages(accountName: String, query: String, dav: DavAccount): List<MessageEntity> {
+        val trimmed = query.trim()
+        if (trimmed.isBlank()) return emptyList()
+        val client = jmapClient(dav)
+        val api = JmapApi(client)
+        val accountId = client.refreshSession().primaryAccountId
+        return try {
+            val resp = api.queryEmails(accountId, "", filterText = trimmed, limit = 50)
+            val ids = resp.optJSONArray("ids") ?: JSONArray()
+            if (ids.length() == 0) return emptyList()
+            val idList = (0 until ids.length()).map { ids.getString(it) }
+            val list = api.getEmails(accountId, idList)
+            (0 until list.length()).mapNotNull { i ->
+                val json = list.getJSONObject(i)
+                // Use empty mailboxId — these are search results, not pinned to a mailbox.
+                JmapMapper.mapEmail(accountName, "${accountName}:search", json)
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
 
     suspend fun syncMessages(
         accountName: String,

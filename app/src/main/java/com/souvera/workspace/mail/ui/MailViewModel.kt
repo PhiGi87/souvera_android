@@ -38,7 +38,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -95,8 +97,11 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
     @OptIn(ExperimentalCoroutinesApi::class)
     val searchResults: StateFlow<List<MessageEntity>> = _searchQuery
         .flatMapLatest { query ->
-            if (this::account.isInitialized && query.isNotBlank()) {
-                messageRepository.searchMessages(account.name, query.trim())
+            val currentDav = dav
+            if (this::account.isInitialized && query.isNotBlank() && currentDav != null) {
+                flow {
+                    emit(messageRepository.searchMessages(account.name, query.trim(), currentDav))
+                }
             } else {
                 flowOf(emptyList())
             }
