@@ -121,8 +121,8 @@ class JmapClient(
      * Convenience: single call with auto-generated callId. Returns the
      * response args on success, or throws [JmapException] on error.
      */
-    suspend fun singleCall(name: String, args: JSONObject): JSONObject = withContext(Dispatchers.IO) {
-        val result = call(listOf(JmapMethodCall(name, args, "S")))
+    suspend fun singleCall(name: String, args: JSONObject, using: List<String>? = null): JSONObject = withContext(Dispatchers.IO) {
+        val result = call(listOf(JmapMethodCall(name, args, "S")), using ?: listOf(JmapCapabilities.CORE, JmapCapabilities.MAIL))
         val r = result.results.singleOrNull() ?: throw JmapException("Empty batch result")
         when (r) {
             is JmapCallResult.Success -> r.response.args

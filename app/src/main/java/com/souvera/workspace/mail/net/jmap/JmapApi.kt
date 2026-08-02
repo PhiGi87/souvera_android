@@ -239,7 +239,8 @@ class JmapApi(private val client: JmapClient) {
             })
             put("onSuccessDestroyEmail", JSONArray(listOf("#sendme")))
         }
-        return client.singleCall("Email/submission/set", args)
+        return client.singleCall("Email/submission/set", args,
+            listOf(JmapCapabilities.CORE, JmapCapabilities.MAIL, JmapCapabilities.SUBMISSION))
     }
 
     /* ---------- PushSubscription/set --------------------------------- */
