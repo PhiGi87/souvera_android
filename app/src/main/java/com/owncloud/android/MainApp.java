@@ -24,6 +24,9 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.accounts.AccountManager;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageInfo;
@@ -309,6 +312,10 @@ public class MainApp extends Application implements HasAndroidInjector, NetworkC
         int startedMigrationsCount = migrationsManager.startMigration();
         logger.i(TAG, String.format(Locale.US, "Started %d migrations", startedMigrationsCount));
 
+        // On app update: clear stored mail passwords so the next login
+        // creates fresh App Passwords with JMAP permissions (v1.0.146+).
+        clearMailCredentialsOnUpdate();
+
         new SecurityUtils();
         DisplayUtils.useCompatVectorIfNeeded();
 
@@ -580,6 +587,27 @@ public class MainApp extends Application implements HasAndroidInjector, NetworkC
             } else {
                 preferences.removeKeysMigrationPreference();
                 preferences.setStoragePathFixEnabled(true);
+            }
+        }
+    }
+
+    /** On app update: clear stored mail passwords so the next login creates fresh ones with JMAP. */
+    private void clearMailCredentialsOnUpdate() {
+        final String prefKey = "last_version_code";
+        final int currentVersion = BuildConfig.VERSION_CODE;
+        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        final int lastVersion = prefs.getInt(prefKey, 0);
+        if (lastVersion == currentVersion) return;
+        Log_OC.i(TAG, "App updated from " + lastVersion + " to " + currentVersion + " — clearing mail credentials");
+        prefs.edit().putInt(prefKey, currentVersion).apply();
+        final AccountManager am = AccountManager.get(this);
+        final String accountType = getResources().getString(R.string.account_type);
+        for (android.accounts.Account account : am.getAccountsByType(accountType)) {
+            try {
+                am.setUserData(account, "souvera_mail_password", null);
+                Log_OC.d(TAG, "Cleared mail password for " + account.name);
+            } catch (Exception e) {
+                Log_OC.w(TAG, "Failed to clear mail password for " + account.name + ": " + e.getMessage());
             }
         }
     }
