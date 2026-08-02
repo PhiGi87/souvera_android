@@ -265,16 +265,18 @@ class MessageRepository(context: Context) {
         add: Map<String, Boolean>,
         remove: List<String>
     ): MailResult<Unit> = mailCall("Flag change failed") {
-        val client = jmapClient(dav)
-        val api = JmapApi(client)
-        val accountId = client.refreshSession().primaryAccountId
-        api.setEmailFlags(accountId, listOf(emailId), add, remove)
+        // Optimistic local update — mark first, then sync to server.
+        // This prevents the parallel sync from reverting the flag.
         if (add.containsKey("\$seen") || remove.contains("\$seen")) {
             db.messageDao().markRead(mailboxId, emailId, add.containsKey("\$seen"))
         }
         if (add.containsKey("\$flagged") || remove.contains("\$flagged")) {
             db.messageDao().markFlagged(mailboxId, emailId, add.containsKey("\$flagged"))
         }
+        val client = jmapClient(dav)
+        val api = JmapApi(client)
+        val accountId = client.refreshSession().primaryAccountId
+        api.setEmailFlags(accountId, listOf(emailId), add, remove)
     }
 
     private fun jmapClient(dav: DavAccount): JmapClient = JmapClient(dav)
