@@ -75,8 +75,9 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
     private val _chatPeerId = MutableStateFlow<String?>(null)
     val chatPeerId: StateFlow<String?> = _chatPeerId.asStateFlow()
 
-    /** Resolved peer user IDs for 1:1 conversation tokens (cached, lazy). */
-    private val peerIdCache = mutableMapOf<String, String?>()
+    /** Resolved peer user IDs for 1:1 conversation tokens (observable). */
+    private val _peerIdCache = MutableStateFlow<Map<String, String?>>(emptyMap())
+    val peerIdCache: StateFlow<Map<String, String?>> = _peerIdCache.asStateFlow()
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
@@ -246,21 +247,24 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
     private suspend fun resolvePeerIdsForAvatars(conversations: List<LinkConversation>) {
         val client = api ?: return
         val me = currentUserId ?: return
-        val missing = conversations.filter { it.type == ROOM_TYPE_ONE_TO_ONE && it.token !in peerIdCache }
+        val current = _peerIdCache.value
+        val missing = conversations.filter { it.type == ROOM_TYPE_ONE_TO_ONE && it.token !in current }
         if (missing.isEmpty()) return
         coroutineScope {
             missing.forEach { c ->
                 launch {
                     runCatching {
                         withContext(Dispatchers.IO) { client.getPeerUserId(c.token, me) }
-                    }.getOrNull()?.let { peerIdCache[c.token] = it }
+                    }.getOrNull()?.let { id ->
+                        _peerIdCache.value = _peerIdCache.value + (c.token to id)
+                    }
                 }
             }
         }
     }
 
     /** Returns the resolved peer user ID for a conversation, or null. */
-    fun peerIdFor(token: String): String? = peerIdCache[token]
+    fun peerIdFor(token: String): String? = _peerIdCache.value[token]
 
     fun showUserProfile(peerId: String) {
         val client = api ?: return

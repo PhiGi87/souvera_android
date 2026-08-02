@@ -93,7 +93,7 @@ fun MailHomeScreen(viewModel: MailViewModel, onOpenDrawer: () -> Unit, onOpenSet
             onRefresh = viewModel::refresh,
             modifier = Modifier.fillMaxSize().padding(padding)
         ) {
-            MailMessageList(messagesState, viewModel)
+            MailMessageList(messagesState, viewModel, isRefreshing)
         }
     }
 
@@ -199,7 +199,7 @@ private fun MailFolderSelector(mailbox: MailboxEntity, onOpenFolders: () -> Unit
 }
 
 @Composable
-private fun MailMessageList(state: MailUiState<List<MessageEntity>>, viewModel: MailViewModel) {
+private fun MailMessageList(state: MailUiState<List<MessageEntity>>, viewModel: MailViewModel, isRefreshing: Boolean) {
     when (state) {
         is MailUiState.Loading ->
             if (!isRefreshing) MailLoading()

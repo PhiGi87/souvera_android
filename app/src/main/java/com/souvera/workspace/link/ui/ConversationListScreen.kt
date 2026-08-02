@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -229,9 +228,8 @@ private fun NewChatSheet(
 
 @Composable
 private fun ConversationRow(conversation: LinkConversation, viewModel: LinkViewModel, onClick: () -> Unit) {
-    val peerId by androidx.compose.runtime.produceState<String?>(null, conversation.token) {
-        value = viewModel.peerIdFor(conversation.token)
-    }
+    val peerIds by viewModel.peerIdCache.collectAsState()
+    val peerId = peerIds[conversation.token]
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
