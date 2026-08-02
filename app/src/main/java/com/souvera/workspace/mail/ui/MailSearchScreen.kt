@@ -76,7 +76,7 @@ private fun SearchInputBar(query: String, onQueryChange: (String) -> Unit, onBac
     val focusRequester = remember { FocusRequester() }
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(vertical = BAR_PADDING.dp)
+        modifier = Modifier.fillMaxWidth().padding(vertical = BAR_PADDING.dp)
     ) {
         IconButton(onClick = onBack) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
