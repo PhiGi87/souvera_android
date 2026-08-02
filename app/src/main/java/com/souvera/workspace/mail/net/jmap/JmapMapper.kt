@@ -142,10 +142,12 @@ object JmapMapper {
                 timeZone = TimeZone.getTimeZone("UTC")
             }
             // "2026-08-02T11:06:30Z" → strip Z, then strip tz offset
-            val clean = iso.substringBefore('Z')
-                .let { it.substringBeforeLast('+') }
-                .let { it.substringBeforeLast('-', it.lastIndexOf('T') + 1) }
-                .take(19)
+            // Strip "Z" and timezone offset (e.g. "+02:00" or "-04:00")
+            val tzFree = iso.removeSuffix("Z")
+            val tPos = tzFree.indexOf('+', startIndex = 10)
+            val mPos = tzFree.indexOf('-', startIndex = 10)
+            val cutPos = listOf(tPos, mPos).filter { it >= 0 }.minOrNull() ?: tzFree.length
+            val clean = tzFree.substring(0, cutPos).take(19)
             fmt.parse(clean)?.time ?: 0L
         } catch (_: Exception) { 0L }
     }
