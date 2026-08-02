@@ -8,7 +8,7 @@
 <resources>
     <!-- Push server url: Souvera's own NC-push-v2 proxy (the gplay flavor previously overrode the
          main config back to Nextcloud's public proxy, which cannot deliver to our FCM tokens). -->
-    <string name="push_server_url" translatable="false">https://push.souvera.eu</string>
+    <string name="push_server_url" translatable="false">https://host-on.souvera.work/push</string>
 
     <string name="default_web_client_id" translatable="false">829118773643-cq33cmhv7mnv7iq8mjv6rt7t15afc70k.apps.googleusercontent.com</string>
     <string name="firebase_database_url" translatable="false">https://nextcloud-a7dea.firebaseio.com</string>
