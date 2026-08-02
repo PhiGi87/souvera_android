@@ -227,20 +227,30 @@ class JmapApi(private val client: JmapClient) {
     suspend fun submitEmail(
         accountId: String,
         emailId: String,
-        fromAddress: String
+        identityId: String
     ): JSONObject {
         val args = JSONObject().apply {
             if (accountId.isNotBlank()) put("accountId", accountId)
             put("create", JSONObject().apply {
                 put("sendme", JSONObject().apply {
                     put("emailId", emailId)
-                    put("identityId", fromAddress)
+                    put("identityId", identityId)
                 })
             })
-            put("onSuccessDestroyEmail", JSONArray(listOf("#sendme")))
         }
         return client.singleCall("EmailSubmission/set", args,
             listOf(JmapCapabilities.CORE, JmapCapabilities.MAIL, JmapCapabilities.SUBMISSION))
+    }
+
+    /* ---------- Identity/get ---------------------------------------- */
+
+    suspend fun getIdentities(accountId: String): JSONArray = withContext(Dispatchers.IO) {
+        val args = JSONObject().apply {
+            if (accountId.isNotBlank()) put("accountId", accountId)
+        }
+        val resp = client.singleCall("Identity/get", args,
+            listOf(JmapCapabilities.CORE, JmapCapabilities.MAIL, JmapCapabilities.SUBMISSION))
+        resp.optJSONArray("list") ?: JSONArray()
     }
 
     /* ---------- PushSubscription/set --------------------------------- */

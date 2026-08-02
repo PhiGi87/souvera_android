@@ -193,8 +193,22 @@ class MessageRepository(context: Context) {
         val draftId = draftResp.optJSONObject("created")?.keys()?.next()
             ?: throw RuntimeException("Draft not created")
 
+        // Resolve the JMAP identity ID matching fromAddress.
+        val identityId = run {
+            val identities = api.getIdentities(accountId)
+            var foundId: String? = null
+            for (i in 0 until identities.length()) {
+                val idt = identities.getJSONObject(i)
+                if (idt.optString("email") == fromAddress) {
+                    foundId = idt.optString("id")
+                    break
+                }
+            }
+            foundId ?: fromAddress
+        }
+
         // Submit.
-        api.submitEmail(accountId, draftId, fromAddress)
+        api.submitEmail(accountId, draftId, identityId)
     }
 
     suspend fun fetchAttachment(
