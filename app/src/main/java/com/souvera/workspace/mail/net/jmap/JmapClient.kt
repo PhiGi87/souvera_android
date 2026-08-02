@@ -69,7 +69,7 @@ class JmapClient(
             apiUrl = apiUrl,
             downloadUrl = json.optString("downloadUrl", apiUrl + "download/{accountId}/{blobId}/{name}?accept={type}"),
             uploadUrl = json.optString("uploadUrl", apiUrl + "upload/{accountId}/"),
-            accountId = accId,
+            accountId = "",   // empty — Stalwart resolves from auth
             primaryAccountId = accId,
             username = json.optString("username", dav.username).takeIf { it.isNotBlank() } ?: dav.username,
             capabilities = caps,

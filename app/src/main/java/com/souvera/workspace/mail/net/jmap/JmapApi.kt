@@ -25,7 +25,7 @@ class JmapApi(private val client: JmapClient) {
 
     suspend fun getMailboxes(accountId: String): JSONArray = withContext(Dispatchers.IO) {
         val args = JSONObject().apply {
-            put("accountId", accountId)
+            if (accountId.isNotBlank()) put("accountId", accountId)
             put("ids", JSONObject.NULL)
         }
         val resp = client.singleCall("Mailbox/get", args)
@@ -36,7 +36,7 @@ class JmapApi(private val client: JmapClient) {
 
     suspend fun getMailboxesByIds(accountId: String, ids: List<String>): JSONArray = withContext(Dispatchers.IO) {
         val args = JSONObject().apply {
-            put("accountId", accountId)
+            if (accountId.isNotBlank()) put("accountId", accountId)
             put("ids", JSONArray(ids))
         }
         val resp = client.singleCall("Mailbox/get", args)
@@ -60,7 +60,7 @@ class JmapApi(private val client: JmapClient) {
             if (!filterText.isNullOrBlank()) put("text", filterText)
         }
         val args = JSONObject().apply {
-            put("accountId", accountId)
+            if (accountId.isNotBlank()) put("accountId", accountId)
             put("filter", filter)
             put("collapseThreads", false)
             if (sort != null) put("sort", sort)
@@ -80,7 +80,7 @@ class JmapApi(private val client: JmapClient) {
             put("inMailbox", inMailboxId)
         } else JSONObject.NULL
         val args = JSONObject().apply {
-            put("accountId", accountId)
+            if (accountId.isNotBlank()) put("accountId", accountId)
             if (filter !== JSONObject.NULL) put("filter", filter)
             if (!sinceState.isNullOrBlank()) put("sinceQueryState", sinceState)
         }
@@ -95,7 +95,7 @@ class JmapApi(private val client: JmapClient) {
         bodyProperties: JSONArray? = null
     ): JSONArray = withContext(Dispatchers.IO) {
         val args = JSONObject().apply {
-            put("accountId", accountId)
+            if (accountId.isNotBlank()) put("accountId", accountId)
             put("ids", JSONArray(ids))
             if (bodyProperties != null) put("bodyProperties", bodyProperties)
         }
@@ -127,7 +127,7 @@ class JmapApi(private val client: JmapClient) {
             })
         }
         val args = JSONObject().apply {
-            put("accountId", accountId)
+            if (accountId.isNotBlank()) put("accountId", accountId)
             put("update", updates)
         }
         client.singleCall("Email/set", args)
@@ -147,7 +147,7 @@ class JmapApi(private val client: JmapClient) {
             })
         }
         val args = JSONObject().apply {
-            put("accountId", accountId)
+            if (accountId.isNotBlank()) put("accountId", accountId)
             put("update", updates)
         }
         client.singleCall("Email/set", args)
@@ -158,7 +158,7 @@ class JmapApi(private val client: JmapClient) {
         emailIds: List<String>
     ): JSONObject = withContext(Dispatchers.IO) {
         val args = JSONObject().apply {
-            put("accountId", accountId)
+            if (accountId.isNotBlank()) put("accountId", accountId)
             put("destroy", JSONArray(emailIds))
         }
         client.singleCall("Email/set", args)
@@ -218,7 +218,7 @@ class JmapApi(private val client: JmapClient) {
             put("keywords", JSONObject().apply { put("\$draft", true) })
         }
         val args = JSONObject().apply {
-            put("accountId", accountId)
+            if (accountId.isNotBlank()) put("accountId", accountId)
             put("create", JSONObject().apply { put("new", email) })
         }
         client.singleCall("Email/set", args)
@@ -230,7 +230,7 @@ class JmapApi(private val client: JmapClient) {
         fromAddress: String
     ): JSONObject {
         val args = JSONObject().apply {
-            put("accountId", accountId)
+            if (accountId.isNotBlank()) put("accountId", accountId)
             put("create", JSONObject().apply {
                 put("sendme", JSONObject().apply {
                     put("emailId", emailId)
@@ -250,7 +250,7 @@ class JmapApi(private val client: JmapClient) {
         pushUrl: String
     ): JSONObject = withContext(Dispatchers.IO) {
         val args = JSONObject().apply {
-            put("accountId", accountId)
+            if (accountId.isNotBlank()) put("accountId", accountId)
             put("create", JSONObject().apply {
                 put(deviceId, JSONObject().apply {
                     put("url", pushUrl)
