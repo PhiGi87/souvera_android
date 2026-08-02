@@ -141,8 +141,12 @@ object JmapMapper {
             val fmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
                 timeZone = TimeZone.getTimeZone("UTC")
             }
-            fmt.parse(iso.substringBefore('Z').substringBefore('+').substringBefore('-').take(19))
-                ?.time ?: 0L
+            // "2026-08-02T11:06:30Z" → strip Z, then strip tz offset
+            val clean = iso.substringBefore('Z')
+                .let { it.substringBeforeLast('+') }
+                .let { it.substringBeforeLast('-', it.lastIndexOf('T') + 1) }
+                .take(19)
+            fmt.parse(clean)?.time ?: 0L
         } catch (_: Exception) { 0L }
     }
 }
