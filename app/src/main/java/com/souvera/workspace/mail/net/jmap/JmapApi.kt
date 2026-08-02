@@ -254,24 +254,9 @@ class JmapApi(private val client: JmapClient) {
     }
 
     /* ---------- PushSubscription/set --------------------------------- */
-
-    suspend fun setPushSubscription(
-        accountId: String,
-        deviceId: String,
-        pushUrl: String
-    ): JSONObject = withContext(Dispatchers.IO) {
-        val args = JSONObject().apply {
-            if (accountId.isNotBlank()) put("accountId", accountId)
-            put("create", JSONObject().apply {
-                put(deviceId, JSONObject().apply {
-                    put("deviceClientId", deviceId)
-                    put("url", pushUrl)
-                    put("types", JSONArray(listOf("Email", "Mailbox")))
-                })
-            })
-        }
-        client.singleCall("PushSubscription/set", args)
-    }
+    // REMOVED: JMAP PushSubscription path deleted per Claude architecture
+    // review (2026-08-02). Mail push now uses souvera_mail webhook →
+    // host-on.souvera.work/push proxy → FCM. See Pull Request #XXX.
 
     /* ---------- helpers ----------------------------------------------- */
 

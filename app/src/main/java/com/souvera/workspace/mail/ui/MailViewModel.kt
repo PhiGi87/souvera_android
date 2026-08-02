@@ -140,8 +140,6 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
                 pendingDeepLink = null
                 openMessageByEmailId(path, id)
             }
-            // Register JMAP PushSubscription with Stalwart.
-            registerJmapPushIfReady()
             launch { _fromAddress.value = resolveFromAddress(resolved) }
             launch {
                 mailboxRepository.observeMailboxes(account.name).collect { list ->
@@ -329,27 +327,6 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
                 openMessage(entity)
             } else {
                 _route.value = MailRoute.Home
-            }
-        }
-    }
-
-    private fun registerJmapPushIfReady() {
-        val current = dav ?: return
-        viewModelScope.launch {
-            kotlinx.coroutines.delay(2000)
-            val token = getApplication<Application>()
-                .getSharedPreferences("souvera_push", android.content.Context.MODE_PRIVATE)
-                .getString("registered_fcm_token", null) ?: return@launch
-            val secret = "j1pW4BvLzdWGP-OJ_t1Yom_3vzhWFc1049Oqm6rDygw"
-            val pushUrl = "https://push.souvera.eu/jmap-push/$token/$secret"
-            try {
-                val client = com.souvera.workspace.mail.net.jmap.JmapClient(current)
-                val api = com.souvera.workspace.mail.net.jmap.JmapApi(client)
-                val accountId = client.refreshSession().primaryAccountId
-                api.setPushSubscription(accountId, "souvera-android", pushUrl)
-                android.util.Log.i("JmapPush", "Push subscription registered")
-            } catch (e: Exception) {
-                android.util.Log.w("JmapPush", "Push registration failed: ${e.message}")
             }
         }
     }

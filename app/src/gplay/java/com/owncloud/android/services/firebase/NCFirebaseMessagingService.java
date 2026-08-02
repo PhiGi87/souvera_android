@@ -124,11 +124,11 @@ public class NCFirebaseMessagingService extends FirebaseMessagingService {
         com.souvera.workspace.link.call.CallDebugLog.INSTANCE.log(
             "MailPush", "onMessage type=" + type + " notif=" + (notification != null) + " dataKeys=" + data.keySet());
 
-        // Souvera push with a structured payload: new mail (deep link into the mail
-        // detail) or new chat (deep link into the Link chat).
+        // Souvera mail push: structured payload (new mail from souvera_mail webhook).
+        // Chat/call push now goes through the NC encrypted proxy path (subject+signature
+        // → NotificationWork), not through this handler. See Claude architecture review.
         final boolean isMailPush = "new_mail".equals(type) || "mail".equals(type);
-        final boolean isChatPush = "new_chat".equals(type) || "chat".equals(type);
-        if (isMailPush || isChatPush) {
+        if (isMailPush) {
             try {
                 final String resolvedTitle = notification != null
                     ? notification.getTitle() : data.get(SOUVERA_KEY_TITLE);
@@ -143,10 +143,6 @@ public class NCFirebaseMessagingService extends FirebaseMessagingService {
                     mailboxPath = "INBOX";
                 }
                 final String emailId = data.get("emailId");
-                final String chatToken = data.get("token");
-                // Stable per-chat id so chat pushes never overwrite the latest
-                // mail notification (and vice versa); mail keeps LATEST_ID.
-                final Integer chatId = isChatPush && chatToken != null ? chatToken.hashCode() : null;
                 final String accountName = accountManager.getAccounts().length > 0
                     ? accountManager.getAccounts()[0].name : null;
 
@@ -157,11 +153,11 @@ public class NCFirebaseMessagingService extends FirebaseMessagingService {
                     sender,
                     mailSubject,
                     preview,
-                    isChatPush ? chatId : MailPushNotifier.LATEST_ID,
-                    isMailPush ? mailboxPath : null,
-                    isMailPush ? emailId : null,
-                    isChatPush ? chatToken : null,
-                    isChatPush ? MailPushNotifier.Target.LINK : MailPushNotifier.Target.MAIL,
+                    MailPushNotifier.LATEST_ID,
+                    mailboxPath,
+                    emailId,
+                    null,
+                    MailPushNotifier.Target.MAIL,
                     accountName
                 );
             } catch (Exception e) {
