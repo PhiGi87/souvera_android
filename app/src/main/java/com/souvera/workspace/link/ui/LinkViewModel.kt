@@ -136,8 +136,15 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    suspend fun loadPreview(fileId: String, size: Int): ByteArray? =
-        withContext(Dispatchers.IO) { runCatching { api?.previewBytes(fileId, size) }.getOrNull() }
+    /** Preview cache: fileId → bytes, survives ViewModel recreation. */
+    private val previewCache = mutableMapOf<String, ByteArray>()
+
+    suspend fun loadPreview(fileId: String, size: Int): ByteArray? {
+        previewCache[fileId]?.let { return it }
+        return withContext(Dispatchers.IO) {
+            runCatching { api?.previewBytes(fileId, size) }.getOrNull()
+        }?.also { previewCache[fileId] = it }
+    }
 
 
     /** Downloads a user avatar by NC user id, or null on failure. Cached per actor+size. */
@@ -303,10 +310,20 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
             val ordered = history.sortedBy { it.id }
             lastMessageId = ordered.lastOrNull()?.id ?: 0L
             _messages.value = LinkUiState.Success(ordered)
+            preloadImagePreviews(ordered)
             dropFailedMatchedByReferenceId(ordered)
             loadConversations()
             loadPeerStatus(token)
             pollNewMessages(token)
+        }
+    }
+
+    /** Preloads image previews in the background to eliminate scroll blinking. */
+    private fun preloadImagePreviews(messages: List<LinkChatMessage>) {
+        viewModelScope.launch {
+            messages.filter { it.isImageFile() && it.fileId() != null }.forEach { msg ->
+                launch { loadPreview(msg.fileId()!!, PRELOAD_SIZE) }
+            }
         }
     }
 
@@ -375,6 +392,7 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
                 lastMessageId = fresh.maxOf { it.id }
                 val current = (_messages.value as? LinkUiState.Success)?.data.orEmpty()
                 _messages.value = LinkUiState.Success((current + fresh).distinctBy { it.id }.sortedBy { it.id })
+                preloadImagePreviews(fresh)
                 dropFailedMatchedByReferenceId(fresh)
             }
             val now = android.os.SystemClock.elapsedRealtime()
@@ -464,6 +482,7 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
 
     companion object {
         private const val POLL_TIMEOUT = 30
+        private const val PRELOAD_SIZE = 300
         private const val ROOM_TYPE_ONE_TO_ONE = 1
         private const val ROOM_TYPE_GROUP = 2
         private const val HISTORY_ANCHOR = 2_000_000_000L
