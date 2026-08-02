@@ -264,6 +264,7 @@ class JmapApi(private val client: JmapClient) {
             if (accountId.isNotBlank()) put("accountId", accountId)
             put("create", JSONObject().apply {
                 put(deviceId, JSONObject().apply {
+                    put("deviceClientId", deviceId)
                     put("url", pushUrl)
                     put("types", JSONArray(listOf("Email", "Mailbox")))
                 })
