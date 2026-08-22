@@ -22,6 +22,9 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE mailboxId = :mailboxId AND emailId = :emailId LIMIT 1")
     suspend fun getByMailboxAndId(mailboxId: String, emailId: String): MessageEntity?
 
+    @Query("SELECT * FROM messages WHERE accountName = :accountName AND emailId = :emailId LIMIT 1")
+    suspend fun getByAccountAndEmailId(accountName: String, emailId: String): MessageEntity?
+
     @Query(
         "SELECT * FROM messages WHERE accountName = :accountName AND (subject LIKE '%' || :query || '%' " +
             "OR fromAddress LIKE '%' || :query || '%' OR fromDisplayName LIKE '%' || :query || '%') " +

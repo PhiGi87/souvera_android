@@ -38,6 +38,13 @@ class OcsApi(private val dav: DavAccount) {
         .cookieJar(SessionCookieJar())
         .build()
 
+    /** Raumtyp des Tokens (1 = 1:1, 2 = Gruppe, 3 = oeffentlich) oder -1 bei Fehler. */
+    fun getRoomType(token: String): Int {
+        val body = get("$base/api/v4/room/$token") ?: return -1
+        val type = object : TypeToken<OcsEnvelope<LinkConversation>>() {}.type
+        return gson.fromJson<OcsEnvelope<LinkConversation>>(body, type).ocs.data?.type ?: -1
+    }
+
     fun listConversations(): List<LinkConversation> {
         val body = get("$base/api/v4/room") ?: return emptyList()
         val type = object : TypeToken<OcsEnvelope<List<LinkConversation>>>() {}.type
@@ -152,6 +159,15 @@ class OcsApi(private val dav: DavAccount) {
         return peers.singleOrNull()?.actorId
     }
 
+    /** inCall-Flags (Bit 4 = Video) aller Teilnehmer eines Raums — fuer die Klingel-Ansicht. */
+    fun participantInCallFlags(token: String): List<Int> {
+        val url = "$base/api/v4/room/$token/participants"
+        val body = get(url) ?: return emptyList()
+        val type = object : TypeToken<OcsEnvelope<List<LinkParticipant>>>() {}.type
+        return gson.fromJson<OcsEnvelope<List<LinkParticipant>>>(body, type).ocs.data.orEmpty()
+            .map { it.inCall }
+    }
+
     fun getSignalingSettings(token: String): com.souvera.workspace.link.call.SignalingSettings? {
         val root = dav.baseUrl.trimEnd('/')
         val url = "$root/ocs/v2.php/apps/spreed/api/v3/signaling/settings?token=$token"
@@ -226,8 +242,19 @@ class OcsApi(private val dav: DavAccount) {
         }
     }
 
-    fun leaveCall(token: String) {
-        val request = signed(Request.Builder().url("$base/api/v4/call/$token")).delete().build()
+    /**
+     * Verlaesst den Anruf. Mit all=true beendet ein Moderator den Anruf fuer
+     * ALLE Teilnehmer (Talk leaveCall(bool $all) -> endCallForEveryone).
+     */
+    /** Verlaesst die aktiven Teilnehmer (ohne Call-Join) — Cleanup nach Decline-Race. */
+    fun leaveActiveParticipants(token: String) {
+        val request = signed(Request.Builder().url("$base/api/v4/room/$token/participants/active")).delete().build()
+        client.newCall(request).execute().use { }
+    }
+
+    fun leaveCall(token: String, all: Boolean = false) {
+        val suffix = if (all) "?all=1" else ""
+        val request = signed(Request.Builder().url("$base/api/v4/call/$token$suffix")).delete().build()
         client.newCall(request).execute().use { }
     }
 

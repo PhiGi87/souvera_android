@@ -19,6 +19,9 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toDrawable
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.viewpager2.widget.ViewPager2
 import androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback
 import com.nextcloud.client.account.User
@@ -503,13 +506,14 @@ class PreviewImageActivity :
         }
     }
 
+    private var systemBarsHidden = false
+
     val isSystemUIVisible: Boolean
         get() = supportActionBar == null || supportActionBar?.isShowing == true
 
     fun toggleFullScreen() {
         fullScreenAnchorView?.let {
-            val visible = (it.systemUiVisibility and View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0
-            if (visible) {
+            if (!systemBarsHidden) {
                 hideSystemUI(it)
             } else {
                 showSystemUI(it)
@@ -542,25 +546,18 @@ class PreviewImageActivity :
     override fun onBrowsedDownTo(folder: OCFile) = Unit
     override fun onTransferStateChanged(file: OCFile, downloading: Boolean, uploading: Boolean) = Unit
 
-    @Suppress("DEPRECATION")
     private fun hideSystemUI(anchorView: View) {
-        anchorView.systemUiVisibility = (
-            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                or View.SYSTEM_UI_FLAG_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_IMMERSIVE
-                or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-            )
+        systemBarsHidden = true
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowInsetsControllerCompat(window, anchorView).apply {
+            hide(WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
     }
 
-    @Suppress("DEPRECATION")
     private fun showSystemUI(anchorView: View) {
-        anchorView.systemUiVisibility = (
-            View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-            )
+        systemBarsHidden = false
+        WindowInsetsControllerCompat(window, anchorView).show(WindowInsetsCompat.Type.systemBars())
     }
 
     companion object {

@@ -12,7 +12,12 @@ import android.content.ClipboardManager
 import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.rememberTransformableState
@@ -38,6 +43,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -79,6 +85,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -129,14 +136,36 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
     val hasActiveCall = (conversations as? LinkUiState.Success)?.data
         ?.firstOrNull { it.token == route.token }?.hasCall == true
 
+    val callPulse = rememberInfiniteTransition(label = "callPulse")
+    val pulseScale by callPulse.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.18f,
+        animationSpec = infiniteRepeatable(tween(550), RepeatMode.Reverse),
+        label = "pulseScale"
+    )
+
     val attachmentPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let { viewModel.sendAttachment(it) }
     }
 
     val items = buildChatItems(messages, me, readUpTo, failedMessages, route.token)
 
+    // reverseLayout verankert die Liste am BOTTOM: nachgeladene Bilder/
+    // Anhaenge wachsen oberhalb des Ankers und verschieben die neueste
+    // Nachricht nicht mehr aus dem Sichtfeld (Ursache des "Hochhuepfens").
+    // Index 0 = neueste Nachricht.
+    val userScrolled = remember(route.token) { mutableStateOf(false) }
+    LaunchedEffect(listState.isScrollInProgress) {
+        if (listState.isScrollInProgress) userScrolled.value = true
+    }
+    LaunchedEffect(listState.firstVisibleItemIndex) {
+        // Wieder ganz unten angekommen -> neuen Nachrichten wieder folgen.
+        if (listState.firstVisibleItemIndex == 0) userScrolled.value = false
+    }
     LaunchedEffect(items.size) {
-        if (items.isNotEmpty()) listState.animateScrollToItem(items.lastIndex)
+        if (!userScrolled.value && items.isNotEmpty()) {
+            listState.scrollToItem(0)
+        }
     }
 
     LaunchedEffect(route.token) {
@@ -169,7 +198,12 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
                 },
                 actions = {
                     IconButton(onClick = { callDialogOpen = true }) {
-                        Icon(Icons.Filled.Phone, contentDescription = stringResource(R.string.link_call))
+                        Icon(
+                            Icons.Filled.Phone,
+                            contentDescription = stringResource(R.string.link_call),
+                            tint = if (hasActiveCall) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                            modifier = Modifier.scale(if (hasActiveCall) pulseScale else 1f)
+                        )
                     }
                 }
             )
@@ -177,14 +211,15 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).background(colors.background)) {
             if (hasActiveCall) {
-                IncomingCallBanner(onJoin = { startCall(context, route, withVideo = true) })
+                IncomingCallBanner(onJoin = { callDialogOpen = true })
             }
             LazyColumn(
                 state = listState,
                 modifier = Modifier.weight(1f).fillMaxWidth(),
-                contentPadding = PaddingValues(vertical = LIST_V.dp)
+                contentPadding = PaddingValues(vertical = LIST_V.dp),
+                reverseLayout = true
             ) {
-                items(items, key = { it.key }) { item ->
+                items(items.asReversed(), key = { it.key }) { item ->
                     when (item) {
                         is ChatItem.Separator -> DateSeparator(item.label, colors)
                         is ChatItem.Failed -> FailedMessageBubble(

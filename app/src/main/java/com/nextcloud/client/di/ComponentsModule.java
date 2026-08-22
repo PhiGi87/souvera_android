@@ -207,6 +207,9 @@ abstract class ComponentsModule {
     abstract com.souvera.workspace.link.ui.LinkActivity linkActivity();
 
     @ContributesAndroidInjector
+    abstract com.souvera.workspace.shield.ShieldActivity shieldActivity();
+
+    @ContributesAndroidInjector
     abstract PassCodeActivity passCodeActivity();
 
     @ContributesAndroidInjector

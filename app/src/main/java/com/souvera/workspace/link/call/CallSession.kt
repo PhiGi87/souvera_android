@@ -233,10 +233,10 @@ class CallSession(
     @Volatile
     private var endedOnce = false
 
-    fun hangup() {
+    fun hangup(endForAll: Boolean = false) {
         if (endedOnce) return
         endedOnce = true
-        CallDebugLog.log(TAG, "hangup")
+        CallDebugLog.log(TAG, "hangup endForAll=$endForAll")
         // Notify the UI first so renderers detach and the screen closes immediately; the blocking
         // teardown (network leaveCall + native disposal) then runs on a background thread. Running
         // it inline on the UI thread froze/ANRed the app on hangup.
@@ -245,7 +245,7 @@ class CallSession(
             // leaveCall FIRST, while signaling is still connected, so the server marks us out of the
             // call and pushes a participants/update to the other side (ends a 1:1 for both). Only
             // then tear the local stack down.
-            runCatching { api.leaveCall(token) }
+            runCatching { api.leaveCall(token, endForAll) }
             runCatching { signaling?.close() }
             peers.values.forEach { runCatching { it.dispose() } }
             peers.clear()

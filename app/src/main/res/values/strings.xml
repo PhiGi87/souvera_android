@@ -1530,6 +1530,7 @@
     <!-- Souvera Workspace -->
     <string name="drawer_item_calendar">Calendar</string>
     <string name="drawer_item_mail">Mail</string>
+    <string name="drawer_item_shield">Souvera Shield</string>
     <string name="drawer_item_link">Link</string>
     <string name="link_loading">Loading…</string>
     <string name="link_no_conversations">No conversations</string>
@@ -1563,6 +1564,7 @@
     <string name="link_start_audio_call">Voice call</string>
     <string name="link_start_video_call">Video call</string>
     <string name="link_call_start_title">Start call</string>
+    <string name="link_call_join_with_video">Join with video</string>
     <string name="link_answer_call">Answer</string>
     <string name="link_missed_call">Missed call</string>
     <string name="link_call_incoming_ringing">is calling…</string>
@@ -1596,6 +1598,7 @@
     <string name="mail_compose_title">New message</string>
     <string name="mail_send">Send</string>
     <string name="mail_credential_failed">Mail login could not be created: %1$s</string>
+    <string name="mail_retry_login">Retry</string>
     <string name="dav_sync_interval_title">Sync interval</string>
     <string name="dav_sync_now_title">Sync now</string>
     <string name="dav_sync_status_never">never</string>
@@ -1616,6 +1619,11 @@
     </string-array>
     <string name="mail_push_new_title">New email</string>
     <string name="mail_push_new_body">You have received a new message.</string>
+    <string name="mail_push_group_summary">New messages</string>
+    <string name="notification_channel_mail_push_name">New mail</string>
+    <string name="notification_channel_mail_push_description">Notifications about new emails arriving in your inbox</string>
+    <string name="notification_channel_link_push_name">Chat messages</string>
+    <string name="notification_channel_link_push_description">Notifications about new chat messages and calls</string>
     <string name="mail_push_idle_channel_name">Mail sync</string>
     <string name="mail_push_idle_channel_description">Instant new mail notifications. Safe to mute — sync keeps running.</string>
     <string name="mail_push_idle_notification_title">Mail sync active</string>
@@ -1707,4 +1715,30 @@
     <string name="souvera_notes_error">Could not reach the server. Please check your connection and try again.</string>
     <string name="souvera_notes_folder" translatable="false">Notes</string>
     <string name="souvera_notes_default_name" translatable="false">Note</string>
+    <string name="shield_no_account">No Souvera account found.</string>
+    <string name="shield_retry">Retry</string>
+    <string name="shield_empty">No messages in quarantine.</string>
+    <string name="shield_unknown_sender">(unknown sender)</string>
+    <string name="shield_no_subject">(no subject)</string>
+    <string name="shield_spam_score">Score: %1$s</string>
+    <string name="shield_delete">Delete</string>
+    <string name="shield_release">Release</string>
+    <string name="shield_close">Close</string>
+    <string name="shield_subtitle">Spam quarantine</string>
+    <string name="shield_filter_all">All (%1$d)</string>
+    <string name="shield_recipient">To: %1$s</string>
+    <string name="shield_released">Message released — it will be delivered.</string>
+    <string name="shield_deleted">Message deleted.</string>
+    <string name="shield_action_failed">Action failed.</string>
+    <string name="shield_load_failed">Could not load the quarantine.</string>
+    <string name="shield_view_failed">Could not load the message content.</string>
+    <string name="shield_refresh">Refresh</string>
+    <string name="shield_header_counts">%1$d held messages</string>
+    <string name="shield_header_counts_filtered">%1$d of %2$d messages</string>
+    <string name="shield_release_whitelist">Release + whitelist</string>
+    <string name="shield_released_whitelisted">Message released — sender added to the whitelist.</string>
+    <string name="link_hangup_title">End call</string>
+    <string name="link_hangup_question">End the call for everyone or leave yourself?</string>
+    <string name="link_hangup_all">End for everyone</string>
+    <string name="link_hangup_self">Leave myself</string>
 </resources>

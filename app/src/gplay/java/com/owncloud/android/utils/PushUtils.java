@@ -31,10 +31,13 @@ import com.owncloud.android.lib.common.OwnCloudClientManagerFactory;
 import com.owncloud.android.lib.common.operations.RemoteOperationResult;
 import com.owncloud.android.lib.common.utils.Log_OC;
 import com.owncloud.android.lib.resources.notifications.RegisterAccountDeviceForNotificationsOperation;
-import com.owncloud.android.lib.resources.notifications.RegisterAccountDeviceForProxyOperation;
 import com.owncloud.android.lib.resources.notifications.UnregisterAccountDeviceForNotificationsOperation;
-import com.owncloud.android.lib.resources.notifications.UnregisterAccountDeviceForProxyOperation;
 import com.owncloud.android.lib.resources.notifications.models.PushResponse;
+
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
 
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.io.FileUtils;
@@ -147,13 +150,13 @@ public final class PushUtils {
                     Gson gson = new Gson();
                     PushConfigurationState pushArbitraryData = gson.fromJson(arbitraryValue,
                             PushConfigurationState.class);
-                    RemoteOperationResult unregisterResult = new UnregisterAccountDeviceForProxyOperation(
+                    int unregisterHttp = unregisterDeviceAtProxy(
                         context.getResources().getString(R.string.push_server_url),
                         pushArbitraryData.getDeviceIdentifier(),
                         pushArbitraryData.getDeviceIdentifierSignature(),
-                        pushArbitraryData.getUserPublicKey()).run();
+                        pushArbitraryData.getUserPublicKey());
 
-                    if (unregisterResult.isSuccess()) {
+                    if (unregisterHttp == 200 || unregisterHttp == 204) {
                         arbitraryDataProvider.deleteKeyForAccount(account.name, KEY_PUSH);
                     }
                 }
@@ -166,6 +169,62 @@ public final class PushUtils {
             Log_OC.d(TAG, "Failed via IOException");
         } catch (OperationCanceledException e) {
             Log_OC.d(TAG, "Failed via OperationCanceledException");
+        }
+    }
+
+    private static final MediaType JSON_MEDIA_TYPE = MediaType.parse("application/json; charset=utf-8");
+    private static final OkHttpClient PROXY_HTTP_CLIENT = new OkHttpClient.Builder()
+        .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+        .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+        .build();
+
+    /**
+     * POST {proxy}/devices — push-v2-Spezifikation verlangt einen JSON-Body
+     * (der mario/nc-push-proxy akzeptiert KEIN form-urlencoded). Die
+     * Nextcloud-Library sendet Form-Daten — deshalb hier eigene, JSON-basierte
+     * Registrierung.
+     */
+    private static int registerDeviceAtProxy(String proxyUrl,
+                                             String pushToken,
+                                             String deviceIdentifier,
+                                             String deviceIdentifierSignature,
+                                             String userPublicKey,
+                                             String userAgent) {
+        try {
+            String json = "{\"pushToken\":\"" + pushToken + "\","
+                + "\"deviceIdentifier\":\"" + deviceIdentifier + "\","
+                + "\"deviceIdentifierSignature\":\"" + deviceIdentifierSignature + "\","
+                + "\"userPublicKey\":\"" + userPublicKey.replace("\n", "\\n") + "\"}";
+            RequestBody body = RequestBody.create(JSON_MEDIA_TYPE, json);
+            Request request = new Request.Builder()
+                .url(proxyUrl + "/devices")
+                .header("User-Agent", userAgent)
+                .post(body)
+                .build();
+            return PROXY_HTTP_CLIENT.newCall(request).execute().code();
+        } catch (Exception e) {
+            Log_OC.e(TAG, "Proxy registration failed", e);
+            return -1;
+        }
+    }
+
+    private static int unregisterDeviceAtProxy(String proxyUrl,
+                                               String deviceIdentifier,
+                                               String deviceIdentifierSignature,
+                                               String userPublicKey) {
+        try {
+            String json = "{\"deviceIdentifier\":\"" + deviceIdentifier + "\","
+                + "\"deviceIdentifierSignature\":\"" + deviceIdentifierSignature + "\","
+                + "\"userPublicKey\":\"" + userPublicKey.replace("\n", "\\n") + "\"}";
+            RequestBody body = RequestBody.create(JSON_MEDIA_TYPE, json);
+            Request request = new Request.Builder()
+                .url(proxyUrl + "/devices")
+                .delete(body)
+                .build();
+            return PROXY_HTTP_CLIENT.newCall(request).execute().code();
+        } catch (Exception e) {
+            Log_OC.e(TAG, "Proxy unregistration failed", e);
+            return -1;
         }
     }
 
@@ -227,19 +286,17 @@ public final class PushUtils {
                             if (remoteOperationResult.isSuccess()) {
                                 PushResponse pushResponse = remoteOperationResult.getResultData();
 
-                                RemoteOperationResult resultProxy = new RegisterAccountDeviceForProxyOperation(
+                                int proxyHttp = registerDeviceAtProxy(
                                     context.getResources().getString(R.string.push_server_url),
                                     token, pushResponse.getDeviceIdentifier(),
                                     pushResponse.getSignature(),
                                     pushResponse.getPublicKey(),
-                                    MainApp.getUserAgent())
-                                    .run();
+                                    MainApp.getUserAgent());
 
                                 com.souvera.workspace.link.call.CallDebugLog.INSTANCE.log("NcPushReg",
-                                    "proxyRegistration success=" + resultProxy.isSuccess() +
-                                        " code=" + resultProxy.getCode() +
-                                        " http=" + resultProxy.getHttpCode());
-                                if (resultProxy.isSuccess()) {
+                                    "proxyRegistration success=" + (proxyHttp == 200) +
+                                        " http=" + proxyHttp);
+                                if (proxyHttp == 200) {
                                     PushConfigurationState pushArbitraryData = new PushConfigurationState(token,
                                             pushResponse.getDeviceIdentifier(), pushResponse.getSignature(),
                                             pushResponse.getPublicKey(), false);

@@ -35,11 +35,16 @@ class MessageRepository(context: Context) {
     suspend fun messageById(accountName: String, mailboxPath: String, emailId: String): MessageEntity? =
         db.messageDao().getByMailboxAndId(mailboxId(accountName, mailboxPath), emailId)
 
+    /** Accountweiter Lookup — deckt Sieve-sortierte Mails ab, deren Ordner wir nicht kennen. */
+    suspend fun messageByEmailIdAnywhere(accountName: String, emailId: String): MessageEntity? =
+        db.messageDao().getByAccountAndEmailId(accountName, emailId)
+
     suspend fun searchMessages(accountName: String, query: String, dav: DavAccount): List<MessageEntity> {
         val trimmed = query.trim()
         if (trimmed.isBlank()) return emptyList()
         val client = jmapClient(dav)
         val api = JmapApi(client)
+        // Session-ID verwenden (z. B. base32 "f") — Email/query verlangt accountId.
         val accountId = client.refreshSession().primaryAccountId
         return try {
             val resp = api.queryEmails(accountId, "", filterText = trimmed, limit = 50)
@@ -81,6 +86,7 @@ class MessageRepository(context: Context) {
             }
             Pair(sharedAccId ?: session.primaryAccountId, subPath)
         } else {
+            // Persoenliches Postfach: Session-ID verwenden.
             Pair(session.primaryAccountId, mailboxPath)
         }
 
@@ -93,7 +99,7 @@ class MessageRepository(context: Context) {
                 var found: String? = null
                 for (i in 0 until mboxes.length()) {
                     val mb = mboxes.getJSONObject(i)
-                    if (mb.optString("name") == lookupPath) {
+                    if (mb.optString("name").equals(lookupPath, ignoreCase = true)) {
                         found = mb.optString("id")
                         val entity = JmapMapper.mapMailbox(accountName, mb, lookupPath)
                         db.mailboxDao().upsertAll(listOf(entity.copy(jmapId = entity.jmapId ?: found)))

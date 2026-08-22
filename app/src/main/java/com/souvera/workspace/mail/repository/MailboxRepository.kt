@@ -30,6 +30,7 @@ class MailboxRepository(context: Context) {
         val client = JmapClient(dav)
         val api = JmapApi(client)
         val session = client.refreshSession()
+        // Session-ID verwenden (z. B. base32 "f") — live verifiziert.
         val accountId = session.primaryAccountId
         val entities = mutableListOf<MailboxEntity>()
 
@@ -58,7 +59,11 @@ class MailboxRepository(context: Context) {
                                 path = "$accName/${json.optString("name", entity.path)}",
                                 id = "$accountName:$accName/${json.optString("name", entity.path)}",
                                 namespaceType = com.souvera.workspace.mail.db.entity.NamespaceType.SHARED,
-                                ownerIdentity = accName
+                                ownerIdentity = accName,
+                                // Shared-Unterordner haben KEINE Server-Rollen —
+                                // Namensbasierte Systemordner-Zuordnung hier
+                                // deaktivieren, sonst entstehen "2 Posteingaenge".
+                                kind = com.souvera.workspace.mail.db.entity.MailboxKind.REGULAR
                             )
                             entities.add(sharedEntity)
                         }
@@ -68,13 +73,30 @@ class MailboxRepository(context: Context) {
         }
 
         db.mailboxDao().upsertAll(entities)
+        // Umbenannte/entfernte Ordner duerfen nicht als Geisterordner in der
+        // App weiterleben (z. B. alte "Deleted Items"-Zeile nach Server-Fix).
+        db.mailboxDao().pruneRemoved(accountName, entities.map { it.id })
         entities
+    }
+
+    /**
+     * Löst den lokalen Pfad des Posteingangs auf. Die lokalen Mailbox-IDs
+     * sind "$account:$name" (case-sensitive); Push-Payloads liefern aber
+     * "INBOX" — daher hier role-basierte Normalisierung mit Namens-Fallback.
+     */
+    suspend fun resolveInboxPath(accountName: String): String? {
+        val all = db.mailboxDao().getMailboxes(accountName)
+        return all.firstOrNull { it.role == "inbox" }?.path
+            ?: all.firstOrNull {
+                it.name.equals("Inbox", ignoreCase = true)
+            }?.path
     }
 
     suspend fun refreshMailboxCounts(accountName: String, dav: DavAccount) {
         try {
             val client = JmapClient(dav)
             val api = JmapApi(client)
+            // Session-ID verwenden (live verifiziert).
             val accountId = client.refreshSession().primaryAccountId
             val list = api.getMailboxes(accountId)
             for (i in 0 until list.length()) {

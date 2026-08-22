@@ -97,6 +97,11 @@
             android:icon="@drawable/ic_talk"
             android:orderInCategory="1"
             android:title="@string/drawer_item_link" />
+        <item
+            android:id="@+id/nav_shield"
+            android:icon="@drawable/ic_souvera_shield"
+            android:orderInCategory="1"
+            android:title="@string/drawer_item_shield" />
     </group>
 
     <!--

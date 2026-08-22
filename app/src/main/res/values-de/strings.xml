@@ -1307,6 +1307,7 @@
     <!-- Souvera Workspace -->
     <string name="drawer_item_calendar">Kalender</string>
     <string name="drawer_item_mail">E-Mail</string>
+    <string name="drawer_item_shield">Souvera Shield</string>
     <string name="drawer_item_link">Link</string>
     <string name="link_loading">Wird geladen…</string>
     <string name="link_no_conversations">Keine Unterhaltungen</string>
@@ -1329,6 +1330,7 @@
     <string name="link_call_start_title">Anruf starten</string>
     <string name="link_start_audio_call">Sprachanruf</string>
     <string name="link_start_video_call">Videoanruf</string>
+    <string name="link_call_join_with_video">Mit Video annehmen</string>
     <string name="link_answer_call">Annehmen</string>
     <string name="link_missed_call">Verpasster Anruf</string>
     <string name="link_call_incoming_ringing">ruft an…</string>
@@ -1348,6 +1350,7 @@
     <string name="mail_compose_title">Neue Nachricht</string>
     <string name="mail_send">Senden</string>
     <string name="mail_credential_failed">Mail-Login konnte nicht erstellt werden: %1$s</string>
+    <string name="mail_retry_login">Erneut versuchen</string>
     <string name="dav_sync_interval_title">Sync-Intervall</string>
     <string name="dav_sync_now_title">Jetzt synchronisieren</string>
     <string name="dav_sync_status_never">nie</string>
@@ -1361,6 +1364,11 @@
     </string-array>
     <string name="mail_push_new_title">Neue E-Mail</string>
     <string name="mail_push_new_body">Sie haben eine neue Nachricht erhalten.</string>
+    <string name="mail_push_group_summary">Neue Nachrichten</string>
+    <string name="notification_channel_mail_push_name">Neue E-Mails</string>
+    <string name="notification_channel_mail_push_description">Benachrichtigungen über neue E-Mails im Posteingang</string>
+    <string name="notification_channel_link_push_name">Chat-Nachrichten</string>
+    <string name="notification_channel_link_push_description">Benachrichtigungen über neue Chat-Nachrichten und Anrufe</string>
     <string name="mail_recipient_hint">An</string>
     <string name="mail_cc_hint">Cc</string>
     <string name="mail_bcc_hint">Bcc</string>
@@ -1429,4 +1437,30 @@
     <string name="souvera_delete">Löschen</string>
     <string name="souvera_note_title_hint">Titel</string>
     <string name="souvera_notes_error">Server nicht erreichbar. Bitte Verbindung prüfen und erneut versuchen.</string>
+    <string name="shield_no_account">Kein Souvera-Konto gefunden.</string>
+    <string name="shield_retry">Erneut versuchen</string>
+    <string name="shield_empty">Keine Nachrichten in der Quarantäne.</string>
+    <string name="shield_unknown_sender">(unbekannter Absender)</string>
+    <string name="shield_no_subject">(ohne Betreff)</string>
+    <string name="shield_spam_score">Score: %1$s</string>
+    <string name="shield_delete">Löschen</string>
+    <string name="shield_release">Freigeben</string>
+    <string name="shield_close">Schließen</string>
+    <string name="shield_subtitle">Spam-Quarantäne</string>
+    <string name="shield_filter_all">Alle (%1$d)</string>
+    <string name="shield_recipient">An: %1$s</string>
+    <string name="shield_released">Nachricht freigegeben — wird zugestellt.</string>
+    <string name="shield_deleted">Nachricht gelöscht.</string>
+    <string name="shield_action_failed">Aktion fehlgeschlagen.</string>
+    <string name="shield_load_failed">Quarantäne konnte nicht geladen werden.</string>
+    <string name="shield_view_failed">Nachrichteninhalt konnte nicht geladen werden.</string>
+    <string name="shield_refresh">Aktualisieren</string>
+    <string name="shield_header_counts">%1$d zurückgehaltene Nachrichten</string>
+    <string name="shield_header_counts_filtered">%1$d von %2$d Nachrichten</string>
+    <string name="shield_release_whitelist">Freigeben + Whitelist</string>
+    <string name="shield_released_whitelisted">Nachricht freigegeben — Absender wurde zur Whitelist hinzugefügt.</string>
+    <string name="link_hangup_title">Anruf beenden</string>
+    <string name="link_hangup_question">Den Anruf für alle beenden oder nur selbst verlassen?</string>
+    <string name="link_hangup_all">Für alle beenden</string>
+    <string name="link_hangup_self">Nur mich entfernen</string>
 </resources>

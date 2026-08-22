@@ -35,6 +35,8 @@ import com.owncloud.android.lib.common.OwnCloudClient
 import com.owncloud.android.lib.common.OwnCloudClientManagerFactory
 import com.owncloud.android.lib.common.utils.Log_OC
 import com.owncloud.android.lib.resources.users.DeleteAppPasswordRemoteOperation
+import com.souvera.workspace.mail.SouveraMailLoginFlow
+import android.accounts.AccountManager
 import com.owncloud.android.lib.resources.users.RemoteWipeSuccessRemoteOperation
 import com.owncloud.android.providers.DocumentsStorageProvider
 import com.owncloud.android.ui.activity.ContactsPreferenceActivity
@@ -129,6 +131,9 @@ class AccountRemovalWork(
         // notify Document Provider
         DocumentsStorageProvider.notifyRootsChanged(context)
 
+        // delete Souvera combined app password (Stalwart + NC token + mapping row)
+        deleteCombinedAppPassword(user)
+
         // delete app password
         val deleteAppPasswordRemoteOperation = DeleteAppPasswordRemoteOperation()
         val optionNextcloudClient = createNextcloudClient(user)
@@ -182,6 +187,32 @@ class AccountRemovalWork(
         val filesystemDataProvider = FilesystemDataProvider(context.contentResolver)
         for (syncedFolderId in syncedFolderIds) {
             filesystemDataProvider.deleteAllEntriesForSyncedFolder(syncedFolderId.toString())
+        }
+    }
+
+    private fun deleteCombinedAppPassword(user: User) {
+        try {
+            val am = AccountManager.get(context)
+            val platformAccount = user.toPlatformAccount()
+            val stalwartId = am.getUserData(platformAccount, SouveraMailLoginFlow.ACCOUNT_KEY_STALWART_ID)
+            if (stalwartId.isNullOrBlank()) return
+            val baseUrl = user.server.uri.toString()
+            val username = user.accountName
+            val password = am.getPassword(platformAccount) ?: return
+            val deleted = SouveraMailLoginFlow.deleteCombinedAppPassword(
+                baseUrl = baseUrl,
+                username = username,
+                password = password,
+                stalwartId = stalwartId
+            )
+            if (!deleted) {
+                Log_OC.w(
+                    TAG, "Failed to delete combined app password for ${user.accountName} "
+                        + "(stalwartId=$stalwartId) — server may retain stale mapping row"
+                )
+            }
+        } catch (e: Exception) {
+            Log_OC.w(TAG, "Combined app password deletion skipped: " + e.message)
         }
     }
 

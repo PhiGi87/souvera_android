@@ -6,6 +6,7 @@
   ~ SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_call">
@@ -23,26 +24,34 @@
         android:orientation="vertical">
 
         <ImageView
-            android:layout_width="128dp"
-            android:layout_height="128dp"
+            android:layout_width="136dp"
+            android:layout_height="136dp"
+            android:background="@drawable/bg_caller_circle"
             android:contentDescription="@null"
+            android:padding="30dp"
             android:src="@drawable/souvera_icon" />
 
         <TextView
             android:id="@+id/call_title"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
+            android:gravity="center"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
             android:textColor="@android:color/white"
             android:textSize="24sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/call_status"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:alpha="0.7"
+            android:gravity="center"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
             android:text="@string/link_call_connecting"
             android:textColor="@android:color/white"
             android:textSize="15sp" />
@@ -54,7 +63,38 @@
         android:layout_height="150dp"
         android:layout_gravity="top|end"
         android:layout_marginTop="24dp"
-        android:layout_marginEnd="16dp" />
+        android:layout_marginEnd="16dp"
+        android:visibility="invisible" />
+
+    <LinearLayout
+        android:id="@+id/call_incoming_video_row"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="158dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/call_incoming_video_icon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="10dp"
+            android:alpha="0.35"
+            android:contentDescription="@string/link_call_video"
+            android:src="@drawable/ic_video_camera" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/call_incoming_video"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/link_call_join_with_video"
+            android:textColor="@android:color/white"
+            android:textSize="15sp"
+            app:thumbTint="@android:color/white"
+            app:trackTint="#663366FF" />
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/call_incoming"

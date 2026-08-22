@@ -94,6 +94,9 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
+    private val _credentialFailed = MutableStateFlow(false)
+    val credentialFailed: StateFlow<Boolean> = _credentialFailed.asStateFlow()
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val searchResults: StateFlow<List<MessageEntity>> = _searchQuery
         .flatMapLatest { query ->
@@ -111,13 +114,29 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
     private val backStack = ArrayDeque<MailRoute>()
     private var messagesJob: Job? = null
     private var syncJob: Job? = null
+    private var credentialJob: Job? = null
+    private var credentialResolved = false
     private var appliedMessageLimit = 0
     private var pendingDeepLink: Pair<String, String>? = null
 
     fun start(account: Account) {
-        if (this::account.isInitialized) return
+        if (credentialResolved) return
         this.account = account
-        viewModelScope.launch {
+        resolveCombinedCredential()
+    }
+
+    /** Retry credential resolution after a login failure. */
+    fun retryLogin() {
+        if (!this::account.isInitialized) return
+        _credentialFailed.value = false
+        _mailboxes.value = MailUiState.Loading
+        _messages.value = MailUiState.Loading
+        resolveCombinedCredential()
+    }
+
+    private fun resolveCombinedCredential() {
+        credentialJob?.cancel()
+        credentialJob = viewModelScope.launch {
             @Suppress("TooGenericExceptionCaught")
             val resolved = try {
                 credentialManager.ensureCombinedCredential(account)
@@ -126,13 +145,16 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
                     .getString(R.string.mail_credential_failed, e.message ?: e.javaClass.simpleName)
                 _mailboxes.value = MailUiState.Error(message)
                 _messages.value = MailUiState.Error(message)
+                _credentialFailed.value = true
                 return@launch
             }
             if (resolved == null) {
                 _mailboxes.value =
                     MailUiState.Error(getApplication<Application>().getString(R.string.souvera_no_account))
+                _credentialFailed.value = true
                 return@launch
             }
+            credentialResolved = true
             dav = resolved
             // A push deep link requested before credential init completed is
             // replayed here (dav was still null when openMessageByEmailId ran).
@@ -314,13 +336,28 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
         }
         val current = dav ?: return
         viewModelScope.launch {
+            // "INBOX" aus dem Push-Payload auf den lokalen Posteingangs-Pfad
+            // normalisieren (lokale IDs sind "$account:$name", case-sensitive).
+            var path = mailboxPath
+            if (path.isBlank() || path.equals("INBOX", ignoreCase = true)) {
+                withContext(Dispatchers.IO) {
+                    mailboxRepository.resolveInboxPath(account.name)
+                }?.let { path = it }
+            }
             var entity = withContext(Dispatchers.IO) {
-                messageRepository.messageById(account.name, mailboxPath, emailId)
+                messageRepository.messageById(account.name, path, emailId)
             }
             if (entity == null) {
-                messageRepository.syncMessages(account.name, mailboxPath, current)
+                messageRepository.syncMessages(account.name, path, current)
                 entity = withContext(Dispatchers.IO) {
-                    messageRepository.messageById(account.name, mailboxPath, emailId)
+                    messageRepository.messageById(account.name, path, emailId)
+                }
+            }
+            if (entity == null) {
+                // Fallback: Mail wurde evtl. per Sieve in einen anderen Ordner
+                // sortiert — accountweit suchen.
+                entity = withContext(Dispatchers.IO) {
+                    messageRepository.messageByEmailIdAnywhere(account.name, emailId)
                 }
             }
             if (entity != null) {

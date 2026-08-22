@@ -41,6 +41,53 @@ object LinkCallNotifications {
 
     private fun roomKey(room: String) = "room_$room"
 
+    /** Anruf wurde als beendet markiert (fuer die Missed-Push-Dedup). */
+    fun markEnded(context: Context, room: String?) {
+        if (room.isNullOrBlank()) return
+        prefs(context).edit().putLong(endedKey(room), System.currentTimeMillis()).apply()
+    }
+
+    /** Wurde der Anruf in diesem Raum in den letzten 60s als beendet markiert? */
+    fun endedRecently(context: Context, room: String?): Boolean {
+        if (room.isNullOrBlank()) return false
+        val ended = prefs(context).getLong(endedKey(room), 0)
+        return ended != 0L && System.currentTimeMillis() - ended < 60_000
+    }
+
+    private fun endedKey(room: String) = "ended_$room"
+
+    /** Beendet-Markierung loeschen (z. B. wenn ein NEUER Anruf erkannt wurde). */
+    fun clearEnded(context: Context, room: String?) {
+        if (room.isNullOrBlank()) return
+        prefs(context).edit().remove(endedKey(room)).apply()
+    }
+
+    /** Zeigt die stille "Verpasster Anruf"-Notification. */
+    fun showMissed(context: Context, nid: Int, caller: String) {
+        val intent = android.content.Intent(context, com.souvera.workspace.link.ui.LinkActivity::class.java)
+            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        val pending = android.app.PendingIntent.getActivity(
+            context,
+            nid,
+            intent,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+        val notification = androidx.core.app.NotificationCompat.Builder(context, CHANNEL_LINK_CALL)
+            .setSmallIcon(com.owncloud.android.R.drawable.notification_icon)
+            .setContentTitle(context.getString(com.owncloud.android.R.string.link_missed_call))
+            .setContentText(caller)
+            .setCategory(androidx.core.app.NotificationCompat.CATEGORY_CALL)
+            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+            .setOngoing(false)
+            .setContentIntent(pending)
+            .build()
+        val manager = context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        manager.notify(nid, notification)
+    }
+
+    const val CHANNEL_LINK_CALL = "souvera_link_call"
+
     /** Call was answered/opened; drop it so no missed-call notification is shown for it. */
     fun markAnswered(context: Context, nid: Int) {
         if (nid == 0) return

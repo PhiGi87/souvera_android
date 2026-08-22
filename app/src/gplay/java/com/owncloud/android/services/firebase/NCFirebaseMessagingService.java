@@ -105,6 +105,17 @@ public class NCFirebaseMessagingService extends FirebaseMessagingService {
         } else {
             Log_OC.d(TAG, "onMessageReceived data map is EMPTY");
         }
+        // Auch ins Datei-Log (link-call.log) schreiben: damit ist ohne adb
+        // sichtbar, ob ein Push das Geraet ueberhaupt erreicht hat.
+        try {
+            com.souvera.workspace.link.call.CallDebugLog.INSTANCE.attach(this);
+            com.souvera.workspace.link.call.CallDebugLog.INSTANCE.log(
+                "FcmPush",
+                "raw arrival keys=" + data.keySet() + " notif=" + (notification != null)
+            );
+        } catch (Exception ignored) {
+            // Diagnose darf niemals den Empfang stoeren
+        }
 
         final String subject = data.get(NotificationWork.KEY_NOTIFICATION_SUBJECT);
         final String signature = data.get(NotificationWork.KEY_NOTIFICATION_SIGNATURE);

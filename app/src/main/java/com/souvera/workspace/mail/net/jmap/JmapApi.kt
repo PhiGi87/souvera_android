@@ -23,15 +23,25 @@ class JmapApi(private val client: JmapClient) {
 
     /* ---------- Mailbox/get ------------------------------------------- */
 
-    suspend fun getMailboxes(accountId: String): JSONArray = withContext(Dispatchers.IO) {
-        val args = JSONObject().apply {
-            if (accountId.isNotBlank()) put("accountId", accountId)
-            put("ids", JSONObject.NULL)
+    suspend fun getMailboxes(accountId: String, fallbackAccountId: String = ""): JSONArray = withContext(Dispatchers.IO) {
+        // Exakt das Muster des Webmail-Backends: Mailbox/get nur mit
+        // accountId. Stalwart akzeptiert fehlendes "ids" (liefert alle),
+        // lehnt aber explizites ids=null mit notRequest ab.
+        fun buildArgs(id: String): JSONObject = JSONObject().apply {
+            if (id.isNotBlank()) put("accountId", id)
         }
-        val resp = client.singleCall("Mailbox/get", args)
-        val list = resp.optJSONArray("list")
-        if (list == null) throw JmapException("Mailbox/get returned no list")
-        list
+        var lastError: JmapException? = null
+        for (id in listOf(accountId, fallbackAccountId).distinct()) {
+            try {
+                val resp = client.singleCall("Mailbox/get", buildArgs(id))
+                val list = resp.optJSONArray("list")
+                if (list == null) throw JmapException("Mailbox/get returned no list")
+                return@withContext list
+            } catch (e: JmapException) {
+                lastError = e
+            }
+        }
+        throw lastError ?: JmapException("Mailbox/get failed")
     }
 
     suspend fun getMailboxesByIds(accountId: String, ids: List<String>): JSONArray = withContext(Dispatchers.IO) {

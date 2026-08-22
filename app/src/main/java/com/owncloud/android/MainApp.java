@@ -605,9 +605,10 @@ public class MainApp extends Application implements HasAndroidInjector, NetworkC
         for (android.accounts.Account account : am.getAccountsByType(accountType)) {
             try {
                 am.setUserData(account, "souvera_mail_password", null);
-                Log_OC.d(TAG, "Cleared mail password for " + account.name);
+                am.setUserData(account, "souvera_stalwart_id", null);
+                Log_OC.d(TAG, "Cleared mail credentials for " + account.name);
             } catch (Exception e) {
-                Log_OC.w(TAG, "Failed to clear mail password for " + account.name + ": " + e.getMessage());
+                Log_OC.w(TAG, "Failed to clear mail credentials for " + account.name + ": " + e.getMessage());
             }
         }
     }
@@ -713,9 +714,19 @@ public class MainApp extends Application implements HasAndroidInjector, NetworkC
 
                 notificationManager.deleteNotificationChannel(NotificationUtils.NOTIFICATION_CHANNEL_FILE_OBSERVER);
 
+                createChannel(notificationManager, NotificationUtils.NOTIFICATION_CHANNEL_MAIL_PUSH,
+                              R.string.notification_channel_mail_push_name,
+                              R.string.notification_channel_mail_push_description, context,
+                              NotificationManager.IMPORTANCE_HIGH);
+
+                createChannel(notificationManager, NotificationUtils.NOTIFICATION_CHANNEL_LINK_PUSH,
+                              R.string.notification_channel_link_push_name,
+                              R.string.notification_channel_link_push_description, context,
+                              NotificationManager.IMPORTANCE_HIGH);
+
                 createChannel(notificationManager, NotificationUtils.NOTIFICATION_CHANNEL_PUSH,
-                              R.string.notification_channel_push_name, R.string
-                                  .notification_channel_push_description, context, NotificationManager.IMPORTANCE_DEFAULT);
+                               R.string.notification_channel_push_name, R.string
+                                   .notification_channel_push_description, context, NotificationManager.IMPORTANCE_DEFAULT);
 
                 createChannel(notificationManager, NotificationUtils.NOTIFICATION_CHANNEL_BACKGROUND_OPERATIONS,
                               R.string.notification_channel_background_operations_name, R.string

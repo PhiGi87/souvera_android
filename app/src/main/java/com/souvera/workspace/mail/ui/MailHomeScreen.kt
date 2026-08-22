@@ -7,11 +7,13 @@
 package com.souvera.workspace.mail.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.WindowInsets
@@ -25,8 +27,10 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -200,11 +204,27 @@ private fun MailFolderSelector(mailbox: MailboxEntity, onOpenFolders: () -> Unit
 
 @Composable
 private fun MailMessageList(state: MailUiState<List<MessageEntity>>, viewModel: MailViewModel, isRefreshing: Boolean) {
+    val credentialFailed by viewModel.credentialFailed.collectAsState()
     when (state) {
         is MailUiState.Loading ->
             if (!isRefreshing) MailLoading()
 
-        is MailUiState.Error -> MailPlaceholder(state.message, Icons.Filled.Warning)
+        is MailUiState.Error ->
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxSize().padding(SCREEN_PADDING.dp)
+            ) {
+                MailPlaceholder(state.message, Icons.Filled.Warning)
+                if (credentialFailed) {
+                    Spacer(Modifier.height(16.dp))
+                    Button(onClick = viewModel::retryLogin) {
+                        Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.mail_retry_login))
+                    }
+                }
+            }
 
         is MailUiState.Success ->
             if (state.data.isEmpty()) {

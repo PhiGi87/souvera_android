@@ -587,6 +587,10 @@ internal class BackgroundJobManagerImpl(
 
         val request = oneTimeRequestBuilder(NotificationWork::class, JOB_NOTIFICATION)
             .setInputData(data)
+            // Anruf-Pushes muessen auch im Doze sofort verarbeitet werden —
+            // normale WorkManager-Jobs werden sonst um Minuten verzoegert
+            // und der Anruf ist vorbei, bevor die Notification gebaut wird.
+            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .build()
 
         workManager.enqueue(request)

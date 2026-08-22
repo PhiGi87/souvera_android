@@ -100,3 +100,5 @@ jacoco/
 credentials.json
 *.key
 .credentials
+play-service-account.json
+.play-venv/

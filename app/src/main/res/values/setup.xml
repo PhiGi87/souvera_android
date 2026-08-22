@@ -160,7 +160,7 @@
          proxyServer=this value, E2E-encrypted payload decryption) is preserved; only the proxy
          endpoint is ours. Fixed default for production Souvera builds - NO fallback to the public
          Nextcloud proxy. Central config: SOUVERA_PUSH_PROXY_URL. -->
-    <string name="push_server_url" translatable="false">https://host-on.souvera.work/push</string>
+    <string name="push_server_url" translatable="false">https://push.souvera.eu</string>
 
     <!-- if contains values, will be used to show branding title below app icon in splash screen -->
     <string name="splashScreenBold">Souvera</string>

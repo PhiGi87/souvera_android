@@ -74,6 +74,7 @@ class NotificationWork constructor(
         const val TAG = "NotificationJob"
         const val KEY_NOTIFICATION_ACCOUNT = "KEY_NOTIFICATION_ACCOUNT"
         private const val LINK_CALL_CHANNEL = "souvera_link_call"
+        private const val DECLINE_REQUEST_OFFSET = 900_000
         private const val ANSWER_REQUEST_OFFSET = 1000000
         private const val RING_TIMEOUT_MS = 35000L
         const val KEY_NOTIFICATION_SUBJECT = "subject"
@@ -86,6 +87,28 @@ class NotificationWork constructor(
 
     @Suppress("TooGenericExceptionCaught", "NestedBlockDepth", "ComplexMethod", "LongMethod") // legacy code
     override fun doWork(): Result {
+        // Expedited Work braucht ab Android 12 eine Foreground-Notification,
+        // sonst beendet das System den Job, bevor die Anruf-Notification
+        // gebaut ist.
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            try {
+                val fgNotification = NotificationCompat.Builder(context, NotificationUtils.NOTIFICATION_CHANNEL_GENERAL)
+                    .setSmallIcon(R.drawable.notification_icon)
+                    .setContentTitle(context.getString(R.string.app_name))
+                    .setOngoing(true)
+                    .setSilent(true)
+                    .build()
+                setForegroundAsync(
+                    com.nextcloud.utils.ForegroundServiceHelper.createWorkerForegroundInfo(
+                        47110817,
+                        fgNotification,
+                        com.owncloud.android.datamodel.ForegroundServiceType.DataSync
+                    )
+                )
+            } catch (_: Exception) {
+                Log_OC.d(TAG, "setForegroundAsync failed — continuing anyway")
+            }
+        }
         val subject = inputData.getString(KEY_NOTIFICATION_SUBJECT) ?: ""
         val signature = inputData.getString(KEY_NOTIFICATION_SIGNATURE) ?: ""
         if (!TextUtils.isEmpty(subject) && !TextUtils.isEmpty(signature)) {
@@ -176,7 +199,20 @@ class NotificationWork constructor(
             pendingIntent = deckActionOverrideIntent.get()
         } else {
             val intent: Intent
-            if (file == null) {
+            if (notification.app == "spreed") {
+                // Souvera Link: Talk-Chat-Nachricht oeffnet direkt den Chat
+                // (nicht die generische Benachrichtigungsliste).
+                intent = Intent(context, com.souvera.workspace.link.ui.LinkActivity::class.java)
+                intent.putExtra(
+                    com.souvera.workspace.push.MailPushNotifier.EXTRA_ACCOUNT_NAME,
+                    user.accountName,
+                )
+                intent.putExtra(
+                    com.souvera.workspace.push.MailPushNotifier.EXTRA_CHAT_TOKEN,
+                    notification.objectId,
+                )
+                intent.putExtra(Intent.EXTRA_TITLE, notification.subject)
+            } else if (file == null) {
                 intent = NavigatorActivity.intent(context, NavigatorScreen.Notifications)
             } else {
                 intent = Intent(context, FileDisplayActivity::class.java)
@@ -184,7 +220,7 @@ class NotificationWork constructor(
                 intent.putExtra(FileDisplayActivity.KEY_FILE_ID, file.id)
             }
             intent.putExtra(KEY_NOTIFICATION_ACCOUNT, user.accountName)
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             pendingIntent = PendingIntent.getActivity(
                 context,
                 notification.getNotificationId(),
@@ -292,6 +328,22 @@ class NotificationWork constructor(
             "LinkPush",
             "incoming call push nid=${message.nid} room=${message.id}"
         )
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            val canFullScreen = notificationManager.canUseFullScreenIntent()
+            com.souvera.workspace.link.call.CallDebugLog.log(
+                "LinkPush",
+                "fullScreenIntent available=$canFullScreen"
+            )
+        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val existingChannel = notificationManager.getNotificationChannel(LINK_CALL_CHANNEL)
+            if (existingChannel != null) {
+                com.souvera.workspace.link.call.CallDebugLog.log(
+                    "LinkPush",
+                    "call channel importance=${existingChannel.importance}"
+                )
+            }
+        }
         val ringtone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             val attributes = android.media.AudioAttributes.Builder()
@@ -331,15 +383,72 @@ class NotificationWork constructor(
             callIntent(false),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val declineIntent = Intent(context, com.souvera.workspace.link.call.CallDeclineReceiver::class.java)
-            .setAction(com.souvera.workspace.link.call.CallDeclineReceiver.ACTION_DECLINE)
-            .putExtra(com.souvera.workspace.link.call.CallDeclineReceiver.EXTRA_NID, message.nid)
-        val decline = PendingIntent.getBroadcast(
+        // Decline beendet den Anruf fuer BEIDE Seiten: CallActivity erhaelt
+        // EXTRA_DECLINE und fuehrt einen kurzen Join+Hangup aus (der Server
+        // signalisiert dem Anrufer dann das Ende).
+        val declineIntent = Intent(context, com.souvera.workspace.link.call.CallActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            .putExtra(com.souvera.workspace.link.call.CallActivity.EXTRA_TOKEN, message.id)
+            .putExtra(com.souvera.workspace.link.call.CallActivity.EXTRA_TITLE, message.subject)
+            .putExtra(com.souvera.workspace.link.call.CallActivity.EXTRA_NID, message.nid)
+            .putExtra(com.souvera.workspace.link.call.CallActivity.EXTRA_INCOMING, true)
+            .putExtra(com.souvera.workspace.link.call.CallActivity.EXTRA_DECLINE, true)
+        val decline = PendingIntent.getActivity(
             context,
-            message.nid,
+            message.nid + DECLINE_REQUEST_OFFSET,
             declineIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        // Endet der Anruf, schickt Talk einen ZWEITEN Call-Push fuer denselben
+        // Raum ("You missed a call..."). Wenn wir fuer diesen Raum bereits eine
+        // aktive Klingel-Notification haben, ist das das Call-Ende-Signal:
+        // Klingeln sofort beenden + stille "Verpasst"-Notification zeigen.
+        val existingRingNid = com.souvera.workspace.link.call.LinkCallNotifications
+            .ringNidForRoom(context, message.id)
+        if (existingRingNid != 0 && existingRingNid != message.nid) {
+            com.souvera.workspace.link.call.CallDebugLog.log(
+                "LinkPush",
+                "call end detected for room=${message.id} (ring nid=$existingRingNid, new nid=${message.nid})"
+            )
+            notificationManager.cancel(existingRingNid)
+            val caller = com.souvera.workspace.link.call.LinkCallNotifications
+                .consumeForMissed(context, existingRingNid) ?: message.subject
+            com.souvera.workspace.link.call.LinkCallNotifications.clearRoom(context, message.id)
+            com.souvera.workspace.link.call.LinkCallNotifications.markEnded(context, message.id)
+            com.souvera.workspace.link.call.LinkCallEnd.broadcast(context, message.id)
+            com.souvera.workspace.link.call.LinkCallNotifications.showMissed(context, message.nid, caller)
+            return
+        }
+
+        // Verspaeteter Missed-Call-Push, nachdem der Anruf bereits lokal als
+        // beendet verarbeitet wurde — nicht erneut klingeln lassen.
+        if (com.souvera.workspace.link.call.LinkCallNotifications.endedRecently(context, message.id)) {
+            // Ende-Markierung vorhanden: Entweder ein verspaeteter Missed-Call-Push
+            // ODER ein ganz neuer Anruf im selben Raum. Server befragen, damit
+            // echte neue Anrufe niemals verschluckt werden.
+            val active = runCatching {
+                val account = android.accounts.AccountManager.get(context)
+                    .getAccountsByType(context.getString(R.string.account_type))
+                    .firstOrNull()
+                val dav = account?.let { com.souvera.workspace.dav.SouveraSyncManager(context).resolve(it) }
+                dav != null && com.souvera.workspace.link.net.OcsApi(dav)
+                    .participantInCallFlags(message.id).any { it and 1 != 0 }
+            }.getOrDefault(true)
+            if (!active) {
+                com.souvera.workspace.link.call.CallDebugLog.log(
+                    "LinkPush",
+                    "late missed-call push, no active call for room=${message.id} — ignoring"
+                )
+                notificationManager.cancel(message.nid)
+                return
+            }
+            com.souvera.workspace.link.call.CallDebugLog.log(
+                "LinkPush",
+                "new call for room=${message.id} — clearing ended marker"
+            )
+            com.souvera.workspace.link.call.LinkCallNotifications.clearEnded(context, message.id)
+        }
+
         com.souvera.workspace.link.call.LinkCallNotifications.markIncoming(
             context,
             message.nid,
@@ -362,6 +471,9 @@ class NotificationWork constructor(
             .setStyle(NotificationCompat.CallStyle.forIncomingCall(caller, decline, answer))
             .build()
         notificationManager.notify(message.nid, notification)
+        // Ueberwachung: entfernt die Klingel-Notification sofort, sobald der
+        // Anrufer auflegt (statt erst nach dem 35s-Timeout).
+        com.souvera.workspace.link.call.CallRingReaperWork.schedule(context, message.nid, message.id)
     }
 
     // Replaces the ringing call notification with a dismissible "missed call" once the call ends

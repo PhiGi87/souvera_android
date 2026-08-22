@@ -12,11 +12,11 @@ import android.util.Base64
 import android.util.Log
 import com.owncloud.android.R
 import com.souvera.workspace.dav.SouveraSyncManager
-import org.apache.commons.httpclient.HttpClient
-import org.apache.commons.httpclient.HttpStatus
-import org.apache.commons.httpclient.methods.PostMethod
-import org.apache.commons.httpclient.methods.StringRequestEntity
-import org.json.JSONObject
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.util.concurrent.TimeUnit
 
 /**
  * Registers this device's FCM token with the souvera_mail server so it can be reached by the
@@ -31,8 +31,13 @@ object SouveraPushRegistrar {
     private const val PLATFORM = "android"
     private const val PREFS = "souvera_push"
     private const val KEY_REGISTERED_TOKEN = "registered_fcm_token"
-    private const val CONNECT_TIMEOUT_MS = 10_000
-    private const val READ_TIMEOUT_MS = 15_000
+
+    private val httpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .build()
+    }
 
     fun register(context: Context, token: String) {
         if (token.isBlank()) {
@@ -64,38 +69,35 @@ object SouveraPushRegistrar {
         val url = dav.baseUrl.trimEnd('/') + ENDPOINT
         Log.i(TAG, "POST $url")
 
-        val body = JSONObject().put("fcmToken", token).put("platform", PLATFORM).toString()
-        val client = HttpClient()
-        client.httpConnectionManager.params.let { p ->
-            p.setParameter("http.connection.timeout", CONNECT_TIMEOUT_MS)
-            p.setParameter("http.socket.timeout", READ_TIMEOUT_MS)
-        }
-        val post = PostMethod(url).apply {
-            val credential = Base64.encodeToString(
-                "${dav.username}:${dav.password}".toByteArray(Charsets.UTF_8),
-                Base64.NO_WRAP
-            )
-            setRequestHeader("Authorization", "Basic $credential")
-            setRequestHeader("OCS-APIRequest", "true")
-            setRequestHeader("Accept", "application/json")
-            requestEntity = StringRequestEntity(body, "application/json", "UTF-8")
-        }
-        runCatching {
-            val status = client.executeMethod(post)
-            val responseBody = post.responseBodyAsString?.take(500).orEmpty()
-            if (status == HttpStatus.SC_OK || status == HttpStatus.SC_CREATED) {
-                prefs.edit().putString(KEY_REGISTERED_TOKEN, token).apply()
-                Log.i(TAG, "FCM token REGISTERED successfully — HTTP $status — server now has this device")
-            } else if (status == HttpStatus.SC_UNAUTHORIZED) {
-                Log.e(TAG, "Device registration rejected: HTTP 401 — wrong credentials. Body: $responseBody")
-            } else if (status == HttpStatus.SC_NOT_FOUND) {
-                Log.e(TAG, "Device registration endpoint not found: HTTP 404 — is souvera_mail installed on server? URL: $url")
-            } else if (status == HttpStatus.SC_SERVICE_UNAVAILABLE) {
-                Log.e(TAG, "Device registration: HTTP 503 — is souvera_mail enabled? stalwart_webhook_secret configured?")
-            } else {
-                Log.e(TAG, "Device registration failed: HTTP $status. Body: $responseBody")
+        val body = """{"fcmToken":"$token","platform":"$PLATFORM"}"""
+        val credential = Base64.encodeToString(
+            "${dav.username}:${dav.password}".toByteArray(Charsets.UTF_8),
+            Base64.NO_WRAP
+        )
+        val request = Request.Builder()
+            .url(url)
+            .header("Authorization", "Basic $credential")
+            .header("OCS-APIRequest", "true")
+            .header("Accept", "application/json")
+            .header("Content-Type", "application/json")
+            .post(body.toRequestBody("application/json".toMediaType()))
+            .build()
+
+        try {
+            httpClient.newCall(request).execute().use { response ->
+                val responseBody = response.body?.string()?.take(500).orEmpty()
+                when (response.code) {
+                    200, 201 -> {
+                        prefs.edit().putString(KEY_REGISTERED_TOKEN, token).apply()
+                        Log.i(TAG, "FCM token REGISTERED successfully — HTTP ${response.code} — server now has this device")
+                    }
+                    401 -> Log.e(TAG, "Device registration rejected: HTTP 401 — wrong credentials. Body: $responseBody")
+                    404 -> Log.e(TAG, "Device registration endpoint not found: HTTP 404 — is souvera_mail installed on server? URL: $url")
+                    503 -> Log.e(TAG, "Device registration: HTTP 503 — is souvera_mail enabled? stalwart_webhook_secret configured?")
+                    else -> Log.e(TAG, "Device registration failed: HTTP ${response.code}. Body: $responseBody")
+                }
             }
-        }.onFailure { e ->
+        } catch (e: Exception) {
             val detail = when {
                 e.message?.contains("UnknownHost", true) == true -> "DNS error — check server URL and network: ${e.message}"
                 e.message?.contains("ConnectException", true) == true -> "Connection refused — server not reachable: ${e.message}"
@@ -104,8 +106,6 @@ object SouveraPushRegistrar {
                 else -> e.message ?: e.javaClass.simpleName
             }
             Log.e(TAG, "Device registration POST failed: $detail", e)
-        }.also {
-            post.releaseConnection()
         }
     }
 }

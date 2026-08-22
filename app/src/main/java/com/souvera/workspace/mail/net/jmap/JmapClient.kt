@@ -9,7 +9,11 @@ package com.souvera.workspace.mail.net.jmap
 import com.souvera.workspace.dav.DavAccount
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
-import java.net.HttpURLConnection
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.util.concurrent.TimeUnit
 import java.net.URL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -33,6 +37,16 @@ class JmapClient(
 ) {
     private var session: JmapSessionInfo? = null
     private var resolvedApiUrl: String? = null
+
+    // OkHttp statt HttpURLConnection: identischer Transport-Stack wie der
+    // (nachweislich funktionierende) Login-Flow. Der HttpURLConnection-Stack
+    // wird vom Workspace-Gateway bei /jmap mit notRequest abgelehnt.
+    private val httpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .build()
+    }
 
     /* ---------- session ------------------------------------------------- */
 
@@ -60,12 +74,29 @@ class JmapClient(
         json.optJSONObject("capabilities")?.let { c ->
             c.keys().forEach { k -> caps[k] = c.getJSONObject(k) }
         }
+        val accountsJson = json.optJSONObject("accounts")
         val primaryAccId = json.optJSONObject("primaryAccounts")
             ?.optString(JmapCapabilities.MAIL, null)
             ?.takeIf { it.isNotBlank() }
             ?: caps[JmapCapabilities.MAIL]?.optString("accountId", null)
                 ?.takeIf { it.isNotBlank() }
-        val accId = primaryAccId ?: dav.username
+        // Nur gueltige IDs akzeptieren: der Wert muss ein Schluessel der
+        // `accounts`-Map sein (RFC 8620 §2). Sonst faellt z. B. eine
+        // Proxy-/Stub-Session mit Fremdwerten unbemerkt durch.
+        val validated = primaryAccId
+            ?.takeIf { accountsJson?.has(it) ?: true }
+        val accId = validated
+            ?: accountsJson?.keys()?.asSequence()
+                ?.mapNotNull { k ->
+                    k.takeIf { accountsJson.optJSONObject(k)?.optBoolean("isPersonal", true) == true }
+                }
+                ?.firstOrNull()
+            ?: throw JmapException(
+                "JMAP session has no usable accountId (primaryAccounts=" +
+                json.optJSONObject("primaryAccounts") +
+                ", account keys=" + (accountsJson?.keys()?.asSequence()?.joinToString() ?: "null") +
+                "). Verify that souvera_mail is correctly configured on the server."
+            )
         val apiUrl = json.optString("apiUrl", "").takeIf { it.isNotBlank() }
             ?: (resolvedApiUrl ?: "")
         return JmapSessionInfo(
@@ -98,7 +129,11 @@ class JmapClient(
                 calls.forEach { put(JSONArray().put(it.name).put(it.args).put(it.callId)) }
             })
         }
-        val response = httpPost(apiUrl, requestObj.toString())
+        // org.json escaped "/" als "\/" (z. B. "Mailbox\/get"). Das ist zwar
+        // gueltiges JSON, wird aber vom Workspace-Stalwart mit notRequest
+        // abgelehnt (live reproduziert). Der Ersatz ist semantisch ein No-op.
+        val requestStr = requestObj.toString().replace("\\/", "/")
+        val response = httpPost(apiUrl, requestStr)
         val responses = response.optJSONArray("methodResponses")
             ?: throw JmapException("No methodResponses in JMAP response")
         val sessionState = response.optString("sessionState", null).takeIf { it != null }
@@ -139,28 +174,24 @@ class JmapClient(
             val url = (session ?: refreshSession()).uploadUrl
                 .replace("{accountId}", accountId)
                 .replace("{account}", accountId)
-            val u = URL(url)
-            val conn = (u.openConnection() as HttpURLConnection).apply {
-                requestMethod = "POST"
-                setRequestProperty("Content-Type", contentType)
-                setRequestProperty("Authorization", authHeader())
-                doOutput = true
-                connectTimeout = 30_000
-                readTimeout = 60_000
+            val req = Request.Builder().url(url)
+                .header("Authorization", authHeader())
+                .header("Content-Type", contentType)
+                .post(bytes.toRequestBody(contentType.toMediaType()))
+                .build()
+            httpClient.newCall(req).execute().use { resp ->
+                val code = resp.code
+                if (code !in 200..299) {
+                    val err = resp.body?.string()?.take(300) ?: ""
+                    throw JmapException("Blob upload HTTP $code: $err")
+                }
+                val json = JSONObject(resp.body?.string() ?: "")
+                return@withContext JmapBlobUploadResponse(
+                    blobId = json.getString("blobId"),
+                    size = json.getLong("size"),
+                    type = json.getString("type")
+                )
             }
-            conn.outputStream.write(bytes)
-            conn.outputStream.close()
-            val code = conn.responseCode
-            if (code !in 200..299) {
-                val err = try { String(conn.errorStream?.readBytes() ?: ByteArray(0), Charsets.UTF_8).take(300) } catch (_: Exception) { "" }
-                throw JmapException("Blob upload HTTP $code: $err")
-            }
-            val json = JSONObject(String(conn.inputStream.readBytes(), Charsets.UTF_8))
-            JmapBlobUploadResponse(
-                blobId = json.getString("blobId"),
-                size = json.getLong("size"),
-                type = json.getString("type")
-            )
         }
 
     suspend fun downloadBlob(accountId: String, blobId: String, mimeType: String): ByteArray =
@@ -172,20 +203,19 @@ class JmapClient(
                 .replace("{type}", mimeType)
                 .replace("{name}", blobId)
                 .replace("{type}", mimeType)
-            val u = URL(url)
-            val conn = (u.openConnection() as HttpURLConnection).apply {
-                requestMethod = "GET"
-                setRequestProperty("Accept", mimeType)
-                setRequestProperty("Authorization", authHeader())
-                connectTimeout = 15_000
-                readTimeout = 60_000
+            val req = Request.Builder().url(url)
+                .header("Authorization", authHeader())
+                .header("Accept", mimeType)
+                .get()
+                .build()
+            httpClient.newCall(req).execute().use { resp ->
+                val code = resp.code
+                if (code !in 200..299) {
+                    val err = resp.body?.string()?.take(300) ?: ""
+                    throw JmapException("Blob download HTTP $code: $err")
+                }
+                return@withContext resp.body?.bytes() ?: ByteArray(0)
             }
-            val code = conn.responseCode
-            if (code !in 200..299) {
-                val err = try { String(conn.errorStream?.readBytes() ?: ByteArray(0), Charsets.UTF_8).take(300) } catch (_: Exception) { "" }
-                throw JmapException("Blob download HTTP $code: $err")
-            }
-            conn.inputStream.readBytes()
         }
 
     /* ---------- auth ---------------------------------------------------- */
@@ -236,55 +266,58 @@ class JmapClient(
     }
 
     private suspend fun httpGet(urlStr: String): JSONObject? = withContext(Dispatchers.IO) {
-        val u = URL(urlStr)
-        val conn = (u.openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            setRequestProperty("Authorization", authHeader())
-            setRequestProperty("Accept", "application/json")
-            connectTimeout = 10_000
-            readTimeout = 15_000
-        }
-        val code = conn.responseCode
-        if (code == 401) {
-            throw JmapException("JMAP auth rejected — needs Bearer token", "HTTP 401")
-        }
-        if (code !in 200..299) return@withContext null
-        val body = String(conn.inputStream.readBytes(), Charsets.UTF_8)
-        try {
-            JSONObject(body)
-        } catch (_: JSONException) {
-            null
+        val req = Request.Builder().url(urlStr)
+            .header("Authorization", authHeader())
+            .header("Accept", "application/json")
+            .get()
+            .build()
+        httpClient.newCall(req).execute().use { resp ->
+            val code = resp.code
+            if (code == 401) {
+                throw JmapException("JMAP auth rejected — needs Bearer token", "HTTP 401")
+            }
+            if (code !in 200..299) return@withContext null
+            val body = resp.body?.string() ?: return@withContext null
+            try {
+                JSONObject(body)
+            } catch (_: JSONException) {
+                null
+            }
         }
     }
 
     private suspend fun httpPost(urlStr: String, jsonBody: String): JSONObject = withContext(Dispatchers.IO) {
-        val u = URL(urlStr)
-        val bodyBytes = jsonBody.toByteArray(Charsets.UTF_8)
-        val conn = (u.openConnection() as HttpURLConnection).apply {
-            doOutput = true
-            setFixedLengthStreamingMode(bodyBytes.size)
-            setRequestProperty("Content-Type", "application/json; charset=utf-8")
-            setRequestProperty("Authorization", authHeader())
-            setRequestProperty("Accept", "application/json")
-            connectTimeout = 15_000
-            readTimeout = 30_000
-        }
-        conn.outputStream.use { it.write(bodyBytes) }
-        val code = conn.responseCode
-        val responseBody = try {
-            if (code in 200..299) String(conn.inputStream.readBytes(), Charsets.UTF_8)
-            else String(conn.errorStream?.readBytes() ?: ByteArray(0), Charsets.UTF_8).take(500)
-        } catch (_: Exception) { "" }
-        if (code == 401) {
-            throw JmapException("JMAP auth rejected — needs Bearer token: $responseBody")
-        }
-        if (code !in 200..299) {
-            throw JmapException("JMAP HTTP $code: $responseBody")
-        }
-        try {
-            JSONObject(responseBody)
-        } catch (e: JSONException) {
-            throw JmapException("JMAP response not JSON (${responseBody.take(200)})")
+        val req = Request.Builder().url(urlStr)
+            .header("Authorization", authHeader())
+            .header("Content-Type", "application/json; charset=utf-8")
+            .header("Accept", "application/json")
+            .post(jsonBody.toRequestBody("application/json; charset=utf-8".toMediaType()))
+            .build()
+        httpClient.newCall(req).execute().use { resp ->
+            val code = resp.code
+            val responseBody = resp.body?.string() ?: ""
+            if (code == 401) {
+                throw JmapException("JMAP auth rejected — needs Bearer token: $responseBody")
+            }
+            if (code !in 200..299) {
+                // Kompakte, aber vollstaendige Draht-Diagnose: nur die
+                // entscheidenden Felder, damit die Meldung in ein Chat-
+                // Posting passt (fruehere lange Variante wurde gekuerzt).
+                val ct = resp.header("Content-Type") ?: "?"
+                val bodyB64 = android.util.Base64.encodeToString(
+                    responseBody.toByteArray(Charsets.UTF_8), android.util.Base64.NO_WRAP)
+                val reqB64 = android.util.Base64.encodeToString(
+                    jsonBody.toByteArray(Charsets.UTF_8), android.util.Base64.NO_WRAP)
+                throw JmapException(
+                    "JMAP HTTP $code ct=$ct len=${responseBody.length} " +
+                    "reqB64=$reqB64 respB64=$bodyB64"
+                )
+            }
+            try {
+                JSONObject(responseBody)
+            } catch (e: JSONException) {
+                throw JmapException("JMAP response not JSON (${responseBody.take(200)})")
+            }
         }
     }
 

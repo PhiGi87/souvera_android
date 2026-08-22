@@ -28,19 +28,29 @@ import kotlinx.coroutines.withContext
  */
 class SouveraMailCredentialManager(private val context: Context) {
 
+    companion object {
+        /** Credential-Generation: bei Änderungen erhöhen → erzwingt einen frischen Re-Mint. */
+        private const val CRED_VERSION = "2"
+    }
+
     suspend fun ensureCombinedCredential(account: Account): DavAccount? = withContext(Dispatchers.IO) {
         val accountManager = AccountManager.get(context)
         val dav = SouveraSyncManager(context).resolve(account) ?: return@withContext null
 
         val storedMailPassword =
             accountManager.getUserData(account, SouveraMailLoginFlow.ACCOUNT_KEY_MAIL_PASSWORD)
-        if (!storedMailPassword.isNullOrBlank()) {
+        val storedVersion =
+            accountManager.getUserData(account, SouveraMailLoginFlow.ACCOUNT_KEY_MAIL_PASSWORD + "_version")
+        if (!storedMailPassword.isNullOrBlank() && storedVersion == CRED_VERSION) {
             return@withContext dav.copy(password = storedMailPassword)
         }
 
+        // Frischer Mint: deckt z. B. Server-seitige Re-Provisionierungen ab,
+        // nach denen das alte kombinierte Passwort nicht mehr akzeptiert wird.
         val combined = SouveraMailLoginFlow.fetchCombinedAppPassword(dav.baseUrl, dav.username, dav.password)
         accountManager.setUserData(account, SouveraMailLoginFlow.ACCOUNT_KEY_MAIL_PASSWORD, combined.appPassword)
         accountManager.setUserData(account, SouveraMailLoginFlow.ACCOUNT_KEY_STALWART_ID, combined.stalwartId)
+        accountManager.setUserData(account, SouveraMailLoginFlow.ACCOUNT_KEY_MAIL_PASSWORD + "_version", CRED_VERSION)
         dav.copy(password = combined.appPassword)
     }
 }

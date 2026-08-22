@@ -9,6 +9,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.WRITE_CONTACTS" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.WRITE_CALENDAR" /> <!-- Used for document scanning, but lib declares it as required, which it's not -->
@@ -509,6 +510,13 @@
             android:label="@string/drawer_item_link"
             android:theme="@style/Theme.ownCloud.Toolbar"
             android:windowSoftInputMode="adjustResize" />
+
+        <!-- Souvera Workspace: Shield (PMG quarantine) -->
+        <activity
+            android:name="com.souvera.workspace.shield.ShieldActivity"
+            android:exported="false"
+            android:label="@string/drawer_item_shield"
+            android:theme="@style/Theme.ownCloud.Toolbar" />
 
         <!-- Souvera Workspace: Link call (WebRTC audio/video) -->
         <activity

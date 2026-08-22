@@ -72,5 +72,5 @@ object PushTokenFetcher {
     }
 
     private const val FORCE_PREFS = "souvera_push"
-    private const val FORCE_KEY = "nc_push_forced_v68"
+    private const val FORCE_KEY = "nc_push_forced_v70"
 }

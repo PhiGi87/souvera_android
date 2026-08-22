@@ -30,18 +30,70 @@ object SouveraMailLoginFlow {
     const val ACCOUNT_KEY_MAIL_PASSWORD = "souvera_mail_password"
     private const val DESCRIPTION = "Souvera Android"
 
+    private val httpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
+    }
+
     fun fetchCombinedAppPassword(baseUrl: String, username: String, currentAppPassword: String): CombinedAppPassword =
-        try {
-            request(baseUrl, username, currentAppPassword, useIndexPhp = false)
-        } catch (e: HttpFailure) {
-            if (e.code == HTTP_NOT_FOUND) {
-                request(baseUrl, username, currentAppPassword, useIndexPhp = true)
-            } else {
-                throw e
+        retry(3) {
+            try {
+                request(baseUrl, username, currentAppPassword, useIndexPhp = false)
+            } catch (e: HttpFailure) {
+                if (e.code == HTTP_NOT_FOUND) {
+                    request(baseUrl, username, currentAppPassword, useIndexPhp = true)
+                } else {
+                    throw e
+                }
             }
         }
 
+    /**
+     * Best-effort DELETE of the Stalwart-combined app password (Y) on the Souvera Mail backend.
+     * Called during account removal so no stale mapping row survives on the server.
+     */
+    fun deleteCombinedAppPassword(
+        baseUrl: String,
+        username: String,
+        password: String,
+        stalwartId: String
+    ): Boolean =
+        try {
+            val path = if (password.isNotBlank()) baseUrl else return false
+            val httpRequest = Request.Builder()
+                .url("$path/apps/souvera_mail/app-passwords/$stalwartId")
+                .header("Authorization", okhttp3.Credentials.basic(username, password))
+                .delete()
+                .build()
+            httpClient.newCall(httpRequest).execute().use { it.isSuccessful }
+        } catch (_: Exception) {
+            false
+        }
+
     private class HttpFailure(val code: Int, message: String) : Exception(message)
+
+    private inline fun <T> retry(times: Int, block: () -> T): T {
+        var lastFailure: Exception? = null
+        for (attempt in 1..times) {
+            try {
+                return block()
+            } catch (e: HttpFailure) {
+                if (e.code == HTTP_NOT_FOUND) throw e
+                lastFailure = e
+                if (attempt < times) {
+                    Thread.sleep(attempt * 1000L)
+                }
+            } catch (e: java.io.IOException) {
+                lastFailure = e
+                if (attempt < times) {
+                    Thread.sleep(attempt * 1000L)
+                }
+            }
+        }
+        throw lastFailure ?: RuntimeException("retry exhausted")
+    }
 
     private fun request(
         baseUrl: String,
@@ -57,7 +109,7 @@ object SouveraMailLoginFlow {
             .header("Content-Type", "application/json")
             .post(body.toRequestBody("application/json".toMediaType()))
             .build()
-        OkHttpClient().newCall(httpRequest).execute().use { response ->
+        httpClient.newCall(httpRequest).execute().use { response ->
             val bodyStr = response.body.string()
             if (!response.isSuccessful) throw HttpFailure(response.code, "HTTP ${response.code} - $bodyStr")
             val json = JSONObject(bodyStr)

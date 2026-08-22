@@ -46,7 +46,13 @@ class MailSyncWorker(
         for (account in accounts) {
             try {
                 val dav = syncManager.resolve(account) ?: continue
-                newCount += syncInboxAndNotify(account.name, dav)
+                val mailPassword = accountManager.getUserData(account, "souvera_mail_password")
+                val effectiveDav = if (!mailPassword.isNullOrBlank()) {
+                    dav.copy(password = mailPassword)
+                } else {
+                    dav
+                }
+                newCount += syncInboxAndNotify(account.name, effectiveDav)
             } catch (e: Exception) {
                 Log.w(TAG, "Mail sync failed for ${account.name}: ${e.message}")
             }
