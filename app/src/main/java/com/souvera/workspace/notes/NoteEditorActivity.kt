@@ -6,6 +6,7 @@
  */
 package com.souvera.workspace.notes
 
+import androidx.activity.enableEdgeToEdge
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -29,9 +30,10 @@ class NoteEditorActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
-        @Suppress("DEPRECATION")
-        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        enableEdgeToEdge(
+            statusBarStyle = androidx.activity.SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = androidx.activity.SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
+        )
         val initialTitle = intent.getStringExtra(EXTRA_TITLE).orEmpty()
         val initialBody = intent.getStringExtra(EXTRA_BODY).orEmpty()
         val isNew = intent.getBooleanExtra(EXTRA_IS_NEW, true)

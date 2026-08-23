@@ -6,6 +6,7 @@
  */
 package com.souvera.workspace.link.ui
 
+import androidx.activity.enableEdgeToEdge
 import android.accounts.AccountManager
 import android.content.Intent
 import android.os.Bundle
@@ -28,9 +29,10 @@ class LinkActivity : DrawerActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
-        @Suppress("DEPRECATION")
-        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        enableEdgeToEdge(
+            statusBarStyle = androidx.activity.SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = androidx.activity.SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
+        )
         com.souvera.workspace.link.call.CallDebugLog.attach(this)
         installInsetHandling()
         setContentView(R.layout.activity_souvera_link)

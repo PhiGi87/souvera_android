@@ -6,6 +6,7 @@
  */
 package com.souvera.workspace.notes
 
+import androidx.activity.enableEdgeToEdge
 import android.accounts.AccountManager
 import android.app.Activity
 import android.content.Intent
@@ -57,9 +58,10 @@ class SouveraNotesActivity : AppCompatActivity() {
                 saveNote(pendingNote, title, body)
             }
         }
-        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
-        @Suppress("DEPRECATION")
-        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        enableEdgeToEdge(
+            statusBarStyle = androidx.activity.SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = androidx.activity.SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
+        )
         setContentView(R.layout.activity_notes)
 
         val toolbar = findViewById<MaterialToolbar>(R.id.notes_toolbar)

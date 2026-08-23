@@ -5,11 +5,11 @@
   SPDX-FileCopyrightText: 2026 Host-On Service Provider GmbH (Souvera)
   SPDX-License-Identifier: AGPL-3.0-or-later
 
-  Weiße Variante der Souvera-Wortbild-Ikone (Quelle: souvera.eu, logo_icon.svg)
-  für den Einsatz auf dem blauen Header-Verlauf. Die Gruppe übernimmt die
-  Original-Skalierung/Translation des SVG.
+  Souvera-Wortbild-Ikone in Originalfarben (Quelle: souvera.eu, logo_icon.svg).
+  Pfade und Gradienten unverändert, inklusive Original-Transformationsmatrix.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="160dp"
     android:height="160dp"
     android:viewportWidth="160"
@@ -19,9 +19,57 @@
         android:translateY="-129.96513"
         android:scaleX="2.110071"
         android:scaleY="2.120071">
-        <path android:fillColor="#FFFFFF" android:pathData="m 52.066589,61.233472 c -9.140991,0 -16.499768,7.358777 -16.499768,16.499768 v 21.000268 c 12.347247,4.124672 24.808037,5.183682 37.500037,0 5.533285,-12.845842 5.529007,-25.345587 0,-37.500036 z" />
-        <path android:fillColor="#FFFFFF" android:pathData="m 73.066858,61.233472 v 37.500036 c 12.002917,3.811052 24.460386,4.137202 37.500032,0 V 77.73324 c 0,-9.140991 -7.35929,-16.499768 -16.50028,-16.499768 z" />
-        <path android:fillColor="#FFFFFF" android:pathData="m 73.066858,98.733508 c -6.29284,12.500012 -2.72853,25.000022 0,37.500032 H 94.06661 c 9.14099,0 16.50028,-7.35929 16.50028,-16.50028 V 98.733508 Z" />
-        <path android:fillColor="#FFFFFF" android:pathData="m 35.566821,98.733508 v 20.999752 c 0,9.14099 7.358777,16.50028 16.499768,16.50028 H 73.066858 V 98.733508 Z" />
+        <path android:pathData="m 52.066589,61.233472 c -9.140991,0 -16.499768,7.358777 -16.499768,16.499768 v 21.000268 c 12.347247,4.124672 24.808037,5.183682 37.500037,0 5.533285,-12.845842 5.529007,-25.345587 0,-37.500036 z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="40.388836"
+                    android:startY="66.055481"
+                    android:endX="73.066856"
+                    android:endY="98.733505">
+                    <item android:offset="0" android:color="#FF4bbfea" />
+                    <item android:offset="1" android:color="#FF4d9dda" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path android:pathData="m 73.066858,61.233472 v 37.500036 c 12.002917,3.811052 24.460386,4.137202 37.500032,0 V 77.73324 c 0,-9.140991 -7.35929,-16.499768 -16.50028,-16.499768 z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="73.066856"
+                    android:startY="61.233471"
+                    android:endX="110.56689"
+                    android:endY="98.733505">
+                    <item android:offset="0" android:color="#FF5aaade" />
+                    <item android:offset="1" android:color="#FF496bbf" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path android:pathData="m 73.066858,98.733508 c -6.29284,12.500012 -2.72853,25.000022 0,37.500032 H 94.06661 c 9.14099,0 16.50028,-7.35929 16.50028,-16.50028 V 98.733508 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="73.066856"
+                    android:startY="98.733505"
+                    android:endX="105.74462"
+                    android:endY="131.41127">
+                    <item android:offset="0" android:color="#FF4d9dda" />
+                    <item android:offset="1" android:color="#FF3b86d0" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path android:pathData="m 35.566821,98.733508 v 20.999752 c 0,9.14099 7.358777,16.50028 16.499768,16.50028 H 73.066858 V 98.733508 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="35.566822"
+                    android:startY="98.733505"
+                    android:endX="73.066856"
+                    android:endY="136.23354">
+                    <item android:offset="0" android:color="#FF559dd8" />
+                    <item android:offset="1" android:color="#FF4a65bc" />
+                </gradient>
+            </aapt:attr>
+        </path>
     </group>
 </vector>

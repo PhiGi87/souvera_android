@@ -6,6 +6,7 @@
  */
 package com.souvera.workspace.mail.ui
 
+import androidx.activity.enableEdgeToEdge
 import android.Manifest
 import android.accounts.Account
 import android.accounts.AccountManager
@@ -54,7 +55,10 @@ class MailActivity : DrawerActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        enableEdgeToEdge(
+            statusBarStyle = androidx.activity.SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = androidx.activity.SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
+        )
         setContentView(R.layout.activity_souvera_mail_native)
 
         setupToolbarShowOnlyMenuButtonAndTitle(getString(R.string.drawer_item_mail)) { openDrawer() }
@@ -82,7 +86,6 @@ class MailActivity : DrawerActivity() {
         consumePushExtras(intent)
 
         val colorScheme = viewThemeUtils.getColorScheme(this)
-        themeSystemBars()
         findViewById<ComposeView>(R.id.mail_compose_view).setContent {
             MaterialTheme(colorScheme = colorScheme) {
                 MailRoot(
@@ -191,12 +194,4 @@ class MailActivity : DrawerActivity() {
             }
     }
 
-    private fun themeSystemBars() {
-        // Transparent: der Souvera-Gradient des Headers läuft hinter der
-        // Statusleiste (Uhr/Akku) durch — weiße System-Icons passen zum
-        // dunklen oberen Bereich des Verlaufs.
-        @Suppress("DEPRECATION")
-        window.statusBarColor = android.graphics.Color.TRANSPARENT
-        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
-    }
 }
