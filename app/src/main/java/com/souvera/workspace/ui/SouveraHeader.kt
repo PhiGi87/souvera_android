@@ -96,7 +96,7 @@ fun SouveraTopBar(
             CompositionLocalProvider(LocalContentColor provides SouveraOnHeader) {
                 navigationIcon()
                 if (logo) {
-                    SouveraLogo(Modifier.padding(start = 2.dp))
+                    SouveraLogo(Modifier.padding(start = 2.dp, end = 10.dp))
                 }
                 Box(Modifier.weight(1f)) { title() }
                 actions()

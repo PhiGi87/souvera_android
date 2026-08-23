@@ -95,6 +95,11 @@ class ShieldActivity : DrawerActivity() {
         // so wirkt der Verlauf immer bis hinter die Uhr durchgezogen.
         @Suppress("DEPRECATION")
         window.statusBarColor = 0xFF1E4666.toInt()
+        // Garantierter Verlauf hinter der Systemleiste: Der Fenster-
+        // hintergrund selbst trägt den Gradient — damit erscheint der
+        // Verlauf auf JEDEM Gerät (auch ohne Edge-to-Edge) hinter der Uhr.
+        @Suppress("DEPRECATION")
+        window.setBackgroundDrawableResource(com.owncloud.android.R.drawable.souvera_header_gradient)
 
         setContentView(R.layout.activity_souvera_shield)
         installInsetHandling()
