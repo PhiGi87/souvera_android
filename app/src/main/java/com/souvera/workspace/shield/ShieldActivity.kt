@@ -185,8 +185,7 @@ class ShieldActivity : DrawerActivity() {
                             },
                             searchHint = getString(R.string.shield_search_hint),
                             searchQuery = searchQuery,
-                            onSearchQueryChange = { searchQuery = it },
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                            onSearchQueryChange = { searchQuery = it }
                         ) {
                             if (refreshing) {
                                 CircularProgressIndicator(

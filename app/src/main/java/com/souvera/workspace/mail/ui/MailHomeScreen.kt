@@ -129,8 +129,7 @@ private fun MailHomeTopArea(
                 onOpenDrawer = onOpenDrawer,
                 onOpenSearch = onOpenSearch,
                 onOpenSettings = onOpenSettings,
-                searchHint = stringResource(R.string.mail_search_hint),
-                modifier = Modifier.padding(horizontal = SCREEN_PADDING.dp, vertical = PILL_PADDING_VERTICAL.dp)
+                searchHint = stringResource(R.string.mail_search_hint)
             )
             if (mailbox != null) {
                 MailFolderSelector(mailbox, onOpenFolders)

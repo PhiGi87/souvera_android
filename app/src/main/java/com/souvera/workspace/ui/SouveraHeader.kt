@@ -91,7 +91,8 @@ fun SouveraHomeHeaderRow(
     Row(
         modifier
             .fillMaxWidth()
-            .height(SOUVERA_HEADER_HEIGHT.dp),
+            .height(SOUVERA_HEADER_HEIGHT.dp)
+            .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         SouveraLogo(Modifier.padding(end = 8.dp), size = 30.dp)

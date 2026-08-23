@@ -43,8 +43,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,8 +71,6 @@ fun ConversationListScreen(viewModel: LinkViewModel, onOpenDrawer: () -> Unit, o
         }
     }
 
-    val searchFocusRequester = remember { FocusRequester() }
-
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = androidx.compose.ui.graphics.Color(0xFFFFFFFF),
@@ -82,10 +78,11 @@ fun ConversationListScreen(viewModel: LinkViewModel, onOpenDrawer: () -> Unit, o
             com.souvera.workspace.ui.SouveraHeader {
                 com.souvera.workspace.ui.SouveraHomeHeaderRow(
                     onOpenDrawer = onOpenDrawer,
-                    onOpenSearch = { runCatching { searchFocusRequester.requestFocus() } },
+                    onOpenSearch = { },
                     onOpenSettings = onOpenSettings,
                     searchHint = stringResource(R.string.link_search_conversations),
-                    modifier = Modifier.padding(horizontal = 12.dp)
+                    searchQuery = query,
+                    onSearchQueryChange = { query = it }
                 ) {
                     IconButton(onClick = { shareCallLog(context) }) {
                         Icon(Icons.Filled.Share, contentDescription = stringResource(R.string.link_share_call_log))
@@ -100,12 +97,6 @@ fun ConversationListScreen(viewModel: LinkViewModel, onOpenDrawer: () -> Unit, o
         }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            SearchField(
-                value = query,
-                onValueChange = { query = it },
-                placeholder = stringResource(R.string.link_search_conversations),
-                focusRequester = searchFocusRequester
-            )
             ConversationContent(state, query, viewModel) { c ->
                 if (c.type == TYPE_NOTE_TO_SELF) {
                     openNotes(context)
@@ -164,7 +155,7 @@ private fun ConversationContent(
 }
 
 @Composable
-private fun SearchField(value: String, onValueChange: (String) -> Unit, placeholder: String, focusRequester: FocusRequester? = null) {
+private fun SearchField(value: String, onValueChange: (String) -> Unit, placeholder: String) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(SEARCH_CORNER.dp),
@@ -175,7 +166,7 @@ private fun SearchField(value: String, onValueChange: (String) -> Unit, placehol
             onValueChange = onValueChange,
             placeholder = { Text(placeholder) },
             leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-            modifier = if (focusRequester != null) Modifier.fillMaxWidth().focusRequester(focusRequester) else Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color.Transparent,

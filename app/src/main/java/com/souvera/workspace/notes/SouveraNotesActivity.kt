@@ -99,8 +99,7 @@ class SouveraNotesActivity : AppCompatActivity() {
                             onSearchQueryChange = {
                                 query = it
                                 refresh()
-                            },
-                            modifier = androidx.compose.ui.Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                            }
                         ) {
                             androidx.compose.material3.IconButton(onClick = { showEditor(null) }) {
                                 androidx.compose.material3.Icon(
