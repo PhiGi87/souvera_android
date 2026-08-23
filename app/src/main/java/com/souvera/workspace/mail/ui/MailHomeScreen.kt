@@ -92,12 +92,18 @@ fun MailHomeScreen(viewModel: MailViewModel, onOpenDrawer: () -> Unit, onOpenSet
             )
         }
     ) { padding ->
-        PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = viewModel::refresh,
-            modifier = Modifier.fillMaxSize().padding(padding)
-        ) {
-            MailMessageList(messagesState, viewModel, isRefreshing)
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            val mailbox = resolvedCurrent(mailboxesState, currentMailbox)
+            if (mailbox != null) {
+                MailFolderSelector(mailbox) { folderSheetOpen = true }
+            }
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = viewModel::refresh,
+                modifier = Modifier.weight(1f)
+            ) {
+                MailMessageList(messagesState, viewModel, isRefreshing)
+            }
         }
     }
 
@@ -127,12 +133,7 @@ private fun MailHomeTopArea(
         onOpenDrawer = onOpenDrawer,
         onOpenSearch = onOpenSearch,
         onOpenSettings = onOpenSettings,
-        searchHint = stringResource(R.string.mail_search_hint),
-        below = {
-            if (mailbox != null) {
-                MailFolderSelector(mailbox, onOpenFolders)
-            }
-        }
+        searchHint = stringResource(R.string.mail_search_hint)
     )
 }
 
@@ -146,7 +147,7 @@ private fun MailFolderSelector(mailbox: MailboxEntity, onOpenFolders: () -> Unit
         Icon(
                 mailbox.kind.folderIcon(),
             contentDescription = null,
-            tint = androidx.compose.ui.graphics.Color.White,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(SELECTOR_ICON_SIZE.dp)
         )
         Spacer(Modifier.width(SELECTOR_GAP.dp))
@@ -155,6 +156,7 @@ private fun MailFolderSelector(mailbox: MailboxEntity, onOpenFolders: () -> Unit
         Text(
             if (owner != null) "$roleName · $owner" else roleName,
             style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )

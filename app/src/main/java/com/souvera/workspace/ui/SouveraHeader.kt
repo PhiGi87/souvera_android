@@ -99,15 +99,8 @@ fun SouveraHomeHeaderRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         SouveraLogo(Modifier.padding(end = 8.dp), size = 30.dp)
-        androidx.compose.material3.Surface(
-            onClick = if (searchQuery != null) ({}) else onOpenSearch,
-            shape = androidx.compose.foundation.shape.CircleShape,
-            color = Color.White.copy(alpha = 0.16f),
-            contentColor = Color.White,
-            modifier = Modifier
-                .weight(1f)
-                .height(52.dp)
-        ) {
+
+        val pill: @Composable () -> Unit = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(start = 4.dp, end = 12.dp)
@@ -119,9 +112,6 @@ fun SouveraHomeHeaderRow(
                     )
                 }
                 if (searchQuery != null && onSearchQueryChange != null) {
-                    // BasicTextField statt Material-TextField: identische
-                    // Optik wie der Hinweis-Text (gleiche Schrift, keine
-                    // abweichenden Standard-Paddings/Min-Höhen).
                     Box(
                         Modifier
                             .weight(1f)
@@ -155,17 +145,20 @@ fun SouveraHomeHeaderRow(
                         }
                     }
                 } else {
-                    androidx.compose.material3.Text(
-                        searchHint,
-                        style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
-                        color = Color.White.copy(alpha = 0.85f),
-                        modifier = Modifier
+                    Box(
+                        Modifier
                             .weight(1f)
                             .fillMaxHeight(),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Start,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                    )
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        androidx.compose.material3.Text(
+                            searchHint,
+                            style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                            color = Color.White.copy(alpha = 0.85f),
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    }
                 }
                 com.souvera.workspace.status.StatusAction()
                 extraActions()
@@ -177,6 +170,31 @@ fun SouveraHomeHeaderRow(
                         )
                     }
                 }
+            }
+        }
+
+        if (searchQuery != null && onSearchQueryChange != null) {
+            androidx.compose.material3.Surface(
+                shape = androidx.compose.foundation.shape.CircleShape,
+                color = Color.White.copy(alpha = 0.16f),
+                contentColor = Color.White,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp)
+            ) {
+                pill()
+            }
+        } else {
+            androidx.compose.material3.Surface(
+                onClick = onOpenSearch,
+                shape = androidx.compose.foundation.shape.CircleShape,
+                color = Color.White.copy(alpha = 0.16f),
+                contentColor = Color.White,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp)
+            ) {
+                pill()
             }
         }
     }
@@ -199,7 +217,6 @@ fun SouveraHomeHeader(
     searchQuery: String? = null,
     onSearchQueryChange: ((String) -> Unit)? = null,
     extraActions: @Composable RowScope.() -> Unit = {},
-    below: @Composable ColumnScope.() -> Unit = {},
 ) {
     SouveraHeader(modifier) {
         SouveraHomeHeaderRow(
@@ -212,7 +229,6 @@ fun SouveraHomeHeader(
             onSearchQueryChange = onSearchQueryChange,
             extraActions = extraActions
         )
-        below()
     }
 }
 

@@ -200,19 +200,17 @@ class ShieldActivity : DrawerActivity() {
                                 )
                             }
                         }
-                    },
-                    below = {
-                        Text(
-                            if (visible.size != mails.size) {
-                                getString(R.string.shield_header_counts_filtered, visible.size, mails.size)
-                            } else {
-                                getString(R.string.shield_header_counts, mails.size)
-                            },
-                            color = Color(0xFFB9C8DC),
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(start = 20.dp, end = 16.dp, bottom = 10.dp)
-                        )
                     }
+                )
+                Text(
+                    if (visible.size != mails.size) {
+                        getString(R.string.shield_header_counts_filtered, visible.size, mails.size)
+                    } else {
+                        getString(R.string.shield_header_counts, mails.size)
+                    },
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
                 )
                 FilterRow(
                     recipients = recipients,
