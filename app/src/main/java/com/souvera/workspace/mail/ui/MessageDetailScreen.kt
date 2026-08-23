@@ -90,7 +90,7 @@ fun MessageDetailScreen(viewModel: MailViewModel, message: MessageEntity) {
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            TopAppBar(
+            com.souvera.workspace.ui.SouveraTopBar(
                 title = {},
                 navigationIcon = {
                     IconButton(onClick = { viewModel.back() }) {

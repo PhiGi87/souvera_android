@@ -178,8 +178,7 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            TopAppBar(
-                windowInsets = WindowInsets(0, 0, 0, 0),
+            com.souvera.workspace.ui.SouveraTopBar(
                 title = {
                     val peerId = viewModel.chatPeerId.collectAsState().value
                     Row(

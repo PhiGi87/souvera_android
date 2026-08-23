@@ -123,12 +123,12 @@ private fun MailHomeTopArea(
     onOpenSettings: () -> Unit,
     onOpenFolders: () -> Unit
 ) {
-    Column(
-        Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = SCREEN_PADDING.dp)
-    ) {
-        MailSearchBar(onOpenDrawer, onOpenSearch, onOpenSettings)
-        if (mailbox != null) {
-            MailFolderSelector(mailbox, onOpenFolders)
+    com.souvera.workspace.ui.SouveraHeader {
+        Column(Modifier.fillMaxWidth().padding(horizontal = SCREEN_PADDING.dp)) {
+            MailSearchBar(onOpenDrawer, onOpenSearch, onOpenSettings)
+            if (mailbox != null) {
+                MailFolderSelector(mailbox, onOpenFolders)
+            }
         }
     }
 }
@@ -139,7 +139,8 @@ private fun MailSearchBar(onOpenDrawer: () -> Unit, onOpenSearch: () -> Unit, on
     Surface(
         onClick = onOpenSearch,
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.16f),
+        contentColor = androidx.compose.ui.graphics.Color.White,
         modifier = Modifier.fillMaxWidth().padding(vertical = PILL_PADDING_VERTICAL.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -149,7 +150,7 @@ private fun MailSearchBar(onOpenDrawer: () -> Unit, onOpenSearch: () -> Unit, on
             Text(
                 stringResource(R.string.mail_search_hint),
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
                 modifier = Modifier.weight(1f)
             )
             com.souvera.workspace.status.StatusAction()
@@ -174,7 +175,7 @@ private fun MailFolderSelector(mailbox: MailboxEntity, onOpenFolders: () -> Unit
         Icon(
                 mailbox.kind.folderIcon(),
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = androidx.compose.ui.graphics.Color.White,
             modifier = Modifier.size(SELECTOR_ICON_SIZE.dp)
         )
         Spacer(Modifier.width(SELECTOR_GAP.dp))

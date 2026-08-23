@@ -94,7 +94,7 @@ fun NoteEditorScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun NoteEditorTopBar(isNew: Boolean, onClose: () -> Unit, onSave: () -> Unit) {
-    TopAppBar(
+    com.souvera.workspace.ui.SouveraTopBar(
         title = { Text(stringResource(if (isNew) R.string.souvera_notes_add else R.string.souvera_note_edit)) },
         navigationIcon = {
             IconButton(onClick = onClose) {
@@ -106,16 +106,10 @@ private fun NoteEditorTopBar(isNew: Boolean, onClose: () -> Unit, onSave: () -> 
                 Icon(
                     Icons.Filled.Check,
                     contentDescription = stringResource(R.string.common_save),
-                    tint = MaterialTheme.colorScheme.onPrimary
+                    tint = androidx.compose.ui.graphics.Color.White
                 )
             }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            titleContentColor = MaterialTheme.colorScheme.onPrimary,
-            navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-            actionIconContentColor = MaterialTheme.colorScheme.onPrimary
-        )
+        }
     )
 }
 

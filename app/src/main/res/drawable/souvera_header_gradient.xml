@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Souvera Workspace - Android Client
+
+  SPDX-FileCopyrightText: 2026 Host-On Service Provider GmbH (Souvera)
+  SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:startColor="#062A63"
+        android:centerColor="#0A5CF5"
+        android:endColor="#2E7BFF" />
+</shape>

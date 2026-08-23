@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -243,13 +244,12 @@ class ShieldActivity : DrawerActivity() {
 
     @Composable
     private fun ShieldHeader(total: Int, visibleCount: Int, refreshing: Boolean, onRefresh: () -> Unit) {
-        val gradient = Brush.verticalGradient(
-            listOf(Color(0xFF0B1F33), Color(0xFF123253), Color(0xFF0B1622))
-        )
+        val gradient = com.souvera.workspace.ui.SouveraHeaderGradient
         Column(
             Modifier
                 .fillMaxWidth()
                 .background(gradient)
+                .statusBarsPadding()
                 .padding(start = 20.dp, end = 12.dp, top = 20.dp, bottom = 16.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {

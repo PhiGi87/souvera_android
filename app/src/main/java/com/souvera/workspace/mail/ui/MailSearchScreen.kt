@@ -9,6 +9,7 @@ package com.souvera.workspace.mail.ui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
@@ -74,33 +75,46 @@ fun MailSearchScreen(viewModel: MailViewModel) {
 @Composable
 private fun SearchInputBar(query: String, onQueryChange: (String) -> Unit, onBack: () -> Unit) {
     val focusRequester = remember { FocusRequester() }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().padding(vertical = BAR_PADDING.dp)
-    ) {
-        IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-        }
-        TextField(
-            value = query,
-            onValueChange = onQueryChange,
-            placeholder = {
-                Text(
-                    stringResource(R.string.mail_search_hint),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
-            singleLine = true,
-            colors = transparentTextFieldColors(),
-            modifier = Modifier.weight(1f).focusRequester(focusRequester)
-        )
-        if (query.isNotEmpty()) {
-            IconButton(onClick = { onQueryChange("") }) {
-                Icon(Icons.Filled.Clear, contentDescription = stringResource(R.string.mail_search_clear))
+    com.souvera.workspace.ui.SouveraHeader {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(com.souvera.workspace.ui.SOUVERA_HEADER_HEIGHT.dp)
+                .padding(horizontal = BAR_PADDING.dp)
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+            }
+            TextField(
+                value = query,
+                onValueChange = onQueryChange,
+                placeholder = {
+                    Text(
+                        stringResource(R.string.mail_search_hint),
+                        color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f)
+                    )
+                },
+                singleLine = true,
+                textStyle = androidx.compose.material3.MaterialTheme.typography.bodyLarge.copy(
+                    color = androidx.compose.ui.graphics.Color.White
+                ),
+                colors = transparentTextFieldColors().copy(
+                    focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                    unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                    cursorColor = androidx.compose.ui.graphics.Color.White,
+                    focusedTextColor = androidx.compose.ui.graphics.Color.White,
+                    unfocusedTextColor = androidx.compose.ui.graphics.Color.White
+                ),
+                modifier = Modifier.weight(1f).focusRequester(focusRequester)
+            )
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(Icons.Filled.Clear, contentDescription = stringResource(R.string.mail_search_clear))
+                }
             }
         }
     }
-    HorizontalDivider()
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 }
 

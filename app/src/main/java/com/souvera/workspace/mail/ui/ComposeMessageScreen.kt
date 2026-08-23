@@ -172,7 +172,7 @@ private fun ComposeScreenContent(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ComposeTopBar(sending: Boolean, onClose: () -> Unit, onSend: () -> Unit) {
-    TopAppBar(
+    com.souvera.workspace.ui.SouveraTopBar(
         title = { Text(stringResource(R.string.mail_compose_title)) },
         navigationIcon = {
             IconButton(onClick = onClose) {
@@ -184,7 +184,7 @@ private fun ComposeTopBar(sending: Boolean, onClose: () -> Unit, onSend: () -> U
                 Icon(
                     Icons.AutoMirrored.Filled.Send,
                     contentDescription = stringResource(R.string.mail_send),
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = androidx.compose.ui.graphics.Color.White
                 )
             }
         }
