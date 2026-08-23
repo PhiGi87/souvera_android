@@ -123,19 +123,17 @@ private fun MailHomeTopArea(
     onOpenSettings: () -> Unit,
     onOpenFolders: () -> Unit
 ) {
-    com.souvera.workspace.ui.SouveraHeader {
-        Column(Modifier.fillMaxWidth()) {
-            com.souvera.workspace.ui.SouveraHomeHeaderRow(
-                onOpenDrawer = onOpenDrawer,
-                onOpenSearch = onOpenSearch,
-                onOpenSettings = onOpenSettings,
-                searchHint = stringResource(R.string.mail_search_hint)
-            )
+    com.souvera.workspace.ui.SouveraHomeHeader(
+        onOpenDrawer = onOpenDrawer,
+        onOpenSearch = onOpenSearch,
+        onOpenSettings = onOpenSettings,
+        searchHint = stringResource(R.string.mail_search_hint),
+        below = {
             if (mailbox != null) {
                 MailFolderSelector(mailbox, onOpenFolders)
             }
         }
-    }
+    )
 }
 
 @Composable

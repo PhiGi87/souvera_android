@@ -85,32 +85,29 @@ class SouveraNotesActivity : AppCompatActivity() {
         // Einheitliche Souvera-Kopfzeile (identisch zu Mail/Talk/Shield).
         findViewById<androidx.compose.ui.platform.ComposeView>(R.id.notes_header_view).setContent {
             androidx.compose.material3.MaterialTheme {
-                com.souvera.workspace.ui.SouveraHeader {
-                    Column(androidx.compose.ui.Modifier.fillMaxWidth()) {
-                        com.souvera.workspace.ui.SouveraHomeHeaderRow(
-                            onOpenDrawer = { finish() },
-                            onOpenSearch = { },
-                            onOpenSettings = {
-                                startActivity(Intent(this@SouveraNotesActivity, com.owncloud.android.ui.activity.SettingsActivity::class.java))
-                            },
-                            searchHint = getString(R.string.souvera_notes_search_hint),
-                            navigationBack = true,
-                            searchQuery = query,
-                            onSearchQueryChange = {
-                                query = it
-                                refresh()
-                            }
-                        ) {
-                            androidx.compose.material3.IconButton(onClick = { showEditor(null) }) {
-                                androidx.compose.material3.Icon(
-                                    androidx.compose.material.icons.Icons.Filled.Add,
-                                    contentDescription = getString(R.string.souvera_notes_add),
-                                    tint = androidx.compose.ui.graphics.Color.White
-                                )
-                            }
+                com.souvera.workspace.ui.SouveraHomeHeader(
+                    onOpenDrawer = { finish() },
+                    onOpenSearch = { },
+                    onOpenSettings = {
+                        startActivity(Intent(this@SouveraNotesActivity, com.owncloud.android.ui.activity.SettingsActivity::class.java))
+                    },
+                    searchHint = getString(R.string.souvera_notes_search_hint),
+                    navigationBack = true,
+                    searchQuery = query,
+                    onSearchQueryChange = {
+                        query = it
+                        refresh()
+                    },
+                    extraActions = {
+                        androidx.compose.material3.IconButton(onClick = { showEditor(null) }) {
+                            androidx.compose.material3.Icon(
+                                androidx.compose.material.icons.Icons.Filled.Add,
+                                contentDescription = getString(R.string.souvera_notes_add),
+                                tint = androidx.compose.ui.graphics.Color.White
+                            )
                         }
                     }
-                }
+                )
             }
         }
 

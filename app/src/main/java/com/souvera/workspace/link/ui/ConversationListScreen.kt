@@ -75,20 +75,19 @@ fun ConversationListScreen(viewModel: LinkViewModel, onOpenDrawer: () -> Unit, o
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = androidx.compose.ui.graphics.Color(0xFFFFFFFF),
         topBar = {
-            com.souvera.workspace.ui.SouveraHeader {
-                com.souvera.workspace.ui.SouveraHomeHeaderRow(
-                    onOpenDrawer = onOpenDrawer,
-                    onOpenSearch = { },
-                    onOpenSettings = onOpenSettings,
-                    searchHint = stringResource(R.string.link_search_conversations),
-                    searchQuery = query,
-                    onSearchQueryChange = { query = it }
-                ) {
+            com.souvera.workspace.ui.SouveraHomeHeader(
+                onOpenDrawer = onOpenDrawer,
+                onOpenSearch = { },
+                onOpenSettings = onOpenSettings,
+                searchHint = stringResource(R.string.link_search_conversations),
+                searchQuery = query,
+                onSearchQueryChange = { query = it },
+                extraActions = {
                     IconButton(onClick = { shareCallLog(context) }) {
                         Icon(Icons.Filled.Share, contentDescription = stringResource(R.string.link_share_call_log))
                     }
                 }
-            }
+            )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { newChatOpen = true }) {

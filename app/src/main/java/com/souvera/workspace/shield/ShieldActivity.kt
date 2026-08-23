@@ -173,36 +173,35 @@ class ShieldActivity : DrawerActivity() {
 
         Box(Modifier.fillMaxSize().background(Color(0xFFFFFFFF))) {
             Column(Modifier.fillMaxSize()) {
-                com.souvera.workspace.ui.SouveraHeader {
-                    Column(Modifier.fillMaxWidth()) {
-                        com.souvera.workspace.ui.SouveraHomeHeaderRow(
-                            onOpenDrawer = onOpenDrawer,
-                            onOpenSearch = { },
-                            onOpenSettings = {
-                                context.startActivity(
-                                    Intent(context, com.owncloud.android.ui.activity.SettingsActivity::class.java)
+                com.souvera.workspace.ui.SouveraHomeHeader(
+                    onOpenDrawer = onOpenDrawer,
+                    onOpenSearch = { },
+                    onOpenSettings = {
+                        context.startActivity(
+                            Intent(context, com.owncloud.android.ui.activity.SettingsActivity::class.java)
+                        )
+                    },
+                    searchHint = getString(R.string.shield_search_hint),
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = { searchQuery = it },
+                    extraActions = {
+                        if (refreshing) {
+                            CircularProgressIndicator(
+                                Modifier.size(20.dp).padding(2.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            IconButton(onClick = { refresh(true) }) {
+                                Icon(
+                                    Icons.Filled.Refresh,
+                                    contentDescription = getString(R.string.shield_refresh),
+                                    tint = Color.White
                                 )
-                            },
-                            searchHint = getString(R.string.shield_search_hint),
-                            searchQuery = searchQuery,
-                            onSearchQueryChange = { searchQuery = it }
-                        ) {
-                            if (refreshing) {
-                                CircularProgressIndicator(
-                                    Modifier.size(20.dp).padding(2.dp),
-                                    color = Color.White,
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                IconButton(onClick = { refresh(true) }) {
-                                    Icon(
-                                        Icons.Filled.Refresh,
-                                        contentDescription = getString(R.string.shield_refresh),
-                                        tint = Color.White
-                                    )
-                                }
                             }
                         }
+                    },
+                    below = {
                         Text(
                             if (visible.size != mails.size) {
                                 getString(R.string.shield_header_counts_filtered, visible.size, mails.size)
@@ -214,7 +213,7 @@ class ShieldActivity : DrawerActivity() {
                             modifier = Modifier.padding(start = 20.dp, end = 16.dp, bottom = 10.dp)
                         )
                     }
-                }
+                )
                 FilterRow(
                     recipients = recipients,
                     selected = filterRecipient,

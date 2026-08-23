@@ -8,10 +8,12 @@ package com.souvera.workspace.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -19,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
@@ -101,7 +104,9 @@ fun SouveraHomeHeaderRow(
             shape = androidx.compose.foundation.shape.CircleShape,
             color = Color.White.copy(alpha = 0.16f),
             contentColor = Color.White,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier
+                .weight(1f)
+                .height(52.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -114,30 +119,33 @@ fun SouveraHomeHeaderRow(
                     )
                 }
                 if (searchQuery != null && onSearchQueryChange != null) {
-                    androidx.compose.material3.TextField(
-                        value = searchQuery,
-                        onValueChange = onSearchQueryChange,
-                        placeholder = {
+                    // BasicTextField statt Material-TextField: identische
+                    // Optik wie der Hinweis-Text (gleiche Schrift, keine
+                    // abweichenden Standard-Paddings/Min-Höhen).
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        if (searchQuery.isEmpty()) {
                             androidx.compose.material3.Text(
                                 searchHint,
+                                style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
                                 color = Color.White.copy(alpha = 0.7f)
                             )
-                        },
-                        singleLine = true,
-                        textStyle = androidx.compose.material3.MaterialTheme.typography.bodyLarge.copy(
-                            color = Color.White
-                        ),
-                        colors = androidx.compose.material3.TextFieldDefaults.colors(
-                            focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                            unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                            focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                            cursorColor = Color.White,
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
-                        ),
-                        modifier = Modifier.weight(1f)
-                    )
+                        }
+                        androidx.compose.foundation.text.BasicTextField(
+                            value = searchQuery,
+                            onValueChange = onSearchQueryChange,
+                            singleLine = true,
+                            textStyle = androidx.compose.material3.MaterialTheme.typography.bodyLarge.copy(
+                                color = Color.White
+                            ),
+                            cursorBrush = androidx.compose.ui.graphics.SolidColor(Color.White),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                     if (searchQuery.isNotEmpty()) {
                         androidx.compose.material3.IconButton(onClick = { onSearchQueryChange("") }) {
                             androidx.compose.material3.Icon(
@@ -151,7 +159,12 @@ fun SouveraHomeHeaderRow(
                         searchHint,
                         style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
                         color = Color.White.copy(alpha = 0.85f),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Start,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                 }
                 com.souvera.workspace.status.StatusAction()
@@ -166,6 +179,40 @@ fun SouveraHomeHeaderRow(
                 }
             }
         }
+    }
+}
+
+/**
+ * DIE einheitliche Header-Vorlage für alle Top-Level-Bereiche:
+ * Verlauf + [SouveraHomeHeaderRow] + optionaler Slot unterhalb der Zeile.
+ * Jeder Bereich nutzt AUSSCHLIESSLICH diese Komponente — dadurch sind
+ * Abstände, Größen und Elemente überall identisch.
+ */
+@Composable
+fun SouveraHomeHeader(
+    onOpenDrawer: () -> Unit,
+    onOpenSearch: () -> Unit,
+    searchHint: String,
+    modifier: Modifier = Modifier,
+    onOpenSettings: (() -> Unit)? = null,
+    navigationBack: Boolean = false,
+    searchQuery: String? = null,
+    onSearchQueryChange: ((String) -> Unit)? = null,
+    extraActions: @Composable RowScope.() -> Unit = {},
+    below: @Composable ColumnScope.() -> Unit = {},
+) {
+    SouveraHeader(modifier) {
+        SouveraHomeHeaderRow(
+            onOpenDrawer = onOpenDrawer,
+            onOpenSearch = onOpenSearch,
+            searchHint = searchHint,
+            onOpenSettings = onOpenSettings,
+            navigationBack = navigationBack,
+            searchQuery = searchQuery,
+            onSearchQueryChange = onSearchQueryChange,
+            extraActions = extraActions
+        )
+        below()
     }
 }
 
