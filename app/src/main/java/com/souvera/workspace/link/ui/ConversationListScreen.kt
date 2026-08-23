@@ -73,7 +73,7 @@ fun ConversationListScreen(viewModel: LinkViewModel, onOpenDrawer: () -> Unit) {
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        containerColor = androidx.compose.ui.graphics.Color(0xFFFFFFFF),
+        containerColor = com.souvera.workspace.ui.SouveraContentBackground(),
         topBar = {
             com.souvera.workspace.ui.SouveraHomeHeader(
                 onOpenDrawer = onOpenDrawer,

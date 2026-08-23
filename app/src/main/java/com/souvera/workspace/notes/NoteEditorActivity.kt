@@ -55,7 +55,7 @@ class NoteEditorActivity : ComponentActivity() {
             SouveraNoteTheme {
                 androidx.compose.material3.Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = androidx.compose.ui.graphics.Color(0xFFFFFFFF)
+                    color = com.souvera.workspace.ui.SouveraContentBackground()
                 ) {
                 NoteEditorScreen(
                     initialTitle = initialTitle,

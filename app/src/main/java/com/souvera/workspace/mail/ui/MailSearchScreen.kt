@@ -47,6 +47,7 @@ fun MailSearchScreen(viewModel: MailViewModel) {
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        containerColor = com.souvera.workspace.ui.SouveraContentBackground(),
         topBar = { SearchInputBar(query, viewModel::setSearchQuery) { viewModel.back() } }
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {

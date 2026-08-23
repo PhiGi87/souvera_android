@@ -102,7 +102,7 @@ class MailActivity : DrawerActivity() {
             MaterialTheme(colorScheme = colorScheme) {
                 androidx.compose.material3.Surface(
                     modifier = androidx.compose.ui.Modifier.fillMaxSize(),
-                    color = androidx.compose.ui.graphics.Color(0xFFFFFFFF)
+                    color = com.souvera.workspace.ui.SouveraContentBackground()
                 ) {
                     MailRoot(
                         viewModel = viewModel,

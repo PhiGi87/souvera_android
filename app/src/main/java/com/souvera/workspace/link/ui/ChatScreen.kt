@@ -177,6 +177,7 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        containerColor = com.souvera.workspace.ui.SouveraContentBackground(),
         topBar = {
             com.souvera.workspace.ui.SouveraTopBar(
                 title = {

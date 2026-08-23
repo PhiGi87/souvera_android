@@ -220,6 +220,22 @@ fun SouveraHomeHeader(
     }
 }
 
+/**
+ * Deckende, theme-bewusste Hintergrundfarbe für Inhaltsflächen.
+ * Verhindert, dass der Fenster-Verlauf durchscheint, und folgt dabei dem
+ * Hell-/Dunkelmodus (statt hart weiß zu bleiben).
+ */
+@Composable
+fun SouveraContentBackground(): Color {
+    val bg = androidx.compose.material3.MaterialTheme.colorScheme.background
+    if (bg.alpha > 0f) return bg.copy(alpha = 1f)
+    return if (androidx.compose.foundation.isSystemInDarkTheme()) {
+        Color(0xFF101014)
+    } else {
+        Color(0xFFFFFFFF)
+    }
+}
+
 /** Standardhöhe der Header-Leiste. */
 const val SOUVERA_HEADER_HEIGHT = 64
 

@@ -171,7 +171,7 @@ class ShieldActivity : DrawerActivity() {
                 }
         }
 
-        Box(Modifier.fillMaxSize().background(Color(0xFFFFFFFF))) {
+        Box(Modifier.fillMaxSize().background(com.souvera.workspace.ui.SouveraContentBackground())) {
             Column(Modifier.fillMaxSize()) {
                 com.souvera.workspace.ui.SouveraHomeHeader(
                     onOpenDrawer = onOpenDrawer,

@@ -89,6 +89,7 @@ fun MessageDetailScreen(viewModel: MailViewModel, message: MessageEntity) {
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        containerColor = com.souvera.workspace.ui.SouveraContentBackground(),
         topBar = {
             com.souvera.workspace.ui.SouveraTopBar(
                 title = {},

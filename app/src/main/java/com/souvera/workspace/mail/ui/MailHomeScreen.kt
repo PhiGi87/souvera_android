@@ -75,6 +75,7 @@ fun MailHomeScreen(viewModel: MailViewModel, onOpenDrawer: () -> Unit) {
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        containerColor = com.souvera.workspace.ui.SouveraContentBackground(),
         topBar = {
             MailHomeTopArea(
                 mailbox = resolvedCurrent(mailboxesState, currentMailbox),

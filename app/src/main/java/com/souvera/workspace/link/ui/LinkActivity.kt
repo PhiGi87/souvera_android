@@ -73,7 +73,7 @@ class LinkActivity : DrawerActivity() {
             MaterialTheme(colorScheme = colorScheme) {
                 androidx.compose.material3.Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = androidx.compose.ui.graphics.Color(0xFFFFFFFF)
+                    color = com.souvera.workspace.ui.SouveraContentBackground()
                 ) {
                     LinkRoot(
                         viewModel = viewModel,

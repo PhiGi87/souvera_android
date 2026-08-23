@@ -94,6 +94,7 @@ fun ComposeMessageScreen(viewModel: MailViewModel, route: MailRoute.Compose) {
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        containerColor = com.souvera.workspace.ui.SouveraContentBackground(),
         topBar = {
             ComposeTopBar(
                 sending = sendState is SendState.Sending,
