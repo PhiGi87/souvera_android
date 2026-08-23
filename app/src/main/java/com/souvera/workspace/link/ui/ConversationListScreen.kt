@@ -43,6 +43,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,7 +60,7 @@ import com.souvera.workspace.link.net.LinkConversation
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ConversationListScreen(viewModel: LinkViewModel, onOpenDrawer: () -> Unit) {
+fun ConversationListScreen(viewModel: LinkViewModel, onOpenDrawer: () -> Unit, onOpenSettings: () -> Unit) {
     val state by viewModel.conversations.collectAsState()
     val context = LocalContext.current
     var query by remember { mutableStateOf("") }
@@ -71,22 +73,25 @@ fun ConversationListScreen(viewModel: LinkViewModel, onOpenDrawer: () -> Unit) {
         }
     }
 
+    val searchFocusRequester = remember { FocusRequester() }
+
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        containerColor = androidx.compose.ui.graphics.Color(0xFFFFFFFF),
         topBar = {
-            com.souvera.workspace.ui.SouveraTopBar(
-                logo = true,
-                title = { Text(stringResource(R.string.drawer_item_link)) },
-                navigationIcon = {
-                    IconButton(onClick = onOpenDrawer) { Icon(Icons.Filled.Menu, contentDescription = null) }
-                },
-                actions = {
-                    com.souvera.workspace.status.StatusAction()
+            com.souvera.workspace.ui.SouveraHeader {
+                com.souvera.workspace.ui.SouveraHomeHeaderRow(
+                    onOpenDrawer = onOpenDrawer,
+                    onOpenSearch = { runCatching { searchFocusRequester.requestFocus() } },
+                    onOpenSettings = onOpenSettings,
+                    searchHint = stringResource(R.string.link_search_conversations),
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                ) {
                     IconButton(onClick = { shareCallLog(context) }) {
                         Icon(Icons.Filled.Share, contentDescription = stringResource(R.string.link_share_call_log))
                     }
                 }
-            )
+            }
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { newChatOpen = true }) {
@@ -98,7 +103,8 @@ fun ConversationListScreen(viewModel: LinkViewModel, onOpenDrawer: () -> Unit) {
             SearchField(
                 value = query,
                 onValueChange = { query = it },
-                placeholder = stringResource(R.string.link_search_conversations)
+                placeholder = stringResource(R.string.link_search_conversations),
+                focusRequester = searchFocusRequester
             )
             ConversationContent(state, query, viewModel) { c ->
                 if (c.type == TYPE_NOTE_TO_SELF) {
@@ -158,7 +164,7 @@ private fun ConversationContent(
 }
 
 @Composable
-private fun SearchField(value: String, onValueChange: (String) -> Unit, placeholder: String) {
+private fun SearchField(value: String, onValueChange: (String) -> Unit, placeholder: String, focusRequester: FocusRequester? = null) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(SEARCH_CORNER.dp),
@@ -169,14 +175,14 @@ private fun SearchField(value: String, onValueChange: (String) -> Unit, placehol
             onValueChange = onValueChange,
             placeholder = { Text(placeholder) },
             leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            modifier = if (focusRequester != null) Modifier.fillMaxWidth().focusRequester(focusRequester) else Modifier.fillMaxWidth(),
             singleLine = true,
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent
-            ),
-            modifier = Modifier.fillMaxWidth()
+            )
         )
     }
 }

@@ -7,6 +7,8 @@
 package com.souvera.workspace.notes
 
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -51,6 +53,10 @@ class NoteEditorActivity : ComponentActivity() {
 
         setContent {
             SouveraNoteTheme {
+                androidx.compose.material3.Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = androidx.compose.ui.graphics.Color(0xFFFFFFFF)
+                ) {
                 NoteEditorScreen(
                     initialTitle = initialTitle,
                     initialMarkdown = initialBody,
@@ -58,6 +64,7 @@ class NoteEditorActivity : ComponentActivity() {
                     onClose = { finish() },
                     onSave = { title, markdown -> finishWithResult(title, markdown) }
                 )
+                }
             }
         }
     }

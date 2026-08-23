@@ -37,6 +37,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.Button
@@ -115,13 +116,13 @@ class ShieldActivity : DrawerActivity() {
         val colorScheme = viewThemeUtils.getColorScheme(this)
         findViewById<androidx.compose.ui.platform.ComposeView>(R.id.shield_compose_view).setContent {
             MaterialTheme(colorScheme = colorScheme) {
-                ShieldScreen(api)
+                ShieldScreen(api, onOpenDrawer = { openDrawer() })
             }
         }
     }
 
     @Composable
-    private fun ShieldScreen(api: ShieldApi?) {
+    private fun ShieldScreen(api: ShieldApi?, onOpenDrawer: () -> Unit) {
         val scope = rememberCoroutineScope()
         val snackbar = remember { SnackbarHostState() }
         var loading by remember { mutableStateOf(true) }
@@ -159,13 +160,14 @@ class ShieldActivity : DrawerActivity() {
             if (filterRecipient == null) mails else mails.filter { it.pmail == filterRecipient }
         }
 
-        Box(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize().background(Color(0xFFFFFFFF))) {
             Column(Modifier.fillMaxSize()) {
                 ShieldHeader(
                     total = mails.size,
                     visibleCount = visible.size,
                     refreshing = refreshing,
-                    onRefresh = { refresh(true) }
+                    onRefresh = { refresh(true) },
+                    onOpenDrawer = onOpenDrawer
                 )
                 FilterRow(
                     recipients = recipients,
@@ -264,16 +266,23 @@ class ShieldActivity : DrawerActivity() {
     }
 
     @Composable
-    private fun ShieldHeader(total: Int, visibleCount: Int, refreshing: Boolean, onRefresh: () -> Unit) {
+    private fun ShieldHeader(total: Int, visibleCount: Int, refreshing: Boolean, onRefresh: () -> Unit, onOpenDrawer: () -> Unit) {
         val gradient = com.souvera.workspace.ui.SouveraHeaderGradient
         Column(
             Modifier
                 .fillMaxWidth()
                 .background(gradient)
                 .statusBarsPadding()
-                .padding(start = 20.dp, end = 12.dp, top = 20.dp, bottom = 16.dp)
+                .padding(start = 8.dp, end = 12.dp, top = 16.dp, bottom = 12.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onOpenDrawer) {
+                    Icon(
+                        Icons.Filled.Menu,
+                        contentDescription = getString(R.string.mail_open_drawer),
+                        tint = Color.White
+                    )
+                }
                 Box(
                     Modifier
                         .size(44.dp)
@@ -305,6 +314,7 @@ class ShieldActivity : DrawerActivity() {
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
+                com.souvera.workspace.status.StatusAction()
                 if (refreshing) {
                     CircularProgressIndicator(
                         Modifier.size(22.dp).padding(4.dp),

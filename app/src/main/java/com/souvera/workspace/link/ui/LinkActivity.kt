@@ -7,6 +7,8 @@
 package com.souvera.workspace.link.ui
 
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
 import android.accounts.AccountManager
 import android.content.Intent
 import android.os.Bundle
@@ -69,7 +71,16 @@ class LinkActivity : DrawerActivity() {
         val colorScheme = viewThemeUtils.getColorScheme(this)
         findViewById<ComposeView>(R.id.link_compose_view).setContent {
             MaterialTheme(colorScheme = colorScheme) {
-                LinkRoot(viewModel = viewModel, onOpenDrawer = { openDrawer() })
+                androidx.compose.material3.Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = androidx.compose.ui.graphics.Color(0xFFFFFFFF)
+                ) {
+                    LinkRoot(
+                        viewModel = viewModel,
+                        onOpenDrawer = { openDrawer() },
+                        onOpenSettings = { startActivity(Intent(this, com.owncloud.android.ui.activity.SettingsActivity::class.java)) }
+                    )
+                }
             }
         }
     }

@@ -124,51 +124,17 @@ private fun MailHomeTopArea(
     onOpenFolders: () -> Unit
 ) {
     com.souvera.workspace.ui.SouveraHeader {
-        Column(Modifier.fillMaxWidth().padding(horizontal = SCREEN_PADDING.dp)) {
-            MailSearchBar(onOpenDrawer, onOpenSearch, onOpenSettings)
+        Column(Modifier.fillMaxWidth()) {
+            com.souvera.workspace.ui.SouveraHomeHeaderRow(
+                onOpenDrawer = onOpenDrawer,
+                onOpenSearch = onOpenSearch,
+                onOpenSettings = onOpenSettings,
+                searchHint = stringResource(R.string.mail_search_hint),
+                modifier = Modifier.padding(horizontal = SCREEN_PADDING.dp, vertical = PILL_PADDING_VERTICAL.dp)
+            )
             if (mailbox != null) {
                 MailFolderSelector(mailbox, onOpenFolders)
             }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun MailSearchBar(onOpenDrawer: () -> Unit, onOpenSearch: () -> Unit, onOpenSettings: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        com.souvera.workspace.ui.SouveraLogo(
-            Modifier.padding(start = 6.dp, end = 10.dp),
-            size = androidx.compose.ui.unit.Dp(30f)
-        )
-        Surface(
-            onClick = onOpenSearch,
-            shape = CircleShape,
-            color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.16f),
-            contentColor = androidx.compose.ui.graphics.Color.White,
-            modifier = Modifier
-                .weight(1f)
-                .padding(vertical = PILL_PADDING_VERTICAL.dp)
-        ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onOpenDrawer) {
-                Icon(Icons.Filled.Menu, contentDescription = stringResource(R.string.mail_open_drawer))
-            }
-            Text(
-                stringResource(R.string.mail_search_hint),
-                style = MaterialTheme.typography.bodyLarge,
-                color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
-                modifier = Modifier.weight(1f)
-            )
-            com.souvera.workspace.status.StatusAction()
-            IconButton(onClick = onOpenSettings) {
-                Icon(
-                    Icons.Filled.Settings,
-                    contentDescription = stringResource(R.string.mail_settings),
-                    tint = androidx.compose.ui.graphics.Color.White
-                )
-            }
-        }
         }
     }
 }

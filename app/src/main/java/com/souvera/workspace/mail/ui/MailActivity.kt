@@ -7,6 +7,7 @@
 package com.souvera.workspace.mail.ui
 
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxSize
 import android.Manifest
 import android.accounts.Account
 import android.accounts.AccountManager
@@ -99,11 +100,16 @@ class MailActivity : DrawerActivity() {
         val colorScheme = viewThemeUtils.getColorScheme(this)
         findViewById<ComposeView>(R.id.mail_compose_view).setContent {
             MaterialTheme(colorScheme = colorScheme) {
-                MailRoot(
-                    viewModel = viewModel,
-                    onOpenDrawer = { openDrawer() },
-                    onOpenSettings = { startActivity(Intent(this, SettingsActivity::class.java)) }
-                )
+                androidx.compose.material3.Surface(
+                    modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+                    color = androidx.compose.ui.graphics.Color(0xFFFFFFFF)
+                ) {
+                    MailRoot(
+                        viewModel = viewModel,
+                        onOpenDrawer = { openDrawer() },
+                        onOpenSettings = { startActivity(Intent(this, SettingsActivity::class.java)) }
+                    )
+                }
             }
         }
     }

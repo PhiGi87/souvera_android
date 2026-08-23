@@ -17,6 +17,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -64,6 +67,65 @@ fun SouveraWordmark(modifier: Modifier = Modifier, height: androidx.compose.ui.u
         contentDescription = "Souvera",
         modifier = modifier.height(height)
     )
+}
+
+/**
+ * Einheitliche Kopfzeile für die Top-Level-Bereiche (Mail, Talk):
+ * S-Icon | Menü | Such-Pille | Profil-Status | Einstellungs-Zahnrad.
+ * Wird in den Souvera-Gradient-Container ([SouveraHeader]) eingesetzt.
+ */
+@Composable
+fun SouveraHomeHeaderRow(
+    onOpenDrawer: () -> Unit,
+    onOpenSearch: () -> Unit,
+    searchHint: String,
+    modifier: Modifier = Modifier,
+    onOpenSettings: (() -> Unit)? = null,
+    extraActions: @Composable RowScope.() -> Unit = {},
+) {
+    Row(
+        modifier
+            .fillMaxWidth()
+            .height(SOUVERA_HEADER_HEIGHT.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        SouveraLogo(Modifier.padding(end = 8.dp), size = 30.dp)
+        androidx.compose.material3.Surface(
+            onClick = onOpenSearch,
+            shape = androidx.compose.foundation.shape.CircleShape,
+            color = Color.White.copy(alpha = 0.16f),
+            contentColor = Color.White,
+            modifier = Modifier.weight(1f)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 12.dp)
+            ) {
+                androidx.compose.material3.IconButton(onClick = onOpenDrawer) {
+                    androidx.compose.material3.Icon(
+                        Icons.Filled.Menu,
+                        contentDescription = null
+                    )
+                }
+                androidx.compose.material3.Text(
+                    searchHint,
+                    style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                    color = Color.White.copy(alpha = 0.85f),
+                    modifier = Modifier.weight(1f)
+                )
+                com.souvera.workspace.status.StatusAction()
+                extraActions()
+                if (onOpenSettings != null) {
+                    androidx.compose.material3.IconButton(onClick = onOpenSettings) {
+                        androidx.compose.material3.Icon(
+                            Icons.Filled.Settings,
+                            contentDescription = null
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 /** Standardhöhe der Header-Leiste. */
