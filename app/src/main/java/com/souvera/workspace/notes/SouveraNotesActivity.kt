@@ -62,6 +62,12 @@ class SouveraNotesActivity : AppCompatActivity() {
             statusBarStyle = androidx.activity.SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
             navigationBarStyle = androidx.activity.SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
         )
+        // Nahtloser Übergang: Falls ein Gerät Edge-to-Edge nicht umsetzt,
+        // färbt die Systemleiste exakt in der obersten Verlaufsfarbe —
+        // so wirkt der Verlauf immer bis hinter die Uhr durchgezogen.
+        @Suppress("DEPRECATION")
+        window.statusBarColor = 0xFF1E4666.toInt()
+
         setContentView(R.layout.activity_notes)
 
         val toolbar = findViewById<MaterialToolbar>(R.id.notes_toolbar)

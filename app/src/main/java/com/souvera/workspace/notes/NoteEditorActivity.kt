@@ -34,6 +34,12 @@ class NoteEditorActivity : ComponentActivity() {
             statusBarStyle = androidx.activity.SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
             navigationBarStyle = androidx.activity.SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
         )
+        // Nahtloser Übergang: Falls ein Gerät Edge-to-Edge nicht umsetzt,
+        // färbt die Systemleiste exakt in der obersten Verlaufsfarbe —
+        // so wirkt der Verlauf immer bis hinter die Uhr durchgezogen.
+        @Suppress("DEPRECATION")
+        window.statusBarColor = 0xFF1E4666.toInt()
+
         val initialTitle = intent.getStringExtra(EXTRA_TITLE).orEmpty()
         val initialBody = intent.getStringExtra(EXTRA_BODY).orEmpty()
         val isNew = intent.getBooleanExtra(EXTRA_IS_NEW, true)
