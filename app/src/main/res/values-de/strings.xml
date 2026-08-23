@@ -1473,4 +1473,6 @@
     <string name="mail_spam_block">Blockieren</string>
     <string name="shield_search_hint">Quarantäne durchsuchen…</string>
     <string name="souvera_notes_search_hint">Notizen durchsuchen…</string>
+    <string name="link_chat_retry">Erneut versuchen</string>
+    <string name="link_chat_empty">Keine Nachrichten</string>
 </resources>

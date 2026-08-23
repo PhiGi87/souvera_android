@@ -117,6 +117,7 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
     val baseUrl = viewModel.baseUrl
     
     val state by viewModel.messages.collectAsState()
+    val messagesRefreshing by viewModel.messagesRefreshing.collectAsState()
     val readUpTo by viewModel.readUpTo.collectAsState()
     val peerStatus by viewModel.peerStatus.collectAsState()
     val failedMessages by viewModel.failedMessages.collectAsState()
@@ -209,9 +210,47 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
             )
         }
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).background(colors.background)) {
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+            isRefreshing = messagesRefreshing,
+            onRefresh = { viewModel.reloadMessages(route.token) },
+            modifier = Modifier.fillMaxSize().padding(padding)
+        ) {
+        Column(Modifier.fillMaxSize().background(colors.background)) {
             if (hasActiveCall) {
                 IncomingCallBanner(onJoin = { callDialogOpen = true })
+            }
+            when {
+                state is LinkUiState.Loading && items.isEmpty() -> {
+                    Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        androidx.compose.material3.CircularProgressIndicator()
+                    }
+                }
+                state is LinkUiState.Error && items.isEmpty() -> {
+                    Column(
+                        Modifier.weight(1f).fillMaxWidth().padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            (state as LinkUiState.Error).message,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        androidx.compose.material3.Button(onClick = { viewModel.reloadMessages(route.token) }) {
+                            Text(stringResource(R.string.link_chat_retry))
+                        }
+                    }
+                }
+                state is LinkUiState.Success && items.isEmpty() -> {
+                    Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text(
+                            stringResource(R.string.link_chat_empty),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
             }
             LazyColumn(
                 state = listState,
@@ -278,6 +317,7 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
                     emojiOpen = false
                 }
             )
+        }
         }
     }
 

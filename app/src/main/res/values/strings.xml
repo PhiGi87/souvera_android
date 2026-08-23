@@ -1751,4 +1751,6 @@
     <string name="mail_spam_block">Block</string>
     <string name="shield_search_hint">Search quarantine…</string>
     <string name="souvera_notes_search_hint">Search notes…</string>
+    <string name="link_chat_retry">Retry</string>
+    <string name="link_chat_empty">No messages</string>
 </resources>

@@ -60,6 +60,7 @@ import com.souvera.workspace.link.net.LinkConversation
 @Composable
 fun ConversationListScreen(viewModel: LinkViewModel, onOpenDrawer: () -> Unit) {
     val state by viewModel.conversations.collectAsState()
+    val refreshing by viewModel.isRefreshing.collectAsState()
     val context = LocalContext.current
     var query by remember { mutableStateOf("") }
     var newChatOpen by remember { mutableStateOf(false) }
@@ -89,12 +90,18 @@ fun ConversationListScreen(viewModel: LinkViewModel, onOpenDrawer: () -> Unit) {
             }
         }
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            ConversationContent(state, query, viewModel) { c ->
-                if (c.type == TYPE_NOTE_TO_SELF) {
-                    openNotes(context)
-                } else {
-                    viewModel.openConversation(c.token, c.displayName)
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+            isRefreshing = refreshing,
+            onRefresh = { viewModel.loadConversations() },
+            modifier = Modifier.fillMaxSize().padding(padding)
+        ) {
+            Column(Modifier.fillMaxSize()) {
+                ConversationContent(state, query, viewModel) { c ->
+                    if (c.type == TYPE_NOTE_TO_SELF) {
+                        openNotes(context)
+                    } else {
+                        viewModel.openConversation(c.token, c.displayName)
+                    }
                 }
             }
         }

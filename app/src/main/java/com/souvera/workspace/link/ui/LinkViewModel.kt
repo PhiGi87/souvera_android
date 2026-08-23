@@ -81,6 +81,8 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+    private val _messagesRefreshing = MutableStateFlow(false)
+    val messagesRefreshing: StateFlow<Boolean> = _messagesRefreshing.asStateFlow()
 
     private val _profilePeer = MutableStateFlow<UserProfile?>(null)
     val profilePeer: StateFlow<UserProfile?> = _profilePeer.asStateFlow()
@@ -315,6 +317,38 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
             loadConversations()
             loadPeerStatus(token)
             pollNewMessages(token)
+        }
+    }
+
+    /**
+     * Lädt den Nachrichtenverlauf eines Chats neu (Pull-to-Refresh) und
+     * startet danach wieder das Polling auf neue Nachrichten.
+     */
+    fun reloadMessages(token: String) {
+        val client = api ?: return
+        pollJob?.cancel()
+        _messagesRefreshing.value = true
+        pollJob = viewModelScope.launch {
+            try {
+                val history = withContext(Dispatchers.IO) {
+                    client.getMessages(token, HISTORY_ANCHOR, future = false, timeoutSeconds = 0)
+                }
+                val ordered = history.sortedBy { it.id }
+                lastMessageId = ordered.lastOrNull()?.id ?: 0L
+                _messages.value = LinkUiState.Success(ordered)
+                preloadImagePreviews(ordered)
+                dropFailedMatchedByReferenceId(ordered)
+                loadConversations()
+                pollNewMessages(token)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if ((_messages.value as? LinkUiState.Success) == null) {
+                    _messages.value = LinkUiState.Error(e.message ?: "Error")
+                }
+            } finally {
+                _messagesRefreshing.value = false
+            }
         }
     }
 
