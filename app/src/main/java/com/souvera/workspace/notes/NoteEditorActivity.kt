@@ -29,6 +29,9 @@ class NoteEditorActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        @Suppress("DEPRECATION")
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
         val initialTitle = intent.getStringExtra(EXTRA_TITLE).orEmpty()
         val initialBody = intent.getStringExtra(EXTRA_BODY).orEmpty()
         val isNew = intent.getBooleanExtra(EXTRA_IS_NEW, true)

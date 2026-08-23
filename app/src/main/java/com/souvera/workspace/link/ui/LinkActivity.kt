@@ -29,6 +29,8 @@ class LinkActivity : DrawerActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        @Suppress("DEPRECATION")
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
         com.souvera.workspace.link.call.CallDebugLog.attach(this)
         installInsetHandling()
         setContentView(R.layout.activity_souvera_link)

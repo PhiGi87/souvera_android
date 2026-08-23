@@ -86,6 +86,8 @@ class ShieldActivity : DrawerActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        @Suppress("DEPRECATION")
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
         setContentView(R.layout.activity_souvera_shield)
         installInsetHandling()
         setupToolbarShowOnlyMenuButtonAndTitle(getString(R.string.drawer_item_shield)) { openDrawer() }

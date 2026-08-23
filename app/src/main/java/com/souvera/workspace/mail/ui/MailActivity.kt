@@ -82,7 +82,7 @@ class MailActivity : DrawerActivity() {
         consumePushExtras(intent)
 
         val colorScheme = viewThemeUtils.getColorScheme(this)
-        themeSystemBars(colorScheme.surface.toArgb())
+        themeSystemBars()
         findViewById<ComposeView>(R.id.mail_compose_view).setContent {
             MaterialTheme(colorScheme = colorScheme) {
                 MailRoot(
@@ -191,11 +191,12 @@ class MailActivity : DrawerActivity() {
             }
     }
 
-    private fun themeSystemBars(surfaceColor: Int) {
+    private fun themeSystemBars() {
+        // Transparent: der Souvera-Gradient des Headers läuft hinter der
+        // Statusleiste (Uhr/Akku) durch — weiße System-Icons passen zum
+        // dunklen oberen Bereich des Verlaufs.
         @Suppress("DEPRECATION")
-        window.statusBarColor = surfaceColor
-        val nightMode = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
-            Configuration.UI_MODE_NIGHT_YES
-        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = !nightMode
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
     }
 }

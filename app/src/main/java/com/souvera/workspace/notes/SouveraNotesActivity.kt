@@ -57,10 +57,19 @@ class SouveraNotesActivity : AppCompatActivity() {
                 saveNote(pendingNote, title, body)
             }
         }
-        window.statusBarColor = ContextCompat.getColor(this, R.color.primary)
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        @Suppress("DEPRECATION")
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
         setContentView(R.layout.activity_notes)
 
         val toolbar = findViewById<MaterialToolbar>(R.id.notes_toolbar)
+        // Verlauf hinter der Statusleiste, aber Inhalt (Titel/Pfeil) unterhalb
+        // der Systemleiste: oberes Inset als Toolbar-Padding nachziehen.
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(toolbar) { v, insets ->
+            val top = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).top
+            v.setPadding(v.paddingLeft, top, v.paddingRight, v.paddingBottom)
+            insets
+        }
         toolbar.title = getString(R.string.souvera_notes_title)
         toolbar.setNavigationOnClickListener { finish() }
         toolbar.menu.add(0, MENU_ADD, 0, R.string.souvera_notes_add).apply {
