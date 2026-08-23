@@ -47,6 +47,16 @@ class SouveraMailCredentialManager(private val context: Context) {
 
         // Frischer Mint: deckt z. B. Server-seitige Re-Provisionierungen ab,
         // nach denen das alte kombinierte Passwort nicht mehr akzeptiert wird.
+        // Zuvor den ALten Eintrag serverseitig löschen (best effort), damit
+        // wiederholte Mints keine Alt-Passwörter anhäufen.
+        val oldStalwartId = accountManager.getUserData(account, SouveraMailLoginFlow.ACCOUNT_KEY_STALWART_ID)
+        if (!oldStalwartId.isNullOrBlank()) {
+            runCatching {
+                SouveraMailLoginFlow.deleteCombinedAppPassword(
+                    dav.baseUrl, dav.username, dav.password, oldStalwartId
+                )
+            }
+        }
         val combined = SouveraMailLoginFlow.fetchCombinedAppPassword(dav.baseUrl, dav.username, dav.password)
         accountManager.setUserData(account, SouveraMailLoginFlow.ACCOUNT_KEY_MAIL_PASSWORD, combined.appPassword)
         accountManager.setUserData(account, SouveraMailLoginFlow.ACCOUNT_KEY_STALWART_ID, combined.stalwartId)
