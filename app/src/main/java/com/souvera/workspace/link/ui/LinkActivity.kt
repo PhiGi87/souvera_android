@@ -40,8 +40,8 @@ class LinkActivity : DrawerActivity() {
         window.statusBarColor = 0xFF1E4666.toInt()
 
         com.souvera.workspace.link.call.CallDebugLog.attach(this)
-        installInsetHandling()
         setContentView(R.layout.activity_souvera_link)
+        installInsetHandling()
         setupToolbarShowOnlyMenuButtonAndTitle(getString(R.string.drawer_item_link)) { openDrawer() }
         setupDrawer(R.id.nav_link)
         findViewById<View>(R.id.appbar)?.visibility = View.GONE
