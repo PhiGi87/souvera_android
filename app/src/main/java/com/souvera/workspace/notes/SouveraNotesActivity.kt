@@ -88,9 +88,6 @@ class SouveraNotesActivity : AppCompatActivity() {
                 com.souvera.workspace.ui.SouveraHomeHeader(
                     onOpenDrawer = { finish() },
                     onOpenSearch = { },
-                    onOpenSettings = {
-                        startActivity(Intent(this@SouveraNotesActivity, com.owncloud.android.ui.activity.SettingsActivity::class.java))
-                    },
                     searchHint = getString(R.string.souvera_notes_search_hint),
                     navigationBack = true,
                     searchQuery = query,

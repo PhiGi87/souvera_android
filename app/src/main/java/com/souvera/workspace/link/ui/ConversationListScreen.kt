@@ -58,7 +58,7 @@ import com.souvera.workspace.link.net.LinkConversation
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ConversationListScreen(viewModel: LinkViewModel, onOpenDrawer: () -> Unit, onOpenSettings: () -> Unit) {
+fun ConversationListScreen(viewModel: LinkViewModel, onOpenDrawer: () -> Unit) {
     val state by viewModel.conversations.collectAsState()
     val context = LocalContext.current
     var query by remember { mutableStateOf("") }
@@ -78,15 +78,9 @@ fun ConversationListScreen(viewModel: LinkViewModel, onOpenDrawer: () -> Unit, o
             com.souvera.workspace.ui.SouveraHomeHeader(
                 onOpenDrawer = onOpenDrawer,
                 onOpenSearch = { },
-                onOpenSettings = onOpenSettings,
                 searchHint = stringResource(R.string.link_search_conversations),
                 searchQuery = query,
-                onSearchQueryChange = { query = it },
-                extraActions = {
-                    IconButton(onClick = { shareCallLog(context) }) {
-                        Icon(Icons.Filled.Share, contentDescription = stringResource(R.string.link_share_call_log))
-                    }
-                }
+                onSearchQueryChange = { query = it }
             )
         },
         floatingActionButton = {

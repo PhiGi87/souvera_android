@@ -12,10 +12,10 @@ import androidx.compose.runtime.getValue
 
 /** Switches between the mail screens based on the [MailViewModel]'s current [MailRoute]. */
 @Composable
-fun MailRoot(viewModel: MailViewModel, onOpenDrawer: () -> Unit, onOpenSettings: () -> Unit) {
+fun MailRoot(viewModel: MailViewModel, onOpenDrawer: () -> Unit) {
     val route by viewModel.route.collectAsState()
     when (val current = route) {
-        is MailRoute.Home -> MailHomeScreen(viewModel, onOpenDrawer, onOpenSettings)
+        is MailRoute.Home -> MailHomeScreen(viewModel, onOpenDrawer)
         is MailRoute.Search -> MailSearchScreen(viewModel)
         is MailRoute.Detail -> MessageDetailScreen(viewModel, current.message)
         is MailRoute.Compose -> ComposeMessageScreen(viewModel, current)

@@ -12,10 +12,10 @@ import androidx.compose.runtime.getValue
 
 /** Switches between the Link conversation list and an open chat based on the current route. */
 @Composable
-fun LinkRoot(viewModel: LinkViewModel, onOpenDrawer: () -> Unit, onOpenSettings: () -> Unit) {
+fun LinkRoot(viewModel: LinkViewModel, onOpenDrawer: () -> Unit) {
     val route by viewModel.route.collectAsState()
     when (val current = route) {
-        is LinkRoute.Home -> ConversationListScreen(viewModel, onOpenDrawer, onOpenSettings)
+        is LinkRoute.Home -> ConversationListScreen(viewModel, onOpenDrawer)
         is LinkRoute.Chat -> ChatScreen(viewModel, current)
     }
 }

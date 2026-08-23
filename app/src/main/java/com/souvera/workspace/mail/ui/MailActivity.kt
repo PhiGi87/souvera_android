@@ -106,8 +106,7 @@ class MailActivity : DrawerActivity() {
                 ) {
                     MailRoot(
                         viewModel = viewModel,
-                        onOpenDrawer = { openDrawer() },
-                        onOpenSettings = { startActivity(Intent(this, SettingsActivity::class.java)) }
+                        onOpenDrawer = { openDrawer() }
                     )
                 }
             }

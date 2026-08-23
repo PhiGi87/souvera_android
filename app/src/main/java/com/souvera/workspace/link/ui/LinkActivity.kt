@@ -77,8 +77,7 @@ class LinkActivity : DrawerActivity() {
                 ) {
                     LinkRoot(
                         viewModel = viewModel,
-                        onOpenDrawer = { openDrawer() },
-                        onOpenSettings = { startActivity(Intent(this, com.owncloud.android.ui.activity.SettingsActivity::class.java)) }
+                        onOpenDrawer = { openDrawer() }
                     )
                 }
             }

@@ -176,11 +176,6 @@ class ShieldActivity : DrawerActivity() {
                 com.souvera.workspace.ui.SouveraHomeHeader(
                     onOpenDrawer = onOpenDrawer,
                     onOpenSearch = { },
-                    onOpenSettings = {
-                        context.startActivity(
-                            Intent(context, com.owncloud.android.ui.activity.SettingsActivity::class.java)
-                        )
-                    },
                     searchHint = getString(R.string.shield_search_hint),
                     searchQuery = searchQuery,
                     onSearchQueryChange = { searchQuery = it },

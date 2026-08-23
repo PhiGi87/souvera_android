@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -85,7 +84,6 @@ fun SouveraHomeHeaderRow(
     onOpenSearch: () -> Unit,
     searchHint: String,
     modifier: Modifier = Modifier,
-    onOpenSettings: (() -> Unit)? = null,
     navigationBack: Boolean = false,
     searchQuery: String? = null,
     onSearchQueryChange: ((String) -> Unit)? = null,
@@ -162,14 +160,6 @@ fun SouveraHomeHeaderRow(
                 }
                 com.souvera.workspace.status.StatusAction()
                 extraActions()
-                if (onOpenSettings != null) {
-                    androidx.compose.material3.IconButton(onClick = onOpenSettings) {
-                        androidx.compose.material3.Icon(
-                            Icons.Filled.Settings,
-                            contentDescription = null
-                        )
-                    }
-                }
             }
         }
 
@@ -212,7 +202,6 @@ fun SouveraHomeHeader(
     onOpenSearch: () -> Unit,
     searchHint: String,
     modifier: Modifier = Modifier,
-    onOpenSettings: (() -> Unit)? = null,
     navigationBack: Boolean = false,
     searchQuery: String? = null,
     onSearchQueryChange: ((String) -> Unit)? = null,
@@ -223,7 +212,6 @@ fun SouveraHomeHeader(
             onOpenDrawer = onOpenDrawer,
             onOpenSearch = onOpenSearch,
             searchHint = searchHint,
-            onOpenSettings = onOpenSettings,
             navigationBack = navigationBack,
             searchQuery = searchQuery,
             onSearchQueryChange = onSearchQueryChange,

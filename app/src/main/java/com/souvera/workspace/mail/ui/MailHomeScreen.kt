@@ -58,7 +58,7 @@ import com.souvera.workspace.mail.db.entity.MessageEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MailHomeScreen(viewModel: MailViewModel, onOpenDrawer: () -> Unit, onOpenSettings: () -> Unit) {
+fun MailHomeScreen(viewModel: MailViewModel, onOpenDrawer: () -> Unit) {
     val messagesState by viewModel.messages.collectAsState()
     val mailboxesState by viewModel.mailboxes.collectAsState()
     val currentMailbox by viewModel.currentMailbox.collectAsState()
@@ -80,7 +80,6 @@ fun MailHomeScreen(viewModel: MailViewModel, onOpenDrawer: () -> Unit, onOpenSet
                 mailbox = resolvedCurrent(mailboxesState, currentMailbox),
                 onOpenDrawer = onOpenDrawer,
                 onOpenSearch = { viewModel.navigate(MailRoute.Search) },
-                onOpenSettings = onOpenSettings,
                 onOpenFolders = { folderSheetOpen = true }
             )
         },
@@ -126,13 +125,11 @@ private fun MailHomeTopArea(
     mailbox: MailboxEntity?,
     onOpenDrawer: () -> Unit,
     onOpenSearch: () -> Unit,
-    onOpenSettings: () -> Unit,
     onOpenFolders: () -> Unit
 ) {
     com.souvera.workspace.ui.SouveraHomeHeader(
         onOpenDrawer = onOpenDrawer,
         onOpenSearch = onOpenSearch,
-        onOpenSettings = onOpenSettings,
         searchHint = stringResource(R.string.mail_search_hint)
     )
 }
