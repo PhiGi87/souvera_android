@@ -300,7 +300,18 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
      * "Spam"-Aktion: Mail in den Junk-Ordner verschieben und den Absender
      * über souvera_shield auf die PMG-Blacklist setzen.
      */
-    fun spamMessage(message: MessageEntity) {
+    /**
+     * Postfach-Identitäten (eigene + geteilte) für den Auswahl-Dialog beim
+     * Blockieren eines Absenders. Leere Liste = Shield nicht erreichbar.
+     */
+    suspend fun spamIdentities(): List<String> {
+        val current = dav ?: return emptyList()
+        return withContext(Dispatchers.IO) {
+            runCatching { com.souvera.workspace.shield.ShieldApi(current).identities() }.getOrDefault(emptyList())
+        }
+    }
+
+    fun spamMessage(message: MessageEntity, targetEmail: String?) {
         val current = dav ?: return
         if (_isDeleting.value) return
         viewModelScope.launch {
@@ -312,7 +323,9 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
                 var blocked = true
                 if (sender != null) {
                     blocked = withContext(Dispatchers.IO) {
-                        runCatching { com.souvera.workspace.shield.ShieldApi(current).blacklist(sender) }.getOrDefault(false)
+                        runCatching {
+                            com.souvera.workspace.shield.ShieldApi(current).blacklist(sender, targetEmail)
+                        }.getOrDefault(false)
                     }
                 }
                 if (moveResult is MailResult.Success) {

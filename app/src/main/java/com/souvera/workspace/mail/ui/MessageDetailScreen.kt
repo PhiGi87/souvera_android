@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,8 +49,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,6 +80,10 @@ fun MessageDetailScreen(viewModel: MailViewModel, message: MessageEntity) {
     var flagged by rememberSaveable(message.emailId) { mutableStateOf(message.isFlagged) }
     var confirmDelete by rememberSaveable(message.emailId) { mutableStateOf(false) }
     var confirmSpam by rememberSaveable(message.emailId) { mutableStateOf(false) }
+    var showSpamTargetDialog by remember { mutableStateOf(false) }
+    var spamTargets by remember { mutableStateOf<List<String>>(emptyList()) }
+    var spamTarget by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
     val starTint =
         if (flagged) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
 
@@ -158,7 +170,17 @@ fun MessageDetailScreen(viewModel: MailViewModel, message: MessageEntity) {
                 TextButton(
                     onClick = {
                         confirmSpam = false
-                        viewModel.spamMessage(message)
+                        scope.launch {
+                            val identities = viewModel.spamIdentities()
+                            if (identities.size > 1) {
+                                spamTargets = identities
+                                spamTarget = identities.firstOrNull { it.equals(message.accountName, ignoreCase = true) }
+                                    ?: identities.firstOrNull()
+                                showSpamTargetDialog = true
+                            } else {
+                                viewModel.spamMessage(message, identities.firstOrNull())
+                            }
+                        }
                     }
                 ) {
                     Text(stringResource(R.string.mail_spam), color = MaterialTheme.colorScheme.error)
@@ -166,6 +188,52 @@ fun MessageDetailScreen(viewModel: MailViewModel, message: MessageEntity) {
             },
             dismissButton = {
                 TextButton(onClick = { confirmSpam = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
+        )
+    }
+
+    if (showSpamTargetDialog) {
+        AlertDialog(
+            onDismissRequest = { showSpamTargetDialog = false },
+            title = { Text(stringResource(R.string.mail_spam_target_title)) },
+            text = {
+                Column {
+                    Text(
+                        stringResource(R.string.mail_spam_target_hint),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    spamTargets.forEach { idn ->
+                        Row(
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { spamTarget = idn }
+                                .padding(vertical = 2.dp)
+                        ) {
+                            RadioButton(
+                                selected = spamTarget == idn,
+                                onClick = { spamTarget = idn }
+                            )
+                            Text(idn, modifier = Modifier.padding(start = 8.dp))
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val target = spamTarget
+                        showSpamTargetDialog = false
+                        viewModel.spamMessage(message, target)
+                    }
+                ) {
+                    Text(stringResource(R.string.mail_spam_block), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSpamTargetDialog = false }) {
                     Text(stringResource(R.string.common_cancel))
                 }
             }

@@ -1468,4 +1468,7 @@
     <string name="mail_spam_confirm">Die Nachricht wird in den Spam-Ordner verschoben und der Absender dauerhaft blockiert.</string>
     <string name="mail_spam_done">In Spam verschoben — Absender wurde blockiert.</string>
     <string name="mail_spam_failed">Verschieben in Spam fehlgeschlagen</string>
+    <string name="mail_spam_target_title">In welchem Postfach blockieren?</string>
+    <string name="mail_spam_target_hint">Der Absender wird nur für das gewählte Postfach blockiert. Die Nachricht wird in den Spam-Ordner des aktuellen Postfachs verschoben.</string>
+    <string name="mail_spam_block">Blockieren</string>
 </resources>
