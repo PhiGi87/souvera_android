@@ -46,13 +46,23 @@ val SouveraHeaderGradient: Brush
 /** Inhaltsfarbe auf dem Header-Verlauf (Texte, Icons). */
 val SouveraOnHeader = Color.White
 
-/** Souvera-Logo (weiße Wortbild-Ikone) für Header-Flächen. */
+/** Souvera-Icon (Originalfarben, identisch mit dem App-Icon-Mark). */
 @Composable
 fun SouveraLogo(modifier: Modifier = Modifier, size: androidx.compose.ui.unit.Dp = 28.dp) {
     androidx.compose.foundation.Image(
-        painter = androidx.compose.ui.res.painterResource(com.owncloud.android.R.drawable.ic_souvera_logo),
+        painter = androidx.compose.ui.res.painterResource(com.owncloud.android.R.drawable.souvera_icon),
         contentDescription = "Souvera",
         modifier = modifier.size(size)
+    )
+}
+
+/** Souvera-Wortmarke (weiße Schrift auf dem Blauverlauf) für Header-Flächen. */
+@Composable
+fun SouveraWordmark(modifier: Modifier = Modifier, height: androidx.compose.ui.unit.Dp = 26.dp) {
+    androidx.compose.foundation.Image(
+        painter = androidx.compose.ui.res.painterResource(com.owncloud.android.R.drawable.souvera_wordmark),
+        contentDescription = "Souvera",
+        modifier = modifier.height(height)
     )
 }
 

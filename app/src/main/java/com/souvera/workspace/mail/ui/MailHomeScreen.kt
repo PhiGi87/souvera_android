@@ -137,9 +137,9 @@ private fun MailHomeTopArea(
 @Composable
 private fun MailSearchBar(onOpenDrawer: () -> Unit, onOpenSearch: () -> Unit, onOpenSettings: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        com.souvera.workspace.ui.SouveraLogo(
+        com.souvera.workspace.ui.SouveraWordmark(
             Modifier.padding(start = 4.dp, end = 10.dp),
-            size = androidx.compose.ui.unit.Dp(30f)
+            height = androidx.compose.ui.unit.Dp(26f)
         )
         Surface(
             onClick = onOpenSearch,
