@@ -296,6 +296,48 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
         _sendState.value = SendState.Idle
     }
 
+    /**
+     * "Spam"-Aktion: Mail in den Junk-Ordner verschieben und den Absender
+     * über souvera_shield auf die PMG-Blacklist setzen.
+     */
+    fun spamMessage(message: MessageEntity) {
+        val current = dav ?: return
+        if (_isDeleting.value) return
+        viewModelScope.launch {
+            _isDeleting.value = true
+            try {
+                val moveResult = messageRepository.spam(account.name, message.mailboxPath(), message.emailId, current)
+                val sender = Regex("[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+")
+                    .find(message.fromAddress)?.value
+                var blocked = true
+                if (sender != null) {
+                    blocked = withContext(Dispatchers.IO) {
+                        runCatching { com.souvera.workspace.shield.ShieldApi(current).blacklist(sender) }.getOrDefault(false)
+                    }
+                }
+                if (moveResult is MailResult.Success) {
+                    if (blocked) {
+                        Toast.makeText(
+                            getApplication<Application>(),
+                            getApplication<Application>().getString(R.string.mail_spam_done),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                    back()
+                } else {
+                    val app = getApplication<Application>()
+                    Toast.makeText(
+                        app,
+                        (moveResult as? MailResult.Failure)?.message ?: app.getString(R.string.mail_spam_failed),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            } finally {
+                _isDeleting.value = false
+            }
+        }
+    }
+
     fun selectFromIdentity(identity: String) {
         _selectedFrom.value = identity
     }

@@ -64,6 +64,10 @@ class ShieldApi(private val dav: DavAccount) {
     fun delete(id: String, email: String): Boolean =
         post("$base/api/quarantine/delete", "id" to id, "email" to email)
 
+    /** Setzt eine Absender-Adresse auf die PMG-Blacklist aller Identitäten. */
+    fun blacklist(entry: String): Boolean =
+        post("$base/api/blacklist", "entry" to entry)
+
     private fun post(url: String, vararg params: Pair<String, String>): Boolean {
         val form = FormBody.Builder()
         params.forEach { (k, v) -> form.add(k, v) }

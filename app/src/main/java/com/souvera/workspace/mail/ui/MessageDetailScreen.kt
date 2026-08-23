@@ -71,6 +71,7 @@ fun MessageDetailScreen(viewModel: MailViewModel, message: MessageEntity) {
     val isDeleting by viewModel.isDeleting.collectAsState()
     var flagged by rememberSaveable(message.emailId) { mutableStateOf(message.isFlagged) }
     var confirmDelete by rememberSaveable(message.emailId) { mutableStateOf(false) }
+    var confirmSpam by rememberSaveable(message.emailId) { mutableStateOf(false) }
     val starTint =
         if (flagged) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
 
@@ -109,6 +110,13 @@ fun MessageDetailScreen(viewModel: MailViewModel, message: MessageEntity) {
                             )
                         }
                     } else {
+                        IconButton(onClick = { confirmSpam = true }) {
+                            Icon(
+                                Icons.Filled.Warning,
+                                contentDescription = stringResource(R.string.mail_spam),
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
                         IconButton(onClick = { confirmDelete = true }) {
                             Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.mail_delete))
                         }
@@ -138,6 +146,29 @@ fun MessageDetailScreen(viewModel: MailViewModel, message: MessageEntity) {
             bodyState = bodyState,
             onOpenAttachment = { index -> viewModel.openAttachment(message, index) },
             modifier = Modifier.fillMaxSize().padding(padding)
+        )
+    }
+
+    if (confirmSpam) {
+        AlertDialog(
+            onDismissRequest = { confirmSpam = false },
+            title = { Text(stringResource(R.string.mail_spam_title)) },
+            text = { Text(stringResource(R.string.mail_spam_confirm)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmSpam = false
+                        viewModel.spamMessage(message)
+                    }
+                ) {
+                    Text(stringResource(R.string.mail_spam), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmSpam = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
         )
     }
 

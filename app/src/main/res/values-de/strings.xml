@@ -1463,4 +1463,9 @@
     <string name="link_hangup_question">Den Anruf für alle beenden oder nur selbst verlassen?</string>
     <string name="link_hangup_all">Für alle beenden</string>
     <string name="link_hangup_self">Nur mich entfernen</string>
+    <string name="mail_spam">Als Spam markieren</string>
+    <string name="mail_spam_title">Als Spam markieren?</string>
+    <string name="mail_spam_confirm">Die Nachricht wird in den Spam-Ordner verschoben und der Absender dauerhaft blockiert.</string>
+    <string name="mail_spam_done">In Spam verschoben — Absender wurde blockiert.</string>
+    <string name="mail_spam_failed">Verschieben in Spam fehlgeschlagen</string>
 </resources>

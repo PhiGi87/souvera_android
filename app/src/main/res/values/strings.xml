@@ -1741,4 +1741,9 @@
     <string name="link_hangup_question">End the call for everyone or leave yourself?</string>
     <string name="link_hangup_all">End for everyone</string>
     <string name="link_hangup_self">Leave myself</string>
+    <string name="mail_spam">Mark as spam</string>
+    <string name="mail_spam_title">Mark as spam?</string>
+    <string name="mail_spam_confirm">The message is moved to the spam folder and the sender is permanently blocked.</string>
+    <string name="mail_spam_done">Moved to spam — sender blocked.</string>
+    <string name="mail_spam_failed">Moving to spam failed</string>
 </resources>

@@ -314,6 +314,27 @@ class MessageRepository(context: Context) {
         db.messageDao().delete(mid, emailId)
     }
 
+    /** Verschiebt eine Mail in den Junk-Ordner (Spam). */
+    suspend fun spam(
+        accountName: String,
+        sourcePath: String,
+        emailId: String,
+        dav: DavAccount
+    ): MailResult<Unit> = mailCall("Move to spam failed") {
+        val client = jmapClient(dav)
+        val api = JmapApi(client)
+        val accountId = resolveAccountId(sourcePath, dav)
+        val junk = db.mailboxDao().findByKind(accountName, MailboxKind.JUNK)
+        val mid = mailboxId(accountName, sourcePath)
+        if (junk != null && junk.id != mid) {
+            val junkJmap = junk.jmapId ?: junk.path
+            api.moveEmails(accountId, listOf(emailId), junkJmap)
+            db.messageDao().delete(mid, emailId)
+        } else {
+            throw IllegalStateException("No junk mailbox available")
+        }
+    }
+
     suspend fun move(
         accountName: String,
         sourcePath: String,
