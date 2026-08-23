@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
@@ -35,14 +37,24 @@ val SouveraHeaderGradient: Brush
     @ReadOnlyComposable
     get() = Brush.verticalGradient(
         listOf(
-            Color(0xFF062A63),
-            Color(0xFF0A5CF5),
-            Color(0xFF2E7BFF),
+            Color(0xFF1E4666),
+            Color(0xFF2F5F8B),
+            Color(0xFF4D93D4),
         )
     )
 
 /** Inhaltsfarbe auf dem Header-Verlauf (Texte, Icons). */
 val SouveraOnHeader = Color.White
+
+/** Souvera-Logo (weiße Wortbild-Ikone) für Header-Flächen. */
+@Composable
+fun SouveraLogo(modifier: Modifier = Modifier, size: androidx.compose.ui.unit.Dp = 28.dp) {
+    androidx.compose.foundation.Image(
+        painter = androidx.compose.ui.res.painterResource(com.owncloud.android.R.drawable.ic_souvera_logo),
+        contentDescription = "Souvera",
+        modifier = modifier.size(size)
+    )
+}
 
 /** Standardhöhe der Header-Leiste. */
 const val SOUVERA_HEADER_HEIGHT = 64
@@ -57,6 +69,7 @@ fun SouveraTopBar(
     modifier: Modifier = Modifier,
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
+    logo: Boolean = false,
 ) {
     Box(
         modifier
@@ -72,6 +85,9 @@ fun SouveraTopBar(
         ) {
             CompositionLocalProvider(LocalContentColor provides SouveraOnHeader) {
                 navigationIcon()
+                if (logo) {
+                    SouveraLogo(Modifier.padding(start = 2.dp))
+                }
                 Box(Modifier.weight(1f)) { title() }
                 actions()
             }

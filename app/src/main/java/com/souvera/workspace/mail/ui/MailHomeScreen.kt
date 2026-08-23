@@ -136,13 +136,20 @@ private fun MailHomeTopArea(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MailSearchBar(onOpenDrawer: () -> Unit, onOpenSearch: () -> Unit, onOpenSettings: () -> Unit) {
-    Surface(
-        onClick = onOpenSearch,
-        shape = CircleShape,
-        color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.16f),
-        contentColor = androidx.compose.ui.graphics.Color.White,
-        modifier = Modifier.fillMaxWidth().padding(vertical = PILL_PADDING_VERTICAL.dp)
-    ) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        com.souvera.workspace.ui.SouveraLogo(
+            Modifier.padding(start = 4.dp, end = 10.dp),
+            size = androidx.compose.ui.unit.Dp(30f)
+        )
+        Surface(
+            onClick = onOpenSearch,
+            shape = CircleShape,
+            color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.16f),
+            contentColor = androidx.compose.ui.graphics.Color.White,
+            modifier = Modifier
+                .weight(1f)
+                .padding(vertical = PILL_PADDING_VERTICAL.dp)
+        ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onOpenDrawer) {
                 Icon(Icons.Filled.Menu, contentDescription = stringResource(R.string.mail_open_drawer))
@@ -158,9 +165,10 @@ private fun MailSearchBar(onOpenDrawer: () -> Unit, onOpenSearch: () -> Unit, on
                 Icon(
                     Icons.Filled.Settings,
                     contentDescription = stringResource(R.string.mail_settings),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = androidx.compose.ui.graphics.Color.White
                 )
             }
+        }
         }
     }
 }

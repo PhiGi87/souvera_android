@@ -9,6 +9,10 @@ package com.souvera.workspace.shield
 import android.accounts.AccountManager
 import android.os.Bundle
 import android.view.View
+import androidx.core.graphics.Insets
+import androidx.core.view.ViewCompat
+import androidx.core.view.updatePadding
+import androidx.core.view.WindowInsetsCompat
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -81,7 +85,9 @@ class ShieldActivity : DrawerActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_souvera_shield)
+        installInsetHandling()
         setupToolbarShowOnlyMenuButtonAndTitle(getString(R.string.drawer_item_shield)) { openDrawer() }
         setupDrawer(R.id.nav_shield)
         findViewById<View>(R.id.appbar)?.visibility = View.GONE
@@ -548,5 +554,20 @@ class ShieldActivity : DrawerActivity() {
     private fun extractSenderEmail(from: String): String? {
         val match = Regex("[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+").find(from) ?: return null
         return match.value
+    }
+
+    private fun installInsetHandling() {
+        val root = findViewById<View>(R.id.drawer_layout)
+        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+            val bottomInset = maxOf(
+                insets.getInsets(WindowInsetsCompat.Type.ime()).bottom,
+                insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+            )
+            view.updatePadding(bottom = bottomInset)
+            WindowInsetsCompat.Builder(insets)
+                .setInsets(WindowInsetsCompat.Type.ime(), Insets.NONE)
+                .setInsets(WindowInsetsCompat.Type.navigationBars(), Insets.NONE)
+                .build()
+        }
     }
 }

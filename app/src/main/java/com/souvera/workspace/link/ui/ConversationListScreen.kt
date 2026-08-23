@@ -75,6 +75,7 @@ fun ConversationListScreen(viewModel: LinkViewModel, onOpenDrawer: () -> Unit) {
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             com.souvera.workspace.ui.SouveraTopBar(
+                logo = true,
                 title = { Text(stringResource(R.string.drawer_item_link)) },
                 navigationIcon = {
                     IconButton(onClick = onOpenDrawer) { Icon(Icons.Filled.Menu, contentDescription = null) }
