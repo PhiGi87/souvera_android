@@ -1749,4 +1749,6 @@
     <string name="mail_spam_target_title">Block in which mailbox?</string>
     <string name="mail_spam_target_hint">The sender is only blocked for the selected mailbox. The message is moved to the spam folder of the current mailbox.</string>
     <string name="mail_spam_block">Block</string>
+    <string name="shield_search_hint">Search quarantine…</string>
+    <string name="souvera_notes_search_hint">Search notes…</string>
 </resources>

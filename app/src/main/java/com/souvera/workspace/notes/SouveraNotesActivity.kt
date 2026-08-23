@@ -12,19 +12,24 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.view.MenuItem
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.ListView
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import com.google.android.material.appbar.MaterialToolbar
 import com.owncloud.android.R
 import com.souvera.workspace.dav.DavClient
 import com.souvera.workspace.dav.SouveraSyncManager
@@ -39,6 +44,8 @@ class SouveraNotesActivity : AppCompatActivity() {
     private data class Note(val href: String, val title: String)
 
     private val notes = ArrayList<Note>()
+    private val shownNotes = ArrayList<Note>()
+    private var query = ""
     private lateinit var adapter: ArrayAdapter<String>
     private lateinit var progress: ProgressBar
     private var client: DavClient? = null
@@ -75,26 +82,36 @@ class SouveraNotesActivity : AppCompatActivity() {
 
         setContentView(R.layout.activity_notes)
 
-        val toolbar = findViewById<MaterialToolbar>(R.id.notes_toolbar)
-        // Verlauf hinter der Statusleiste, aber Inhalt (Titel/Pfeil) unterhalb
-        // der Systemleiste: oberes Inset als Toolbar-Padding nachziehen.
-        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(toolbar) { v, insets ->
-            val top = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).top
-            v.setPadding(v.paddingLeft, top, v.paddingRight, v.paddingBottom)
-            insets
-        }
-        toolbar.title = getString(R.string.souvera_notes_title)
-        toolbar.setNavigationOnClickListener { finish() }
-        toolbar.menu.add(0, MENU_ADD, 0, R.string.souvera_notes_add).apply {
-            setIcon(android.R.drawable.ic_menu_add)
-            setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-        }
-        toolbar.setOnMenuItemClickListener { item ->
-            if (item.itemId == MENU_ADD) {
-                showEditor(null)
-                true
-            } else {
-                false
+        // Einheitliche Souvera-Kopfzeile (identisch zu Mail/Talk/Shield).
+        findViewById<androidx.compose.ui.platform.ComposeView>(R.id.notes_header_view).setContent {
+            androidx.compose.material3.MaterialTheme {
+                com.souvera.workspace.ui.SouveraHeader {
+                    Column(androidx.compose.ui.Modifier.fillMaxWidth()) {
+                        com.souvera.workspace.ui.SouveraHomeHeaderRow(
+                            onOpenDrawer = { finish() },
+                            onOpenSearch = { },
+                            onOpenSettings = {
+                                startActivity(Intent(this@SouveraNotesActivity, com.owncloud.android.ui.activity.SettingsActivity::class.java))
+                            },
+                            searchHint = getString(R.string.souvera_notes_search_hint),
+                            navigationBack = true,
+                            searchQuery = query,
+                            onSearchQueryChange = {
+                                query = it
+                                refresh()
+                            },
+                            modifier = androidx.compose.ui.Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            androidx.compose.material3.IconButton(onClick = { showEditor(null) }) {
+                                androidx.compose.material3.Icon(
+                                    androidx.compose.material.icons.Icons.Filled.Add,
+                                    contentDescription = getString(R.string.souvera_notes_add),
+                                    tint = androidx.compose.ui.graphics.Color.White
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -148,7 +165,7 @@ class SouveraNotesActivity : AppCompatActivity() {
 
     private fun openNote(position: Int) {
         val dav = client ?: return
-        val note = notes[position]
+        val note = shownNotes.getOrNull(position) ?: return
         setLoading(true)
         Thread {
             val content = runCatching { dav.get(note.href) }.getOrNull()
@@ -195,7 +212,7 @@ class SouveraNotesActivity : AppCompatActivity() {
     }
 
     private fun confirmDelete(position: Int) {
-        val note = notes[position]
+        val note = shownNotes.getOrNull(position) ?: return
         AlertDialog.Builder(this)
             .setTitle(R.string.souvera_note_delete)
             .setMessage(note.title)
@@ -221,8 +238,13 @@ class SouveraNotesActivity : AppCompatActivity() {
     }
 
     private fun refresh() {
+        shownNotes.clear()
+        shownNotes.addAll(
+            if (query.isBlank()) notes
+            else notes.filter { it.title.contains(query, ignoreCase = true) }
+        )
         adapter.clear()
-        adapter.addAll(notes.map { it.title.ifBlank { getString(R.string.souvera_note_untitled) } })
+        adapter.addAll(shownNotes.map { it.title.ifBlank { getString(R.string.souvera_note_untitled) } })
         adapter.notifyDataSetChanged()
     }
 

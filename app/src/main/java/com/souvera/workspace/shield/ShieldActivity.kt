@@ -8,6 +8,7 @@ package com.souvera.workspace.shield
 
 import androidx.activity.enableEdgeToEdge
 import android.accounts.AccountManager
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import androidx.core.graphics.Insets
@@ -37,6 +38,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.ui.res.painterResource
@@ -123,6 +125,7 @@ class ShieldActivity : DrawerActivity() {
 
     @Composable
     private fun ShieldScreen(api: ShieldApi?, onOpenDrawer: () -> Unit) {
+        val context = LocalContext.current
         val scope = rememberCoroutineScope()
         val snackbar = remember { SnackbarHostState() }
         var loading by remember { mutableStateOf(true) }
@@ -132,6 +135,7 @@ class ShieldActivity : DrawerActivity() {
         var selected by remember { mutableStateOf<ShieldMail?>(null) }
         var busy by remember { mutableStateOf(false) }
         var filterRecipient by remember { mutableStateOf<String?>(null) }
+        var searchQuery by remember { mutableStateOf("") }
 
         fun refresh(silent: Boolean) {
             scope.launch {
@@ -156,19 +160,62 @@ class ShieldActivity : DrawerActivity() {
         LaunchedEffect(Unit) { refresh(false) }
 
         val recipients = remember(mails) { mails.map { it.pmail }.distinct() }
-        val visible = remember(mails, filterRecipient) {
-            if (filterRecipient == null) mails else mails.filter { it.pmail == filterRecipient }
+        val visible = remember(mails, filterRecipient, searchQuery) {
+            val q = searchQuery.trim()
+            mails
+                .filter { filterRecipient == null || it.pmail == filterRecipient }
+                .filter {
+                    q.isEmpty()
+                        || (it.from ?: "").contains(q, ignoreCase = true)
+                        || (it.subject ?: "").contains(q, ignoreCase = true)
+                }
         }
 
         Box(Modifier.fillMaxSize().background(Color(0xFFFFFFFF))) {
             Column(Modifier.fillMaxSize()) {
-                ShieldHeader(
-                    total = mails.size,
-                    visibleCount = visible.size,
-                    refreshing = refreshing,
-                    onRefresh = { refresh(true) },
-                    onOpenDrawer = onOpenDrawer
-                )
+                com.souvera.workspace.ui.SouveraHeader {
+                    Column(Modifier.fillMaxWidth()) {
+                        com.souvera.workspace.ui.SouveraHomeHeaderRow(
+                            onOpenDrawer = onOpenDrawer,
+                            onOpenSearch = { },
+                            onOpenSettings = {
+                                context.startActivity(
+                                    Intent(context, com.owncloud.android.ui.activity.SettingsActivity::class.java)
+                                )
+                            },
+                            searchHint = getString(R.string.shield_search_hint),
+                            searchQuery = searchQuery,
+                            onSearchQueryChange = { searchQuery = it },
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            if (refreshing) {
+                                CircularProgressIndicator(
+                                    Modifier.size(20.dp).padding(2.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                IconButton(onClick = { refresh(true) }) {
+                                    Icon(
+                                        Icons.Filled.Refresh,
+                                        contentDescription = getString(R.string.shield_refresh),
+                                        tint = Color.White
+                                    )
+                                }
+                            }
+                        }
+                        Text(
+                            if (visible.size != mails.size) {
+                                getString(R.string.shield_header_counts_filtered, visible.size, mails.size)
+                            } else {
+                                getString(R.string.shield_header_counts, mails.size)
+                            },
+                            color = Color(0xFFB9C8DC),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(start = 20.dp, end = 16.dp, bottom = 10.dp)
+                        )
+                    }
+                }
                 FilterRow(
                     recipients = recipients,
                     selected = filterRecipient,
@@ -265,74 +312,6 @@ class ShieldActivity : DrawerActivity() {
         }
     }
 
-    @Composable
-    private fun ShieldHeader(total: Int, visibleCount: Int, refreshing: Boolean, onRefresh: () -> Unit, onOpenDrawer: () -> Unit) {
-        val gradient = com.souvera.workspace.ui.SouveraHeaderGradient
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .background(gradient)
-                .statusBarsPadding()
-                .padding(start = 8.dp, end = 12.dp, top = 16.dp, bottom = 12.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onOpenDrawer) {
-                    Icon(
-                        Icons.Filled.Menu,
-                        contentDescription = getString(R.string.mail_open_drawer),
-                        tint = Color.White
-                    )
-                }
-                Box(
-                    Modifier
-                        .size(44.dp)
-                        .background(Color(0x33FFFFFF), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painterResource(R.drawable.ic_souvera_shield),
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(26.dp)
-                    )
-                }
-                Spacer(Modifier.width(14.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        getString(R.string.drawer_item_shield),
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        if (visibleCount != total) {
-                            getString(R.string.shield_header_counts_filtered, visibleCount, total)
-                        } else {
-                            getString(R.string.shield_header_counts, total)
-                        },
-                        color = Color(0xFFB9C8DC),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-                com.souvera.workspace.status.StatusAction()
-                if (refreshing) {
-                    CircularProgressIndicator(
-                        Modifier.size(22.dp).padding(4.dp),
-                        color = Color.White,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    IconButton(onClick = onRefresh) {
-                        Icon(
-                            Icons.Filled.Refresh,
-                            contentDescription = getString(R.string.shield_refresh),
-                            tint = Color.White
-                        )
-                    }
-                }
-            }
-        }
-    }
 
     @Composable
     private fun FilterRow(

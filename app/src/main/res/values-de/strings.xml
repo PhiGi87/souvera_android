@@ -1471,4 +1471,6 @@
     <string name="mail_spam_target_title">In welchem Postfach blockieren?</string>
     <string name="mail_spam_target_hint">Der Absender wird nur für das gewählte Postfach blockiert. Die Nachricht wird in den Spam-Ordner des aktuellen Postfachs verschoben.</string>
     <string name="mail_spam_block">Blockieren</string>
+    <string name="shield_search_hint">Quarantäne durchsuchen…</string>
+    <string name="souvera_notes_search_hint">Notizen durchsuchen…</string>
 </resources>

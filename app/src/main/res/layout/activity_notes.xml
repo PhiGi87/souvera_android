@@ -12,19 +12,16 @@
     
     android:orientation="vertical">
 
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/notes_toolbar"
+    <androidx.compose.ui.platform.ComposeView
+        android:id="@+id/notes_header_view"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@drawable/souvera_header_gradient"
-        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-        app:navigationIcon="@drawable/ic_arrow_back"
-        app:titleTextColor="@android:color/white" />
+        android:layout_height="wrap_content" />
 
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:background="@color/bg_default">
 
         <ListView
             android:id="@+id/notes_list"

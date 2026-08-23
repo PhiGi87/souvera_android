@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
@@ -81,6 +83,9 @@ fun SouveraHomeHeaderRow(
     searchHint: String,
     modifier: Modifier = Modifier,
     onOpenSettings: (() -> Unit)? = null,
+    navigationBack: Boolean = false,
+    searchQuery: String? = null,
+    onSearchQueryChange: ((String) -> Unit)? = null,
     extraActions: @Composable RowScope.() -> Unit = {},
 ) {
     Row(
@@ -91,7 +96,7 @@ fun SouveraHomeHeaderRow(
     ) {
         SouveraLogo(Modifier.padding(end = 8.dp), size = 30.dp)
         androidx.compose.material3.Surface(
-            onClick = onOpenSearch,
+            onClick = if (searchQuery != null) ({}) else onOpenSearch,
             shape = androidx.compose.foundation.shape.CircleShape,
             color = Color.White.copy(alpha = 0.16f),
             contentColor = Color.White,
@@ -99,20 +104,55 @@ fun SouveraHomeHeaderRow(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = 12.dp)
+                modifier = Modifier.padding(start = 4.dp, end = 12.dp)
             ) {
                 androidx.compose.material3.IconButton(onClick = onOpenDrawer) {
                     androidx.compose.material3.Icon(
-                        Icons.Filled.Menu,
+                        if (navigationBack) Icons.AutoMirrored.Filled.ArrowBack else Icons.Filled.Menu,
                         contentDescription = null
                     )
                 }
-                androidx.compose.material3.Text(
-                    searchHint,
-                    style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
-                    color = Color.White.copy(alpha = 0.85f),
-                    modifier = Modifier.weight(1f)
-                )
+                if (searchQuery != null && onSearchQueryChange != null) {
+                    androidx.compose.material3.TextField(
+                        value = searchQuery,
+                        onValueChange = onSearchQueryChange,
+                        placeholder = {
+                            androidx.compose.material3.Text(
+                                searchHint,
+                                color = Color.White.copy(alpha = 0.7f)
+                            )
+                        },
+                        singleLine = true,
+                        textStyle = androidx.compose.material3.MaterialTheme.typography.bodyLarge.copy(
+                            color = Color.White
+                        ),
+                        colors = androidx.compose.material3.TextFieldDefaults.colors(
+                            focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                            unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                            focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                            cursorColor = Color.White,
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (searchQuery.isNotEmpty()) {
+                        androidx.compose.material3.IconButton(onClick = { onSearchQueryChange("") }) {
+                            androidx.compose.material3.Icon(
+                                Icons.Filled.Clear,
+                                contentDescription = null
+                            )
+                        }
+                    }
+                } else {
+                    androidx.compose.material3.Text(
+                        searchHint,
+                        style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                        color = Color.White.copy(alpha = 0.85f),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
                 com.souvera.workspace.status.StatusAction()
                 extraActions()
                 if (onOpenSettings != null) {
