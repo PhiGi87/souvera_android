@@ -143,6 +143,9 @@ public class FileSyncAdapter extends AbstractOwnCloudSyncAdapter {
     /**
      * {@inheritDoc}
      */
+    /** Zählt aufeinanderfolgende fehlgeschlagene manuelle Sync-Läufe (prozessweit). */
+    private static volatile int sConsecutiveManualFailures = 0;
+
     @Override
     public synchronized void onPerformSync(Account account, Bundle extras,
             String authority, ContentProviderClient providerClient,
@@ -195,13 +198,26 @@ public class FileSyncAdapter extends AbstractOwnCloudSyncAdapter {
             // that's the reason for the finally
 
             if (mFailedResultsCounter > 0 && mIsManualSync) {
+                sConsecutiveManualFailures++;
+            } else {
+                sConsecutiveManualFailures = 0;
+            }
+
+            if (mFailedResultsCounter > 0 && mIsManualSync) {
                 /// don't let the system synchronization manager retries MANUAL synchronizations
                 //      (be careful: "MANUAL" currently includes the synchronization requested when
                 //      a new account is created and when the user changes the current account)
                 mSyncResult.tooManyRetries = true;
 
-                /// notify the user about the failure of MANUAL synchronization
-                notifyFailedSynchronization();
+                /// Erst nach wiederholten Fehlschlägen (oder sofort bei
+                /// ungültigen Anmeldedaten) melden — ein einzelner, z. B.
+                /// netzwerkbedingter Fehlschlag bleibt still und wird vom
+                /// System automatisch erneut versucht.
+                boolean unauthorized = mLastFailedResult != null
+                    && ResultCode.UNAUTHORIZED == mLastFailedResult.getCode();
+                if (unauthorized || sConsecutiveManualFailures >= 2) {
+                    notifyFailedSynchronization();
+                }
             }
             if (mConflictsFound > 0 || mFailsInFavouritesFound > 0) {
                 notifyFailsInFavourites();

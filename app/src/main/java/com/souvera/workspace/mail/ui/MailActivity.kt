@@ -199,7 +199,9 @@ class MailActivity : DrawerActivity() {
 
     private fun enableBackgroundSync(account: Account) {
         val extras = Bundle().apply {
-            putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true)
+            // Bewusst NICHT "manual": Fehlschläge lösen dann keine
+            // "Synchronisierung fehlgeschlagen"-Meldung aus, und der
+            // System-SyncManager wiederholt automatisch mit Backoff.
             putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true)
         }
         listOf(getString(R.string.authority), CalendarContract.AUTHORITY, ContactsContract.AUTHORITY)
