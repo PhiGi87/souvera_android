@@ -9,7 +9,6 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.READ_CONTACTS" />
-    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.WRITE_CONTACTS" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.WRITE_CALENDAR" /> <!-- Used for document scanning, but lib declares it as required, which it's not -->
@@ -59,7 +58,11 @@
         tools:ignore="PhotoAndVideoPolicy,SelectedPhotoAccess" /> <!-- Needed for Android 14 (API level 34) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-    <!-- Souvera Link (Nextcloud Talk) calls -->
+    <!-- Souvera Link: Eingehende Sprach-/Videoanrufe (Kernfunktion der App).
+         USE_FULL_SCREEN_INTENT wird AUSSCHLIESSLICH fuer die Vollbild-Klingelanzeige
+         eingehender Anrufe ueber dem Sperrbildschirm verwendet
+         (NotificationCompat.CallStyle.forIncomingCall + setFullScreenIntent) —
+         entspricht der Play-Richtlinien-Kategorie "receiving phone or video calls". -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
