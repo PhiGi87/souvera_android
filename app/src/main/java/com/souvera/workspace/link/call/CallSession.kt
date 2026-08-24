@@ -7,6 +7,10 @@
 package com.souvera.workspace.link.call
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.os.Handler
+import android.os.Looper
 import com.google.gson.JsonObject
 import com.souvera.workspace.dav.DavAccount
 import com.souvera.workspace.link.net.OcsApi
@@ -40,6 +44,7 @@ class CallSession(
         fun onLocalVideo(track: VideoTrack)
         fun onRemoteVideo(track: VideoTrack)
         fun onRemoteConnected()
+        fun onRecovering(recovering: Boolean)
         fun onEnded()
     }
 
@@ -54,6 +59,16 @@ class CallSession(
     private var pendingIceServers: List<PeerConnection.IceServer> = emptyList()
     private var ownSessionId: String = ""
     private var mcuActive: Boolean = false
+
+    // Netzwerk-Wechsel-Recovery: Peer-Neuaufbau wird über einen einzigen
+    // Handler serialisiert; jeder Peer darf begrenzt oft neu starten.
+    private val recoveryHandler = Handler(Looper.getMainLooper())
+    private val peerFailures = mutableMapOf<String, Int>()
+    private val recoveryRunnables = mutableMapOf<String, Runnable>()
+    @Volatile private var recovering = false
+    @Volatile private var signalingWasConnected = false
+    private var connectivityManager: ConnectivityManager? = null
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
     val eglBaseContext get() = webRtc.eglBase.eglBaseContext
 
@@ -77,15 +92,61 @@ class CallSession(
         } else {
             CallDebugLog.log(TAG, "No external signaling server; 1:1 internal signaling not implemented")
         }
+        registerNetworkMonitor()
+    }
+
+    /**
+     * Proaktive Netzwerküberwachung: Beim Wechsel des Default-Networks
+     * (WLAN <-> Mobil) wird ICE auf allen aktiven Peers sofort neu gestartet,
+     * statt auf WebSocket-/ICE-Timeouts zu warten.
+     */
+    private fun registerNetworkMonitor() {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return
+        connectivityManager = cm
+        val cb = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                // Erster Callback = aktuelle Verbindung; erst ein WECHSEL ist relevant.
+                if (!signalingWasConnected) return
+                CallDebugLog.log(TAG, "default network changed — restarting ICE on all peers")
+                recoveryHandler.post { restartAllPeers("network-change") }
+            }
+        }
+        networkCallback = cb
+        runCatching { cm.registerDefaultNetworkCallback(cb) }
+    }
+
+    private fun unregisterNetworkMonitor() {
+        runCatching { networkCallback?.let { connectivityManager?.unregisterNetworkCallback(it) } }
+        networkCallback = null
+        connectivityManager = null
     }
 
     private var publisherCreated = false
     private var hadRemote = false
 
     override fun onConnected(ownSessionId: String, mcuActive: Boolean) {
+        val wasConnected = signalingWasConnected
+        signalingWasConnected = true
         this.ownSessionId = ownSessionId
         this.mcuActive = mcuActive
-        CallDebugLog.log(TAG, "signaling connected own=$ownSessionId mcu=$mcuActive")
+        CallDebugLog.log(TAG, "signaling connected own=$ownSessionId mcu=$mcuActive reconnect=$wasConnected")
+        if (wasConnected) {
+            // Echter Reconnect: Alle Peers beruhen auf der alten Route und sind
+            // ungültig. Komplett zurücksetzen; der nächste participants/update
+            // und onSelfInCall bauen Publisher/Subscriber frisch auf.
+            recoveryHandler.post {
+                CallDebugLog.log(TAG, "signaling reconnected — resetting peer state")
+                peers.values.forEach { runCatching { it.dispose() } }
+                peers.clear()
+                requestedOffers.clear()
+                peerFailures.clear()
+                recoveryRunnables.values.forEach { recoveryHandler.removeCallbacks(it) }
+                recoveryRunnables.clear()
+                publisherCreated = false
+                hadRemote = false
+                setRecovering(false)
+            }
+        }
     }
 
     override fun onRoomJoined() {
@@ -240,11 +301,13 @@ class CallSession(
         // Notify the UI first so renderers detach and the screen closes immediately; the blocking
         // teardown (network leaveCall + native disposal) then runs on a background thread. Running
         // it inline on the UI thread froze/ANRed the app on hangup.
+        setRecovering(false)
         callbacks.onEnded()
         Thread {
             // leaveCall FIRST, while signaling is still connected, so the server marks us out of the
             // call and pushes a participants/update to the other side (ends a 1:1 for both). Only
             // then tear the local stack down.
+            unregisterNetworkMonitor()
             runCatching { api.leaveCall(token, endForAll) }
             runCatching { signaling?.close() }
             peers.values.forEach { runCatching { it.dispose() } }
@@ -278,21 +341,105 @@ class CallSession(
         mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"))
     }
 
+    /** ICE-Neustart für ALLE aktiven Peers (Netzwerk-Wechsel). */
+    private fun restartAllPeers(reason: String) {
+        if (endedOnce) return
+        CallDebugLog.log(TAG, "restartAllPeers reason=$reason")
+        peers.forEach { (session, peer) -> restartPeer(session, peer) }
+    }
+
+    /**
+     * Startet ICE für einen Peer neu. Publisher wird mit einem frischen Offer
+     * neu ausgehandelt; MCU-Subscriber bekommen ein neues Angebot über
+     * requestoffer; im P2P-Fallback bietet die Seite mit der kleineren
+     * Session-ID neu an.
+     */
+    private fun restartPeer(session: String, peer: PeerConnection) {
+        if (endedOnce) return
+        setRecovering(true)
+        CallDebugLog.log(TAG, "restartPeer session=$session")
+        runCatching { peer.restartIce() }
+        if (session == ownSessionId) {
+            peer.createOffer(
+                SimpleSdpObserver(onCreate = { sdp ->
+                    peer.setLocalDescription(SimpleSdpObserver(), sdp)
+                    signaling?.sendOffer(session, sdp.description)
+                }),
+                publisherConstraints()
+            )
+        } else if (mcuActive) {
+            requestedOffers.remove(session)
+            signaling?.sendRequestOffer(session)
+        } else if (ownSessionId > session) {
+            peer.createOffer(
+                SimpleSdpObserver(onCreate = { sdp ->
+                    peer.setLocalDescription(SimpleSdpObserver(), sdp)
+                    signaling?.sendOffer(session, sdp.description)
+                }),
+                receiveConstraints()
+            )
+        }
+    }
+
+    private fun scheduleRestart(session: String) {
+        if (endedOnce) return
+        val failures = (peerFailures[session] ?: 0) + 1
+        peerFailures[session] = failures
+        val peer = peers[session] ?: return
+        if (failures > MAX_ICE_RESTARTS) {
+            CallDebugLog.log(TAG, "peer $session failed $failures times — ending call")
+            hangup()
+            return
+        }
+        CallDebugLog.log(TAG, "peer $session restart attempt $failures")
+        restartPeer(session, peer)
+    }
+
+    private fun setRecovering(value: Boolean) {
+        if (recovering == value) return
+        recovering = value
+        CallDebugLog.log(TAG, "recovering=$value")
+        runCatching { callbacks.onRecovering(value) }
+    }
+
     private fun end() {
         callbacks.onEnded()
     }
 
     private inner class PeerObserver(private val session: String) : SimplePeerConnectionObserver() {
-        // In a 1:1 call the remote leaving/dropping tears its ICE connection down; end the call for
-        // us too so hanging up on one side reliably ends it for both, even if the server's
-        // participants/update is delayed or missed.
         override fun onIceConnectionChange(state: PeerConnection.IceConnectionState?) {
-            if (session == ownSessionId) return
-            if (state == PeerConnection.IceConnectionState.CLOSED ||
-                state == PeerConnection.IceConnectionState.FAILED
-            ) {
-                CallDebugLog.log(TAG, "remote $session ice=$state, ending call")
-                hangup()
+            CallDebugLog.log(TAG, "peer $session ice=$state")
+            when (state) {
+                PeerConnection.IceConnectionState.CONNECTED,
+                PeerConnection.IceConnectionState.COMPLETED -> {
+                    peerFailures.remove(session)
+                    recoveryRunnables.remove(session)?.let { recoveryHandler.removeCallbacks(it) }
+                    setRecovering(false)
+                }
+                PeerConnection.IceConnectionState.DISCONNECTED -> {
+                    // Kulanzfenster: Netzwerkschwankungen erst wirken lassen.
+                    if (!recoveryRunnables.containsKey(session)) {
+                        val runnable = Runnable {
+                            CallDebugLog.log(TAG, "peer $session DISCONNECTED grace expired — restarting ICE")
+                            recoveryHandler.post { scheduleRestart(session) }
+                        }
+                        recoveryRunnables[session] = runnable
+                        recoveryHandler.postDelayed(runnable, ICE_RECOVERY_GRACE_MS)
+                    }
+                }
+                PeerConnection.IceConnectionState.FAILED -> {
+                    recoveryHandler.post { scheduleRestart(session) }
+                }
+                PeerConnection.IceConnectionState.CLOSED -> {
+                    // Remote hat den Call beendet (Subscriber wurde serverseitig
+                    // abgebaut) — nur dann ist CLOSED ein echtes Call-Ende.
+                    recoveryRunnables.remove(session)?.let { recoveryHandler.removeCallbacks(it) }
+                    if (session != ownSessionId && !recovering) {
+                        CallDebugLog.log(TAG, "remote $session closed — ending call")
+                        hangup()
+                    }
+                }
+                else -> Unit
             }
         }
 
@@ -317,5 +464,7 @@ class CallSession(
         private const val TAG = "CallSession"
         private const val FLAGS_AUDIO_ONLY = 3
         private const val FLAGS_AUDIO_VIDEO = 7
+        private const val ICE_RECOVERY_GRACE_MS = 4000L
+        private const val MAX_ICE_RESTARTS = 3
     }
 }

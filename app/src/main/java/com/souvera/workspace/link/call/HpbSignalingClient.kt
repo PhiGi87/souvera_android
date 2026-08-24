@@ -41,7 +41,11 @@ class HpbSignalingClient(
     }
 
     private val gson = Gson()
-    private val http = OkHttpClient()
+    // Ping hält die Verbindung lebendig und erkennt "half-open" Sockets nach
+    // einem IP-Wechsel sofort, statt erst über TCP-Timeout.
+    private val http = OkHttpClient.Builder()
+        .pingInterval(PING_INTERVAL_SECONDS, java.util.concurrent.TimeUnit.SECONDS)
+        .build()
     private var socket: WebSocket? = null
     private var ownSessionId: String = ""
 
@@ -62,9 +66,16 @@ class HpbSignalingClient(
             return
         }
         reconnectAttempts++
-        CallDebugLog.log(TAG, "reconnecting in ${RECONNECT_DELAY_MS}ms")
+        // Exponentielles Backoff mit Jitter: realen WLAN<->Mobil-Handover
+        // (DHCP/DNS) zeitlich abfedern, ohne dass alle Clients synchron
+        // wiederverbinden. Budget ~46s statt starrer 7,5s.
+        val attempt = reconnectAttempts - 1
+        val base = RECONNECT_DELAY_MS shl minOf(attempt, 5)
+        val jitter = kotlin.random.Random.nextLong(0, 500)
+        val delay = base + jitter
+        CallDebugLog.log(TAG, "reconnecting in ${delay}ms (attempt $reconnectAttempts)")
         Thread {
-            runCatching { Thread.sleep(RECONNECT_DELAY_MS) }
+            runCatching { Thread.sleep(delay) }
             if (!closed) connect()
         }.start()
     }
@@ -282,5 +293,6 @@ class HpbSignalingClient(
         private const val NORMAL_CLOSURE = 1000
         private const val MAX_RECONNECTS = 5
         private const val RECONNECT_DELAY_MS = 1500L
+        private const val PING_INTERVAL_SECONDS = 15L
     }
 }

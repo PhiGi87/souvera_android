@@ -399,6 +399,14 @@ class CallActivity :
         findViewById<TextView>(R.id.call_status).setText(R.string.link_call_connected)
     }
 
+    override fun onRecovering(recovering: Boolean) = runOnUiThread {
+        findViewById<TextView>(R.id.call_status).setText(
+            if (recovering) R.string.link_call_reconnecting
+            else if (answered) R.string.link_call_connected
+            else R.string.link_call_connecting
+        )
+    }
+
     override fun onEnded() = runOnUiThread {
         stopRingback()
         stopService(Intent(this, CallForegroundService::class.java))
