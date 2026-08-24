@@ -45,8 +45,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -82,13 +87,23 @@ fun CalendarScreen(
     var showCalendarDialog by remember { mutableStateOf(false) }
     var showViewDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        calendars = repository.listCalendars()
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit, reloadTrigger) {
+        if (canReadCalendar(context)) {
+            calendars = runCatching { repository.listCalendars() }.getOrDefault(emptyList())
+        } else {
+            calendars = emptyList()
+        }
     }
 
     LaunchedEffect(viewMode, focusDay, visibleCalendarIds, reloadTrigger) {
+        if (!canReadCalendar(context)) {
+            events = emptyList()
+            return@LaunchedEffect
+        }
         val range = rangeFor(viewMode, focusDay)
-        val all = repository.loadDay(range.first, range.second)
+        val all = runCatching { repository.loadDay(range.first, range.second) }.getOrDefault(emptyList())
         events = visibleCalendarIds?.let { ids -> all.filter { it.calendarId in ids } } ?: all
     }
 
@@ -647,3 +662,7 @@ private fun weekdayShort(offsetMonday0: Int): String {
 
 @Composable
 private fun stringResourceCompat(id: Int): String = androidx.compose.ui.res.stringResource(id)
+
+private fun canReadCalendar(context: Context): Boolean =
+    ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) ==
+        PackageManager.PERMISSION_GRANTED
