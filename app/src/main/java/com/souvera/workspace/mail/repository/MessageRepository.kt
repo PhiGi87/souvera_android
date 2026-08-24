@@ -178,8 +178,17 @@ class MessageRepository(context: Context) {
         val plainText = textBlobId?.let {
             String(client.downloadBlob(accountId, it, "text/plain"), Charsets.UTF_8)
         }
-        val html = htmlBlobId?.let {
+        var html = htmlBlobId?.let {
             String(client.downloadBlob(accountId, it, "text/html"), Charsets.UTF_8)
+        }
+        // Plaintext-Mails mit auto-generiertem HTML (kein <br>/Block-Tag)
+        // würden als HTML die Zeilenumbrüche verlieren — dann Plaintext
+        // bevorzugen, damit die Absätze erhalten bleiben.
+        val htmlHasBreaks = html != null && Regex(
+            "(?i)<(br|p|div|li|h[1-6]|pre|blockquote|table|ul|ol|tr)[\\s>/]"
+        ).containsMatchIn(html)
+        if (html != null && !htmlHasBreaks && !plainText.isNullOrBlank()) {
+            html = null
         }
         MessageBody(plainText, html, mapped.attachments)
     }

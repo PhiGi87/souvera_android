@@ -72,7 +72,7 @@ configurations.configureEach {
 // version this fork started from - reset to 1.0.0 for the first public release.
 val versionMajor = 1
 val versionMinor = 0
-val versionPatch = 231
+val versionPatch = 232
 val versionBuild = 100 // 0-50=Alpha / 51-98=RC / 90-99=stable
 
 val ndkEnv = buildMap {
