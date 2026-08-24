@@ -13,6 +13,7 @@
 
     <org.webrtc.SurfaceViewRenderer
         android:id="@+id/call_remote"
+        android:background="@drawable/souvera_header_gradient"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
@@ -144,6 +145,16 @@
             android:contentDescription="@string/link_call_mute"
             android:scaleType="centerInside"
             android:src="@drawable/ic_mic" />
+
+        <ImageButton
+            android:id="@+id/call_chat"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_marginEnd="28dp"
+            android:background="@drawable/bg_call_control"
+            android:contentDescription="@string/link_call_chat"
+            android:scaleType="centerInside"
+            android:src="@drawable/chat_bubble" />
 
         <ImageButton
             android:id="@+id/call_hangup"

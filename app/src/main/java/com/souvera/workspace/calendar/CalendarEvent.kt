@@ -13,5 +13,14 @@ data class CalendarEvent(
     val begin: Long,
     val end: Long,
     val location: String?,
-    val allDay: Boolean
+    val allDay: Boolean,
+    val calendarId: Long = -1L
+)
+
+/** Ein sichtbarer Kalender des Android Calendar Providers. */
+data class CalendarInfo(
+    val id: Long,
+    val displayName: String,
+    val accountName: String,
+    val color: Int
 )

@@ -51,6 +51,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Face
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -199,12 +200,31 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
                 },
                 actions = {
                     IconButton(onClick = { callDialogOpen = true }) {
-                        Icon(
-                            Icons.Filled.Phone,
-                            contentDescription = stringResource(R.string.link_call),
-                            tint = if (hasActiveCall) MaterialTheme.colorScheme.primary else LocalContentColor.current,
-                            modifier = Modifier.scale(if (hasActiveCall) pulseScale else 1f)
-                        )
+                        if (hasActiveCall) {
+                            // Aktiver/klingelnder Anruf: deutlich pulsierender,
+                            // gefüllter Kreis mit weissem Hörer.
+                            Box(
+                                Modifier
+                                    .size(34.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary)
+                                    .scale(pulseScale),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Filled.Phone,
+                                    contentDescription = stringResource(R.string.link_call),
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        } else {
+                            Icon(
+                                Icons.Filled.Phone,
+                                contentDescription = stringResource(R.string.link_call),
+                                tint = LocalContentColor.current
+                            )
+                        }
                     }
                 }
             )
@@ -216,9 +236,6 @@ fun ChatScreen(viewModel: LinkViewModel, route: LinkRoute.Chat) {
             modifier = Modifier.fillMaxSize().padding(padding)
         ) {
         Column(Modifier.fillMaxSize().background(colors.background)) {
-            if (hasActiveCall) {
-                IncomingCallBanner(onJoin = { callDialogOpen = true })
-            }
             when {
                 state is LinkUiState.Loading && items.isEmpty() -> {
                     Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -475,47 +492,33 @@ private fun lastActiveLabel(peer: com.souvera.workspace.status.PeerStatus): Stri
     }
 }
 
-@Composable
-private fun IncomingCallBanner(onJoin: () -> Unit) {
-    Surface(color = MaterialTheme.colorScheme.primary) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onJoin).padding(BANNER_PAD.dp)
-        ) {
-            Icon(
-                painterResource(R.drawable.ic_phone),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimary
-            )
-            Text(
-                stringResource(R.string.link_call_ongoing),
-                color = MaterialTheme.colorScheme.onPrimary,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f).padding(start = BANNER_PAD.dp)
-            )
-            Text(
-                stringResource(R.string.link_call_join),
-                color = MaterialTheme.colorScheme.onPrimary,
-                style = MaterialTheme.typography.titleMedium
-            )
-        }
-    }
-}
 
 @Composable
 private fun CallTypeDialog(onDismiss: () -> Unit, onPick: (Boolean) -> Unit) {
-    AlertDialog(
+    com.souvera.workspace.ui.SouveraAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.link_call_start_title)) },
-        confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } },
-        text = {
-            Column {
-                CallTypeRow(R.drawable.ic_phone, stringResource(R.string.link_start_audio_call)) { onPick(false) }
-                CallTypeRow(R.drawable.ic_video_camera, stringResource(R.string.link_start_video_call)) { onPick(true) }
-            }
+        title = stringResource(R.string.link_call_start_title),
+        dismissText = stringResource(R.string.common_cancel)
+    ) {
+        Column {
+        TextButton(
+            onClick = { onDismiss(); onPick(true) },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Filled.PlayArrow, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(10.dp))
+            Text(stringResource(R.string.link_start_video_call), color = MaterialTheme.colorScheme.primary)
         }
-    )
+        TextButton(
+            onClick = { onDismiss(); onPick(false) },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Filled.Phone, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(10.dp))
+            Text(stringResource(R.string.link_start_audio_call), color = MaterialTheme.colorScheme.primary)
+        }
+        }
+    }
 }
 
 @Composable

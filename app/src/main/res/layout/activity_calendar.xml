@@ -1,94 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  ~ Souvera Workspace - Android Client
-  ~ SPDX-License-Identifier: AGPL-3.0-or-later
+  Souvera Workspace - Android Client
+
+  SPDX-FileCopyrightText: 2026 Host-On Service Provider GmbH (Souvera)
+  SPDX-License-Identifier: AGPL-3.0-or-later
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<androidx.compose.ui.platform.ComposeView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/calendar_compose_view"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:fitsSystemWindows="true"
-    android:orientation="vertical">
-
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/calendar_toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"
-        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-        app:navigationIcon="@drawable/ic_arrow_back"
-        app:titleTextColor="@android:color/white" />
-
-    <CalendarView
-        android:id="@+id/calendar_view"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-
-    <TextView
-        android:id="@+id/events_header"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="16dp"
-        android:text="@string/souvera_events_header"
-        android:textColor="?attr/colorPrimary"
-        android:textSize="16sp"
-        android:textStyle="bold" />
-
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
-
-        <ListView
-            android:id="@+id/events_list"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:divider="@color/list_divider_background"
-            android:dividerHeight="1dp"
-            android:paddingHorizontal="16dp" />
-
-        <LinearLayout
-            android:id="@+id/events_empty"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="24dp">
-
-            <ImageView
-                android:layout_width="@dimen/souvera_wordmark_width"
-                android:layout_height="wrap_content"
-                android:adjustViewBounds="true"
-                android:alpha="0.9"
-                android:contentDescription="@string/app_name"
-                android:src="@drawable/souvera_wordmark_blue" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/souvera_no_events"
-                android:textColor="@color/secondary_text_color" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/souvera_company"
-                android:textColor="@color/secondary_text_color"
-                android:textSize="11sp" />
-        </LinearLayout>
-
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/event_add"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom|end"
-            android:layout_margin="@dimen/standard_margin"
-            android:contentDescription="@string/event_new_title"
-            android:src="@drawable/ic_plus"
-            app:tint="@android:color/white" />
-    </FrameLayout>
-
-</LinearLayout>
+    android:layout_height="match_parent" />

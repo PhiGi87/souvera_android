@@ -34,7 +34,8 @@ class CalendarRepository(context: Context) {
             Instances.BEGIN,
             Instances.END,
             Instances.EVENT_LOCATION,
-            Instances.ALL_DAY
+            Instances.ALL_DAY,
+            Instances.CALENDAR_ID
         )
         val events = mutableListOf<CalendarEvent>()
         Instances.query(resolver, projection, begin, end)?.use { cursor ->
@@ -45,11 +46,40 @@ class CalendarRepository(context: Context) {
                     begin = cursor.getLong(2),
                     end = cursor.getLong(3),
                     location = cursor.getString(4),
-                    allDay = cursor.getInt(5) == 1
+                    allDay = cursor.getInt(5) == 1,
+                    calendarId = cursor.getLong(6)
                 )
             }
         }
         return events.sortedBy { it.begin }
+    }
+
+    /** Alle im Provider vorhandenen Kalender (für die Kalender-Auswahl). */
+    fun listCalendars(): List<CalendarInfo> {
+        val projection = arrayOf(
+            Calendars._ID,
+            Calendars.CALENDAR_DISPLAY_NAME,
+            Calendars.ACCOUNT_NAME,
+            Calendars.CALENDAR_COLOR
+        )
+        val result = mutableListOf<CalendarInfo>()
+        resolver.query(
+            Calendars.CONTENT_URI,
+            projection,
+            null,
+            null,
+            "${Calendars.CALENDAR_DISPLAY_NAME} ASC"
+        )?.use { cursor ->
+            while (cursor.moveToNext()) {
+                result += CalendarInfo(
+                    id = cursor.getLong(0),
+                    displayName = cursor.getString(1).orEmpty(),
+                    accountName = cursor.getString(2).orEmpty(),
+                    color = cursor.getInt(3)
+                )
+            }
+        }
+        return result
     }
 
     @Suppress("MagicNumber")

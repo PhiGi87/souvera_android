@@ -163,104 +163,71 @@ fun MessageDetailScreen(viewModel: MailViewModel, message: MessageEntity) {
     }
 
     if (confirmSpam) {
-        AlertDialog(
+        com.souvera.workspace.ui.SouveraAlertDialog(
             onDismissRequest = { confirmSpam = false },
-            title = { Text(stringResource(R.string.mail_spam_title)) },
-            text = { Text(stringResource(R.string.mail_spam_confirm)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        confirmSpam = false
-                        scope.launch {
-                            val identities = viewModel.spamIdentities()
-                            if (identities.size > 1) {
-                                spamTargets = identities
-                                spamTarget = identities.firstOrNull { it.equals(message.accountName, ignoreCase = true) }
-                                    ?: identities.firstOrNull()
-                                showSpamTargetDialog = true
-                            } else {
-                                viewModel.spamMessage(message, identities.firstOrNull())
-                            }
-                        }
+            title = stringResource(R.string.mail_spam_title),
+            text = stringResource(R.string.mail_spam_confirm),
+            confirmText = stringResource(R.string.mail_spam),
+            dismissText = stringResource(R.string.common_cancel),
+            confirmDestructive = true,
+            onConfirm = {
+                scope.launch {
+                    val identities = viewModel.spamIdentities()
+                    if (identities.size > 1) {
+                        spamTargets = identities
+                        spamTarget = identities.firstOrNull { it.equals(message.accountName, ignoreCase = true) }
+                            ?: identities.firstOrNull()
+                        showSpamTargetDialog = true
+                    } else {
+                        viewModel.spamMessage(message, identities.firstOrNull())
                     }
-                ) {
-                    Text(stringResource(R.string.mail_spam), color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmSpam = false }) {
-                    Text(stringResource(R.string.common_cancel))
                 }
             }
         )
     }
 
     if (showSpamTargetDialog) {
-        AlertDialog(
+        com.souvera.workspace.ui.SouveraAlertDialog(
             onDismissRequest = { showSpamTargetDialog = false },
-            title = { Text(stringResource(R.string.mail_spam_target_title)) },
-            text = {
-                Column {
-                    Text(
-                        stringResource(R.string.mail_spam_target_hint),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    spamTargets.forEach { idn ->
-                        Row(
-                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { spamTarget = idn }
-                                .padding(vertical = 2.dp)
-                        ) {
-                            RadioButton(
-                                selected = spamTarget == idn,
-                                onClick = { spamTarget = idn }
-                            )
-                            Text(idn, modifier = Modifier.padding(start = 8.dp))
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val target = spamTarget
-                        showSpamTargetDialog = false
-                        viewModel.spamMessage(message, target)
-                    }
+            title = stringResource(R.string.mail_spam_target_title),
+            text = stringResource(R.string.mail_spam_target_hint),
+            confirmText = stringResource(R.string.mail_spam_block),
+            dismissText = stringResource(R.string.common_cancel),
+            confirmDestructive = true,
+            onConfirm = {
+                val target = spamTarget
+                viewModel.spamMessage(message, target)
+            }
+        ) {
+            Column {
+            spamTargets.forEach { idn ->
+                Row(
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { spamTarget = idn }
+                        .padding(vertical = 4.dp)
                 ) {
-                    Text(stringResource(R.string.mail_spam_block), color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showSpamTargetDialog = false }) {
-                    Text(stringResource(R.string.common_cancel))
+                    RadioButton(
+                        selected = spamTarget == idn,
+                        onClick = { spamTarget = idn }
+                    )
+                    Text(idn, modifier = Modifier.padding(start = 8.dp))
                 }
             }
-        )
+            }
+        }
     }
 
     if (confirmDelete) {
-        AlertDialog(
+        com.souvera.workspace.ui.SouveraAlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text(stringResource(R.string.mail_delete_title)) },
-            text = { Text(stringResource(R.string.mail_delete_confirm)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        confirmDelete = false
-                        viewModel.deleteMessage(message)
-                    }
-                ) {
-                    Text(stringResource(R.string.mail_delete), color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmDelete = false }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
-            }
+            title = stringResource(R.string.mail_delete_title),
+            text = stringResource(R.string.mail_delete_confirm),
+            confirmText = stringResource(R.string.mail_delete),
+            dismissText = stringResource(R.string.common_cancel),
+            confirmDestructive = true,
+            onConfirm = { viewModel.deleteMessage(message) }
         )
     }
 }

@@ -39,7 +39,16 @@ data class LinkConversation(
         val file = params?.entrySet()?.firstOrNull {
             it.value.isJsonObject && it.value.asJsonObject.get("type")?.asString == "file"
         }?.value?.asJsonObject?.get("name")?.asString
-        return file?.let { "📎 $it" } ?: text
+        if (file != null) return "📎 $file"
+        // Systemmeldungen wie "Anruf mit {user1}, {user2}" enthalten Platzhalter:
+        // durch die Namen aus den messageParameters ersetzen.
+        if (params != null && text.contains('{')) {
+            return Regex("\\{(\\w+)\\}").replace(text) { match ->
+                val p = params.get(match.groupValues[1])?.takeIf { it.isJsonObject }?.asJsonObject
+                p?.get("name")?.asString ?: p?.get("id")?.asString ?: match.value
+            }
+        }
+        return text
     }
 }
 

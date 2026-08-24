@@ -1476,4 +1476,14 @@
     <string name="link_chat_retry">Erneut versuchen</string>
     <string name="link_chat_empty">Keine Nachrichten</string>
     <string name="link_call_reconnecting">Verbindung wird wiederhergestellt…</string>
+    <string name="link_call_chat">Chat öffnen</string>
+    <string name="souvera_calendar_pick">Kalender wählen</string>
+    <string name="souvera_calendar_view">Ansicht wählen</string>
+    <string name="souvera_calendar_day">Tagesansicht</string>
+    <string name="souvera_calendar_week">Wochenansicht</string>
+    <string name="souvera_calendar_month">Monatsansicht</string>
+    <string name="souvera_calendar_all">Alle Kalender</string>
+    <string name="souvera_calendar_add">Termin</string>
+    <string name="souvera_calendar_no_events">Keine Termine</string>
+    <string name="common_done">Fertig</string>
 </resources>

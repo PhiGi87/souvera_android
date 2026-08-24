@@ -37,6 +37,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.ui.draw.scale
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -252,6 +259,31 @@ private fun ConversationRow(conversation: LinkConversation, viewModel: LinkViewM
             }
         }
         Column(horizontalAlignment = Alignment.End) {
+            if (conversation.hasCall) {
+                val pulse = rememberInfiniteTransition(label = "callPulse")
+                val pulseScale by pulse.animateFloat(
+                    initialValue = 1f,
+                    targetValue = 1.25f,
+                    animationSpec = infiniteRepeatable(tween(550), RepeatMode.Reverse),
+                    label = "pulseScale"
+                )
+                Box(
+                    Modifier
+                        .padding(top = 2.dp)
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary)
+                        .scale(pulseScale),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Filled.Phone,
+                        contentDescription = stringResource(R.string.link_call),
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
             if (conversation.lastActivity > 0) {
                 Text(
                     formatListTime(conversation.lastActivity),

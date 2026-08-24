@@ -75,6 +75,7 @@ class CallActivity :
     ) { granted -> if (granted) enableVideoNow() }
 
     private fun enableVideoNow() {
+        findViewById<ImageButton>(R.id.call_video).alpha = 1f
         session?.enableVideo()
         videoOn = true
         localRenderer.visibility = View.VISIBLE
@@ -293,6 +294,7 @@ class CallActivity :
         }
         findViewById<ImageButton>(R.id.call_video).apply {
             visibility = View.VISIBLE
+            alpha = if (withVideo) 1f else 0.4f
             setOnClickListener {
                 if (!call.hasVideo) {
                     // Audio call → turn the camera on (request permission first if needed).
@@ -308,8 +310,19 @@ class CallActivity :
                 videoOn = !videoOn
                 call.setVideoEnabled(videoOn)
                 localRenderer.visibility = if (videoOn) View.VISIBLE else View.GONE
+                alpha = if (videoOn) 1f else 0.4f
                 if (videoOn) releaseProximityLock() else acquireProximityLock()
             }
+        }
+        findViewById<ImageButton>(R.id.call_chat).setOnClickListener {
+            // Öffnet den Chat für dieses Gespräch; der Anruf läuft im
+            // Hintergrund weiter (CallActivity bleibt im Back-Stack).
+            startActivity(
+                Intent(this, com.souvera.workspace.link.ui.LinkActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    .putExtra(com.souvera.workspace.push.MailPushNotifier.EXTRA_CHAT_TOKEN, token)
+                    .putExtra(Intent.EXTRA_TITLE, intent.getStringExtra(EXTRA_TITLE).orEmpty())
+            )
         }
         findViewById<ImageButton>(R.id.call_hangup).setOnClickListener {
             if (roomType == 1) {
