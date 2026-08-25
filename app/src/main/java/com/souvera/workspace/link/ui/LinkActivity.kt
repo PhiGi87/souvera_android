@@ -64,6 +64,20 @@ class LinkActivity : DrawerActivity() {
         viewModel.start(account)
         registerBackHandler()
         registerForChatPush()
+        com.souvera.workspace.link.call.FullScreenIntentHelper.let { helper ->
+            if (helper.shouldPrompt(this)) {
+                helper.markPrompted(this)
+                androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle(R.string.link_fsi_dialog_title)
+                    .setMessage(R.string.link_fsi_dialog_text)
+                    .setPositiveButton(R.string.link_fsi_dialog_allow) { _, _ ->
+                        helper.openSettings(this)
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            }
+        }
+        
 
         handlePushDeepLink(intent)
         consumePushExtras(intent)

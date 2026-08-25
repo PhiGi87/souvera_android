@@ -39,6 +39,15 @@ object LinkCallNotifications {
         prefs(context).edit().remove(roomKey(room)).apply()
     }
 
+    /** Merkt sich, ob die Full-Screen-Intent-Berechtigung verfügbar ist. */
+    fun storeFullScreenIntentAllowed(context: Context, allowed: Boolean) {
+        prefs(context).edit().putBoolean("fsi_allowed", allowed).apply()
+    }
+
+    /** Zuletzt festgestellter Status der Full-Screen-Intent-Berechtigung. */
+    fun fullScreenIntentAllowed(context: Context): Boolean =
+        prefs(context).getBoolean("fsi_allowed", true)
+
     private fun roomKey(room: String) = "room_$room"
 
     /** Anruf wurde als beendet markiert (fuer die Missed-Push-Dedup). */

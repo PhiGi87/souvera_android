@@ -1486,4 +1486,7 @@
     <string name="souvera_calendar_add">Termin</string>
     <string name="souvera_calendar_no_events">Keine Termine</string>
     <string name="common_done">Fertig</string>
+    <string name="link_fsi_dialog_title">Vollbild-Anrufe aktivieren</string>
+    <string name="link_fsi_dialog_text">Damit eingehende Anrufe auch bei gesperrtem Bildschirm als Vollbild-Klingelanzeige erscheinen, muss die Berechtigung „Vollbild-Benachrichtigungen" aktiviert sein. Jetzt in den Einstellungen aktivieren?</string>
+    <string name="link_fsi_dialog_allow">Aktivieren</string>
 </resources>

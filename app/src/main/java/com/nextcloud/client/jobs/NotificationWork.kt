@@ -328,13 +328,14 @@ class NotificationWork constructor(
             "LinkPush",
             "incoming call push nid=${message.nid} room=${message.id}"
         )
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            val canFullScreen = notificationManager.canUseFullScreenIntent()
-            com.souvera.workspace.link.call.CallDebugLog.log(
-                "LinkPush",
-                "fullScreenIntent available=$canFullScreen"
-            )
-        }
+        val canFullScreen = android.os.Build.VERSION.SDK_INT <
+            android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE ||
+            notificationManager.canUseFullScreenIntent()
+        com.souvera.workspace.link.call.CallDebugLog.log(
+            "LinkPush",
+            "fullScreenIntent available=$canFullScreen"
+        )
+        com.souvera.workspace.link.call.LinkCallNotifications.storeFullScreenIntentAllowed(context, canFullScreen)
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             val existingChannel = notificationManager.getNotificationChannel(LINK_CALL_CHANNEL)
             if (existingChannel != null) {
@@ -456,7 +457,7 @@ class NotificationWork constructor(
             message.id
         )
         val caller = androidx.core.app.Person.Builder().setName(message.subject).setImportant(true).build()
-        val notification = NotificationCompat.Builder(context, LINK_CALL_CHANNEL)
+        val builder = NotificationCompat.Builder(context, LINK_CALL_CHANNEL)
             .setSmallIcon(R.drawable.notification_icon)
             .setContentTitle(message.subject)
             .setCategory(NotificationCompat.CATEGORY_CALL)
@@ -467,10 +468,14 @@ class NotificationWork constructor(
             .setAutoCancel(true)
             .setTimeoutAfter(RING_TIMEOUT_MS)
             .setContentIntent(ringing)
-            .setFullScreenIntent(ringing, true)
             .setStyle(NotificationCompat.CallStyle.forIncomingCall(caller, decline, answer))
-            .build()
-        notificationManager.notify(message.nid, notification)
+        // Google-Play-Richtlinie (USE_FULL_SCREEN_INTENT): Vollbild-Intent nur
+        // setzen, wenn die Berechtigung gewährt ist — sonst als normale
+        // Heads-up-Benachrichtigung anzeigen statt unverankertem Overlay.
+        if (canFullScreen) {
+            builder.setFullScreenIntent(ringing, true)
+        }
+        notificationManager.notify(message.nid, builder.build())
         // Ueberwachung: entfernt die Klingel-Notification sofort, sobald der
         // Anrufer auflegt (statt erst nach dem 35s-Timeout).
         com.souvera.workspace.link.call.CallRingReaperWork.schedule(context, message.nid, message.id)

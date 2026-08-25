@@ -1764,4 +1764,7 @@
     <string name="souvera_calendar_add">Event</string>
     <string name="souvera_calendar_no_events">No events</string>
     <string name="common_done">Done</string>
+    <string name="link_fsi_dialog_title">Enable full-screen calls</string>
+    <string name="link_fsi_dialog_text">To show incoming calls as a full-screen ringing display even when the device is locked, the "Full-screen notifications" permission must be enabled. Open the settings now?</string>
+    <string name="link_fsi_dialog_allow">Enable</string>
 </resources>
