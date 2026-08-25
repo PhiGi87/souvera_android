@@ -1,0 +1,26 @@
+Souvera Workspace – Mail, Telefonie und Schutz in einer App
+
+Souvera Workspace bündelt die wichtigsten Kommunikations- und Sicherheitsfunktionen Ihres Souvera-Accounts:
+
+📧 MAIL
+• Alle Postfächer an einem Ort – auch geteilte Team-Postfächer
+• Push-Benachrichtigungen für neue E-Mails
+• Spam-Abwehr: Nachrichten mit einem Tipp in den Spam-Ordner verschieben und Absender dauerhaft sperren
+• Volltextsuche, Ordnerverwaltung und Termine direkt aus E-Mails
+
+📞 TELEFONIE (TALK)
+Souvera Workspace ist auch Ihre Telefon-App für den Souvera-Account: Sie empfangen und führen Sprach- und Videoanrufe mit Ihren Kontakten. Für eingehende Anrufe zeigt die App eine Vollbild-Klingelanzeige – auch wenn das Gerät gesperrt ist – damit Sie keinen Anruf verpassen. Dafür verwendet die App die Android-Berechtigung „USE_FULL_SCREEN_INTENT" ausschließlich für diese Klingelanzeige.
+• Sprach- und Videoanrufe direkt aus der App
+• Vollbild-Anrufbenachrichtigung bei eingehenden Anrufen
+• Chats mit Bildern, Dateien und Sprachnachrichten
+
+🛡️ SHIELD
+• Spam-Quarantäne einsehen und verwalten
+• Nachrichten freigeben oder Absender blockieren
+• Schutz für eigene und geteilte Postfächer
+
+📅 KALENDER & NOTIZEN
+• Kalender mit Tages-, Wochen- und Monatsansicht
+• Notizen mit Server-Synchronisation
+
+Alle Daten liegen auf Ihrem eigenen Souvera-Server (Nextcloud) in Deutschland – kein Tracking, keine Werbung.
