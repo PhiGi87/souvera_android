@@ -641,6 +641,8 @@ public abstract class DrawerActivity extends ToolbarActivity
         } else if (itemId == R.id.nav_shield) {
             resetOnlyPersonalAndOnDevice();
             startActivity(new Intent(this, com.souvera.workspace.shield.ShieldActivity.class));
+        } else if (itemId == R.id.nav_about) {
+            startActivity(new Intent(this, com.souvera.workspace.about.AboutActivity.class));
         } else if (itemId == R.id.nav_groupfolders) {
             resetOnlyPersonalAndOnDevice();
             Intent intent = new Intent(getApplicationContext(), FileDisplayActivity.class);

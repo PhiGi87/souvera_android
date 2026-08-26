@@ -124,6 +124,11 @@
             android:orderInCategory="4"
             android:title="@string/drawer_item_trashbin"/>
         <item
+            android:id="@+id/nav_about"
+            android:icon="@drawable/souvera_icon"
+            android:orderInCategory="4"
+            android:title="@string/drawer_item_about"/>
+        <item
             android:id="@+id/nav_settings"
             android:icon="@drawable/selector_settings"
             android:orderInCategory="4"

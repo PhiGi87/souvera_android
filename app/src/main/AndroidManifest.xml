@@ -493,6 +493,11 @@
 
         <!-- Souvera Workspace: local, on-device notes screen -->
         <activity
+            android:name="com.souvera.workspace.about.AboutActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ownCloud.Toolbar" />
+
+        <activity
             android:name="com.souvera.workspace.notes.SouveraNotesActivity"
             android:exported="false"
             android:label="@string/souvera_notes_title"

@@ -1489,4 +1489,16 @@
     <string name="link_fsi_dialog_title">Vollbild-Anrufe aktivieren</string>
     <string name="link_fsi_dialog_text">Damit eingehende Anrufe auch bei gesperrtem Bildschirm als Vollbild-Klingelanzeige erscheinen, muss die Berechtigung „Vollbild-Benachrichtigungen" aktiviert sein. Jetzt in den Einstellungen aktivieren?</string>
     <string name="link_fsi_dialog_allow">Aktivieren</string>
+    <string name="drawer_item_about">Über die App</string>
+    <string name="souvera_about_title">Über die App</string>
+    <string name="souvera_about_version">Version %1$s</string>
+    <string name="souvera_about_text">Souvera Workspace ist die Kommunikations- und Sicherheits-App für Ihren Souvera-Account: Mail, Telefonie, Schutz und Kalender – betrieben von der Host-On Service Provider GmbH auf Ihrer eigenen Nextcloud-Instanz in Deutschland.</string>
+    <string name="souvera_about_based_on">Basiert auf Nextcloud Android</string>
+    <string name="souvera_about_based_on_text">Souvera Workspace basiert auf der Open-Source-App „Nextcloud Android“ der Nextcloud GmbH. Souvera Workspace ist eine eigenständige App der Host-On Service Provider GmbH und ist weder Teil von Nextcloud noch wird sie von der Nextcloud GmbH entwickelt, unterstützt oder zertifiziert. „Nextcloud“ ist eine Marke der Nextcloud GmbH.</string>
+    <string name="souvera_about_license">Lizenz</string>
+    <string name="souvera_about_license_text">Souvera Workspace ist freie Software und wird unter den Bedingungen der GNU Affero General Public License (AGPL-3.0-or-later) bzw. alternativ der GNU General Public License (GPL-2.0-only) lizenziert – wie das zugrunde liegende Nextcloud-Android-Projekt.</string>
+    <string name="souvera_about_open_website">souvera.eu</string>
+    <string name="souvera_about_open_source">Quellcode ansehen</string>
+    <string name="souvera_about_source_url">https://github.com/nextcloud/android</string>
+    <string name="souvera_website_url">https://souvera.eu</string>
 </resources>
