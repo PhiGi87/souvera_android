@@ -1779,4 +1779,14 @@
     <string name="souvera_about_open_source">View source code</string>
     <string name="souvera_about_source_url">https://github.com/nextcloud/android</string>
     <string name="souvera_website_url">https://souvera.eu</string>
+    <string name="mail_invite_title">Calendar invitation</string>
+    <string name="mail_invite_loading">Reading invitation…</string>
+    <string name="mail_invite_parse_failed">Could not read the calendar invitation.</string>
+    <string name="mail_invite_accept">Accept</string>
+    <string name="mail_invite_tentative">Maybe</string>
+    <string name="mail_invite_decline">Decline</string>
+    <string name="mail_invite_accepted">Accepted — added to your calendar.</string>
+    <string name="mail_invite_tentative_done">Marked as maybe.</string>
+    <string name="mail_invite_declined">Declined.</string>
+    <string name="mail_invite_failed">Could not send the response.</string>
 </resources>

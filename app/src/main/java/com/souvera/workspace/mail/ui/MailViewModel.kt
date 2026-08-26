@@ -351,6 +351,10 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** Baut den Client für Termineinladungen (nur wenn Dav-Account vorhanden). */
+    fun calendarInviteApi(): com.souvera.workspace.mail.CalendarInviteApi? =
+        dav?.let { com.souvera.workspace.mail.CalendarInviteApi(it) }
+
     fun selectFromIdentity(identity: String) {
         _selectedFrom.value = identity
     }

@@ -41,10 +41,20 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -64,6 +74,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.owncloud.android.R
@@ -158,7 +169,8 @@ fun MessageDetailScreen(viewModel: MailViewModel, message: MessageEntity) {
             message = message,
             bodyState = bodyState,
             onOpenAttachment = { index -> viewModel.openAttachment(message, index) },
-            modifier = Modifier.fillMaxSize().padding(padding)
+            modifier = Modifier.fillMaxSize().padding(padding),
+            viewModel = viewModel
         )
     }
 
@@ -237,7 +249,8 @@ private fun DetailContent(
     message: MessageEntity,
     bodyState: MailUiState<MessageBody>,
     onOpenAttachment: (Int) -> Unit,
-    modifier: Modifier
+    modifier: Modifier,
+    viewModel: MailViewModel
 ) {
     Column(modifier) {
         Text(
@@ -246,11 +259,144 @@ private fun DetailContent(
             modifier = Modifier.padding(horizontal = CONTENT_PADDING.dp)
         )
         MessageHeader(message)
+        if (bodyState is MailUiState.Success &&
+            bodyState.data.attachments.any { it.mimeType.startsWith("text/calendar") }
+        ) {
+            InviteBanner(message, viewModel)
+        }
         HorizontalDivider()
         if (bodyState is MailUiState.Success && bodyState.data.attachments.isNotEmpty()) {
             AttachmentChips(bodyState.data.attachments, onOpenAttachment)
         }
         Box(Modifier.weight(1f)) { MessageBodyView(bodyState) }
+    }
+}
+
+/** Termineinladungs-Banner: Annehmen / Vielleicht / Ablehnen über die Server-API. */
+@Composable
+private fun InviteBanner(message: MessageEntity, viewModel: MailViewModel) {
+    val api = remember { viewModel.calendarInviteApi() }
+    var invite by remember { mutableStateOf<com.souvera.workspace.mail.CalendarInvite?>(null) }
+    var loading by remember { mutableStateOf(true) }
+    var busy by remember { mutableStateOf(false) }
+    var status by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    fun respond(response: String) {
+        scope.launch {
+            busy = true
+            val ok = withContext(Dispatchers.IO) { api?.respond(message.emailId, "", response) == true }
+            busy = false
+            status = if (ok) {
+                when (response) {
+                    "accepted" -> context.getString(R.string.mail_invite_accepted)
+                    "tentative" -> context.getString(R.string.mail_invite_tentative_done)
+                    else -> context.getString(R.string.mail_invite_declined)
+                }
+            } else {
+                context.getString(R.string.mail_invite_failed)
+            }
+        }
+    }
+
+    LaunchedEffect(message.emailId) {
+        loading = true
+        invite = withContext(Dispatchers.IO) { api?.parse(message.emailId, "") }
+        loading = false
+    }
+
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = CONTENT_PADDING.dp, vertical = 8.dp)
+    ) {
+        Column(Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.DateRange, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    stringResource(R.string.mail_invite_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            when {
+                loading -> {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        stringResource(R.string.mail_invite_loading),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                invite != null -> {
+                    val inv = invite!!
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        inv.summary.ifBlank { stringResource(R.string.mail_invite_title) },
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    val meta = listOfNotNull(
+                        inv.dtstart?.let { formatInviteDate(it, inv.dtend) },
+                        inv.location.takeIf { l -> l.isNotBlank() },
+                        inv.organizer.takeIf { o -> o.isNotBlank() },
+                    ).joinToString(" · ")
+                    if (meta.isNotBlank()) {
+                        Text(
+                            meta,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    if (status != null) {
+                        Text(
+                            status!!,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
+                    } else {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            androidx.compose.material3.Button(onClick = { respond("accepted") }, enabled = !busy) {
+                                Text(stringResource(R.string.mail_invite_accept))
+                            }
+                            androidx.compose.material3.OutlinedButton(onClick = { respond("tentative") }, enabled = !busy) {
+                                Text(stringResource(R.string.mail_invite_tentative))
+                            }
+                            androidx.compose.material3.TextButton(onClick = { respond("declined") }, enabled = !busy) {
+                                Text(
+                                    stringResource(R.string.mail_invite_decline),
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
+                }
+                else -> {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        stringResource(R.string.mail_invite_parse_failed),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun formatInviteDate(startIso: String, endIso: String?): String {
+    val fmt = java.text.SimpleDateFormat("EE, dd.MM.yyyy HH:mm", java.util.Locale.getDefault())
+    val start = runCatching { fmt.format(java.util.Date(java.time.Instant.parse(startIso).toEpochMilli())) }.getOrNull()
+    val end = endIso?.let { runCatching { fmt.format(java.util.Date(java.time.Instant.parse(it).toEpochMilli())) }.getOrNull() }
+    return when {
+        start != null && end != null && start != end -> "$start – $end"
+        start != null -> start
+        else -> ""
     }
 }
 
