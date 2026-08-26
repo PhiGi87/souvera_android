@@ -19,8 +19,8 @@ import com.souvera.workspace.mail.db.entity.MessageEntity
 /**
  * Own, dedicated database for the mail cache - deliberately not [com.nextcloud.client.database.
  * NextcloudDatabase], to keep mail schema changes isolated from the legacy files/sync engine's
- * migration chain (see plans/cheeky-splashing-lampson.md Phase 3). Purely a cache of
- * server-authoritative IMAP data, safe to wipe/recreate.
+ * migration chain. Purely a cache of server-authoritative IMAP data,
+ * safe to wipe/recreate.
  */
 @Database(entities = [MailboxEntity::class, MessageEntity::class], version = 4, exportSchema = false)
 @TypeConverters(MailTypeConverters::class)

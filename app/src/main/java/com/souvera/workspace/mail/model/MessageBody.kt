@@ -7,7 +7,8 @@
 package com.souvera.workspace.mail.model
 
 /**
- * On-demand fetched body of one message. Not cached in Room (see plans/cheeky-splashing-lampson.md
- * Phase 3). [html] is preferred for display; [plainText] is the fallback.
+ * On-demand fetched body of one message. Deliberately not cached in Room —
+ * bodies are fetched on demand from the server. [html] is preferred for
+ * display; [plainText] is the fallback.
  */
 data class MessageBody(val plainText: String?, val html: String?, val attachments: List<AttachmentMeta> = emptyList())

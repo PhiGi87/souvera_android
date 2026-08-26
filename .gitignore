@@ -102,3 +102,13 @@ credentials.json
 .credentials
 play-service-account.json
 .play-venv/
+
+# Local agent tooling — never part of the public repository
+.plans/
+plans/
+memory/
+.claude/
+.emergent/
+AGENTS.md
+CLAUDE.md
+.gitconfig
