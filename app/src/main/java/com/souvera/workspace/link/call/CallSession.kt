@@ -467,10 +467,10 @@ class CallSession(
         }
 
         override fun onTrack(transceiver: RtpTransceiver) {
-            val track = transceiver.receiver.track()
+            val track = transceiver.receiver?.track()
             CallDebugLog.log(
                 TAG,
-                "onTrack from=$session mid=${transceiver.mid} direction=${transceiver.direction} kind=${track.kind()}"
+                "onTrack from=$session mid=${transceiver.mid} direction=${transceiver.direction} kind=${track?.kind()}"
             )
             handleRemoteTrack(track, "onTrack")
         }

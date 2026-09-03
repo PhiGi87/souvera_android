@@ -130,6 +130,19 @@ class OcsApi(private val dav: DavAccount) {
         }
     }
 
+    /** Creates a public room named [roomName] (Talk API v4, JSON body) and returns its token. */
+    fun createPublicRoom(roomName: String): String? {
+        val body = gson.toJson(mapOf("roomType" to ROOM_TYPE_PUBLIC, "roomName" to roomName))
+        val request = signed(Request.Builder().url("$base/api/v4/room"))
+            .post(body.toRequestBody(JSON))
+            .build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) return null
+            val type = object : TypeToken<OcsEnvelope<LinkConversation>>() {}.type
+            return gson.fromJson<OcsEnvelope<LinkConversation>>(response.body.string(), type).ocs.data?.token
+        }
+    }
+
     /** Uploads [bytes] to the user's Talk/ folder over WebDAV and shares it into the conversation. */
     fun shareFile(token: String, fileName: String, mimeType: String, bytes: ByteArray) {
         val root = dav.baseUrl.trimEnd('/')
@@ -283,6 +296,7 @@ class OcsApi(private val dav: DavAccount) {
         private const val SEARCH_LIMIT = 20
         private const val SHARE_TYPE_ROOM = 10
         private const val ROOM_TYPE_GROUP = 2
+        private const val ROOM_TYPE_PUBLIC = 3
         private const val JOIN_LOG_LIMIT = 300
     }
 }

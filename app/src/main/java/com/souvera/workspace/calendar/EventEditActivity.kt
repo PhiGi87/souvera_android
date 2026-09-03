@@ -224,7 +224,7 @@ class EventEditActivity : AppCompatActivity() {
             }
             // OcsApi ist blockierendes HTTP — niemals auf dem Main-Thread.
             Thread {
-                val token = runCatching { OcsApi(dav).createConversation(title, LINK_CHANNEL_ROOM_TYPE) }.getOrNull()
+                val token = runCatching { OcsApi(dav).createPublicRoom(title) }.getOrNull()
                 val linkDraft = token?.let { draft.copy(description = "${dav.baseUrl.trimEnd('/')}/call/$it") } ?: draft
                 runOnUiThread {
                     saveDraft(currentAccount, linkDraft)
@@ -288,6 +288,5 @@ class EventEditActivity : AppCompatActivity() {
         private const val DEFAULT_HOUR = 9
         private const val DAY_MILLIS = 24 * 60 * 60 * 1000L
         private const val DEFAULT_DURATION_MILLIS = 60 * 60 * 1000L
-        private const val LINK_CHANNEL_ROOM_TYPE = 2
     }
 }
