@@ -70,27 +70,34 @@ class MessageRepository(context: Context) {
         val client = jmapClient(dav)
         val api = JmapApi(client)
         val session = client.refreshSession()
+        val mid = mailboxId(accountName, mailboxPath)
 
-        // Shared mailbox: resolve the JMAP account ID from the session.
+        // Shared mailbox: resolve the JMAP account ID. Persisted value from
+        // mailbox sync wins; session name-matching is only a fallback.
         val (jmapAccountId, lookupPath) = if (mailboxPath.contains('/')) {
             val owner = mailboxPath.substringBefore('/')
             val subPath = mailboxPath.substringAfter('/')
-            val sessionJson = client.getSessionJson()
-            val accounts = sessionJson?.optJSONObject("accounts")
-            var sharedAccId: String? = null
-            accounts?.keys()?.forEach { key ->
-                val acc = accounts.optJSONObject(key) ?: return@forEach
-                if (acc.optString("name") == owner && !acc.optBoolean("isPersonal", true)) {
-                    sharedAccId = key
+            val persisted = db.mailboxDao().findById(mid)?.jmapAccountId
+            val sharedAccId = persisted?.takeIf { it.isNotBlank() } ?: run {
+                val sessionJson = client.getSessionJson()
+                val accounts = sessionJson?.optJSONObject("accounts")
+                var found: String? = null
+                accounts?.keys()?.forEach { key ->
+                    val acc = accounts.optJSONObject(key) ?: return@forEach
+                    if (acc.optString("name") == owner && !acc.optBoolean("isPersonal", true)) {
+                        found = key
+                    }
                 }
+                found
             }
-            Pair(sharedAccId ?: session.primaryAccountId, subPath)
+            if (sharedAccId.isNullOrBlank()) {
+                throw IllegalStateException("No JMAP account resolved for shared mailbox \"$mailboxPath\"")
+            }
+            Pair(sharedAccId, subPath)
         } else {
             // Persoenliches Postfach: Session-ID verwenden.
             Pair(session.primaryAccountId, mailboxPath)
         }
-
-        val mid = mailboxId(accountName, mailboxPath)
 
         // Find the JMAP-id of this mailbox.
         val jmapMailboxId = db.mailboxDao().findById(mid)?.jmapId
@@ -152,14 +159,21 @@ class MessageRepository(context: Context) {
         return client.refreshSession().primaryAccountId
     }
 
+    /** Resolves the JMAP accountId for a mailbox, preferring the value persisted during mailbox sync. */
+    private suspend fun resolveAccountIdFor(accountName: String, mailboxPath: String, dav: DavAccount): String {
+        val persisted = db.mailboxDao().findById(mailboxId(accountName, mailboxPath))?.jmapAccountId
+        return persisted?.takeIf { it.isNotBlank() } ?: resolveAccountId(mailboxPath, dav)
+    }
+
     suspend fun fetchMessageBody(
+        accountName: String,
         mailboxPath: String,
         emailId: String,
         dav: DavAccount
     ): MailResult<MessageBody> = mailCall("Body fetch failed") {
         val client = jmapClient(dav)
         val api = JmapApi(client)
-        val accountId = resolveAccountId(mailboxPath, dav)
+        val accountId = resolveAccountIdFor(accountName, mailboxPath, dav)
 
         val bodyProps = JSONArray(listOf(
             "partId", "blobId", "size", "type", "name"
@@ -252,6 +266,7 @@ class MessageRepository(context: Context) {
     }
 
     suspend fun fetchAttachment(
+        accountName: String,
         mailboxPath: String,
         emailId: String,
         index: Int,
@@ -259,7 +274,7 @@ class MessageRepository(context: Context) {
     ): MailResult<AttachmentDownload> = mailCall("Attachment fetch failed") {
         val client = jmapClient(dav)
         val api = JmapApi(client)
-        val accountId = resolveAccountId(mailboxPath, dav)
+        val accountId = resolveAccountIdFor(accountName, mailboxPath, dav)
 
         val bodyProps = JSONArray(listOf("partId", "blobId", "size", "type", "name"))
         val list = api.getEmails(accountId, listOf(emailId), bodyProps)
@@ -287,7 +302,7 @@ class MessageRepository(context: Context) {
         emailId: String,
         isRead: Boolean,
         dav: DavAccount
-    ): MailResult<Unit> = setKeyword(mailboxPath, emailId, mailboxId(accountName, mailboxPath), dav,
+    ): MailResult<Unit> = setKeyword(accountName, mailboxPath, emailId, mailboxId(accountName, mailboxPath), dav,
         if (isRead) mapOf("\$seen" to true) else mapOf(),
         if (isRead) emptyList() else listOf("\$seen")
     )
@@ -298,7 +313,7 @@ class MessageRepository(context: Context) {
         emailId: String,
         isFlagged: Boolean,
         dav: DavAccount
-    ): MailResult<Unit> = setKeyword(mailboxPath, emailId, mailboxId(accountName, mailboxPath), dav,
+    ): MailResult<Unit> = setKeyword(accountName, mailboxPath, emailId, mailboxId(accountName, mailboxPath), dav,
         if (isFlagged) mapOf("\$flagged" to true) else mapOf(),
         if (isFlagged) emptyList() else listOf("\$flagged")
     )
@@ -311,7 +326,7 @@ class MessageRepository(context: Context) {
     ): MailResult<Unit> = mailCall("Delete failed") {
         val client = jmapClient(dav)
         val api = JmapApi(client)
-        val accountId = resolveAccountId(mailboxPath, dav)
+        val accountId = resolveAccountIdFor(accountName, mailboxPath, dav)
         val trash = db.mailboxDao().findByKind(accountName, MailboxKind.TRASH)
         val mid = mailboxId(accountName, mailboxPath)
         if (trash != null && trash.id != mid) {
@@ -332,7 +347,7 @@ class MessageRepository(context: Context) {
     ): MailResult<Unit> = mailCall("Move to spam failed") {
         val client = jmapClient(dav)
         val api = JmapApi(client)
-        val accountId = resolveAccountId(sourcePath, dav)
+        val accountId = resolveAccountIdFor(accountName, sourcePath, dav)
         val junk = db.mailboxDao().findByKind(accountName, MailboxKind.JUNK)
         val mid = mailboxId(accountName, sourcePath)
         if (junk != null && junk.id != mid) {
@@ -353,7 +368,7 @@ class MessageRepository(context: Context) {
     ): MailResult<Unit> = mailCall("Move failed") {
         val client = jmapClient(dav)
         val api = JmapApi(client)
-        val accountId = resolveAccountId(sourcePath, dav)
+        val accountId = resolveAccountIdFor(accountName, sourcePath, dav)
         val targetMailbox = db.mailboxDao().findById(mailboxId(accountName, targetPath))
         val targetJmap = targetMailbox?.jmapId ?: targetPath
         api.moveEmails(accountId, listOf(emailId), targetJmap)
@@ -363,6 +378,7 @@ class MessageRepository(context: Context) {
     /* ---------- helpers ----------------------------------------------- */
 
     private suspend fun setKeyword(
+        accountName: String,
         mailboxPath: String,
         emailId: String,
         mailboxId: String,
@@ -372,7 +388,7 @@ class MessageRepository(context: Context) {
     ): MailResult<Unit> = mailCall("Flag change failed") {
         val client = jmapClient(dav)
         val api = JmapApi(client)
-        val accountId = resolveAccountId(mailboxPath, dav)
+        val accountId = resolveAccountIdFor(accountName, mailboxPath, dav)
         api.setEmailFlags(accountId, listOf(emailId), add, remove)
         // Local update AFTER server confirmation — no window for parallel sync to revert.
         if (add.containsKey("\$seen") || remove.contains("\$seen")) {

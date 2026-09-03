@@ -22,7 +22,7 @@ import com.souvera.workspace.mail.db.entity.MessageEntity
  * migration chain. Purely a cache of server-authoritative IMAP data,
  * safe to wipe/recreate.
  */
-@Database(entities = [MailboxEntity::class, MessageEntity::class], version = 4, exportSchema = false)
+@Database(entities = [MailboxEntity::class, MessageEntity::class], version = 5, exportSchema = false)
 @TypeConverters(MailTypeConverters::class)
 abstract class SouveraMailDatabase : RoomDatabase() {
 

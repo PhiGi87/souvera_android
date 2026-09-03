@@ -22,6 +22,8 @@ data class MailboxEntity(
     val unreadCount: Int,
     val messageCount: Int,
     val jmapId: String? = null,
+    /** JMAP accountId of the session account this mailbox belongs to (null for personal mailboxes). */
+    val jmapAccountId: String? = null,
     val role: String? = null,
     val state: String? = null
 )
