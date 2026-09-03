@@ -18,6 +18,7 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
@@ -25,6 +26,9 @@ import com.google.android.material.textfield.TextInputEditText
 import com.owncloud.android.R
 import com.souvera.workspace.dav.SouveraSyncManager
 import com.souvera.workspace.link.net.OcsApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -209,30 +213,29 @@ class EventEditActivity : AppCompatActivity() {
         val createLink = eventId == null && linkChannelSwitch.isChecked
         val draft = if (allDaySwitch.isChecked) {
             val dayStart = utcMidnight(begin)
-            EventDraft(eventId, title, location, dayStart, dayStart + DAY_MILLIS, allDay = true, createLinkChannel = createLink)
+            EventDraft(eventId, title, location, dayStart, dayStart + DAY_MILLIS, allDay = true)
         } else {
-            EventDraft(eventId, title, location, begin.timeInMillis, end.timeInMillis, allDay = false, createLinkChannel = createLink)
+            EventDraft(eventId, title, location, begin.timeInMillis, end.timeInMillis, allDay = false)
         }
         saving = true
         if (createLink) {
-            val dav = SouveraSyncManager(this).resolve(currentAccount)
-            if (dav == null) {
-                // Ohne auflösbare Anmeldedaten den Termin ohne Link speichern.
-                saveDraft(currentAccount, draft)
-                Toast.makeText(this, R.string.event_link_channel_failed, Toast.LENGTH_SHORT).show()
-                return
-            }
-            // OcsApi ist blockierendes HTTP — niemals auf dem Main-Thread.
-            Thread {
-                val token = runCatching { OcsApi(dav).createPublicRoom(title) }.getOrNull()
-                val linkDraft = token?.let { draft.copy(description = "${dav.baseUrl.trimEnd('/')}/call/$it") } ?: draft
-                runOnUiThread {
-                    saveDraft(currentAccount, linkDraft)
-                    if (token == null) {
-                        Toast.makeText(this, R.string.event_link_channel_failed, Toast.LENGTH_SHORT).show()
-                    }
+            // Blockierende Arbeit (AccountManager-IPC + OCS-HTTP) laeuft im IO-
+            // Scope; lifecycleScope bricht bei Rotation ab, damit nie ein
+            // Duplikat-Termin oder zweiter Raum entsteht.
+            lifecycleScope.launch {
+                val roomLink = withContext(Dispatchers.IO) {
+                    val dav = runCatching { SouveraSyncManager(this@EventEditActivity).resolve(currentAccount) }.getOrNull()
+                        ?: return@withContext null
+                    val token = runCatching { OcsApi(dav).createPublicRoom(title) }.getOrNull()
+                        ?: return@withContext null
+                    "${dav.baseUrl.trimEnd('/')}/call/$token"
                 }
-            }.start()
+                if (isFinishing || isDestroyed) return@launch
+                saveDraft(currentAccount, roomLink?.let { draft.copy(description = it) } ?: draft)
+                if (roomLink == null) {
+                    Toast.makeText(this, R.string.event_link_channel_failed, Toast.LENGTH_SHORT).show()
+                }
+            }
         } else {
             saveDraft(currentAccount, draft)
         }

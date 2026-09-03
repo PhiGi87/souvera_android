@@ -141,13 +141,18 @@ class MessageRepository(context: Context) {
         entities
     }
 
-    /** Resolves the JMAP accountId for a mailbox path (personal or shared). */
+    /**
+     * Resolves the JMAP accountId for a mailbox path (personal or shared). Shared paths resolve
+     * STRICTLY: if no session account matches, an error is thrown instead of silently falling back
+     * to the personal account — that silent fallback was what fetched the wrong mail's body.
+     */
     private suspend fun resolveAccountId(mailboxPath: String, dav: DavAccount): String {
         if (!mailboxPath.contains('/')) {
             return jmapClient(dav).refreshSession().primaryAccountId
         }
         val owner = mailboxPath.substringBefore('/')
         val client = jmapClient(dav)
+        if (client.getSessionJson() == null) client.refreshSession()
         val sessionJson = client.getSessionJson()
         val accounts = sessionJson?.optJSONObject("accounts")
         accounts?.keys()?.forEach { key ->
@@ -156,7 +161,7 @@ class MessageRepository(context: Context) {
                 return key
             }
         }
-        return client.refreshSession().primaryAccountId
+        throw IllegalStateException("No JMAP account resolved for shared mailbox \"$mailboxPath\"")
     }
 
     /** Resolves the JMAP accountId for a mailbox, preferring the value persisted during mailbox sync. */
