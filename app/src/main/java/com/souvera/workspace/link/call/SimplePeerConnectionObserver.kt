@@ -11,6 +11,7 @@ import org.webrtc.IceCandidate
 import org.webrtc.MediaStream
 import org.webrtc.PeerConnection
 import org.webrtc.RtpReceiver
+import org.webrtc.RtpTransceiver
 
 /** [PeerConnection.Observer] with no-op defaults so call sites override only what they need. */
 open class SimplePeerConnectionObserver : PeerConnection.Observer {
@@ -25,4 +26,5 @@ open class SimplePeerConnectionObserver : PeerConnection.Observer {
     override fun onDataChannel(channel: DataChannel?) = Unit
     override fun onRenegotiationNeeded() = Unit
     override fun onAddTrack(receiver: RtpReceiver?, streams: Array<out MediaStream>?) = Unit
+    override fun onTrack(transceiver: RtpTransceiver) = Unit
 }

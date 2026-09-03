@@ -30,6 +30,8 @@ import com.owncloud.android.R
 import com.souvera.workspace.dav.SouveraSyncManager
 import org.webrtc.RendererCommon
 import org.webrtc.SurfaceViewRenderer
+import org.webrtc.VideoFrame
+import org.webrtc.VideoSink
 import org.webrtc.VideoTrack
 
 /**
@@ -44,6 +46,7 @@ class CallActivity :
     private lateinit var remoteRenderer: SurfaceViewRenderer
     private lateinit var localRenderer: SurfaceViewRenderer
     private var session: CallSession? = null
+    private var remoteTrack: VideoTrack? = null
     private var muted = false
     private var videoOn = true
     private var withVideo = true
@@ -402,7 +405,13 @@ class CallActivity :
     }
 
     override fun onRemoteVideo(track: VideoTrack) = runOnUiThread {
+        if (remoteTrack === track) {
+            CallDebugLog.log(TAG, "onRemoteVideo: gleicher Track bereits angebunden — ignoriere")
+            return@runOnUiThread
+        }
+        remoteTrack = track
         track.addSink(remoteRenderer)
+        track.addSink(FirstFrameLoggingSink())
         remoteRenderer.visibility = View.VISIBLE
         findViewById<LinearLayout>(R.id.call_poster).visibility = View.GONE
     }
@@ -467,6 +476,19 @@ class CallActivity :
             }
         }
 
+    }
+
+    /** Loggt den ersten empfangenen Remote-Frame, um nachzuweisen, dass Video wirklich ankommt. */
+    private class FirstFrameLoggingSink : VideoSink {
+        @Volatile
+        private var logged = false
+
+        override fun onFrame(frame: VideoFrame) {
+            if (!logged) {
+                logged = true
+                CallDebugLog.log(CallActivity.TAG, "remote first frame received")
+            }
+        }
     }
 
     companion object {

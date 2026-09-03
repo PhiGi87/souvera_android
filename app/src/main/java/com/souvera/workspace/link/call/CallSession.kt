@@ -19,10 +19,14 @@ import org.webrtc.DataChannel
 import org.webrtc.IceCandidate
 import org.webrtc.MediaConstraints
 import org.webrtc.MediaStream
+import org.webrtc.MediaStreamTrack
 import org.webrtc.PeerConnection
 import org.webrtc.RtpReceiver
+import org.webrtc.RtpTransceiver
 import org.webrtc.SessionDescription
 import org.webrtc.VideoTrack
+import java.util.Collections
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Orchestrates a single "Link" call. The Souvera server runs the High Performance Backend with an
@@ -55,6 +59,12 @@ class CallSession(
     private var localVideo: VideoTrack? = null
     private val peers = mutableMapOf<String, PeerConnection>()
     private val requestedOffers = mutableSetOf<String>()
+
+    // Dedupe fuer Remote-Tracks: onAddTrack und onTrack (UNIFIED_PLAN, MCU-
+    // Subscriber) koennen denselben Track melden; jeder Track wird nur einmal
+    // an die UI gemeldet.
+    private val reportedRemoteTracks = Collections.newSetFromMap(ConcurrentHashMap<MediaStreamTrack, Boolean>())
+    @Volatile private var remoteConnectedNotified = false
 
     private var pendingIceServers: List<PeerConnection.IceServer> = emptyList()
     private var ownSessionId: String = ""
@@ -453,10 +463,28 @@ class CallSession(
         }
 
         override fun onAddTrack(receiver: RtpReceiver?, streams: Array<out MediaStream>?) {
-            val kind = receiver?.track()?.kind()
-            CallDebugLog.log(TAG, "onAddTrack from=$session kind=$kind")
-            if (session != ownSessionId) callbacks.onRemoteConnected()
-            (receiver?.track() as? VideoTrack)?.let { callbacks.onRemoteVideo(it) }
+            handleRemoteTrack(receiver?.track(), "onAddTrack")
+        }
+
+        override fun onTrack(transceiver: RtpTransceiver) {
+            val track = transceiver.receiver.track()
+            CallDebugLog.log(
+                TAG,
+                "onTrack from=$session mid=${transceiver.mid} direction=${transceiver.direction} kind=${track.kind()}"
+            )
+            handleRemoteTrack(track, "onTrack")
+        }
+
+        private fun handleRemoteTrack(track: MediaStreamTrack?, source: String) {
+            if (session == ownSessionId) return
+            if (!remoteConnectedNotified) {
+                remoteConnectedNotified = true
+                callbacks.onRemoteConnected()
+            }
+            val video = track as? VideoTrack ?: return
+            if (!reportedRemoteTracks.add(video)) return
+            CallDebugLog.log(TAG, "handleRemoteTrack from=$session source=$source kind=${video.kind()} id=${video.id()}")
+            callbacks.onRemoteVideo(video)
         }
     }
 
