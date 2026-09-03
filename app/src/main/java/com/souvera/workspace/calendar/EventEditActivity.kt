@@ -233,7 +233,7 @@ class EventEditActivity : AppCompatActivity() {
                 if (isFinishing || isDestroyed) return@launch
                 saveDraft(currentAccount, roomLink?.let { draft.copy(description = it) } ?: draft)
                 if (roomLink == null) {
-                    Toast.makeText(this, R.string.event_link_channel_failed, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@EventEditActivity, R.string.event_link_channel_failed, Toast.LENGTH_SHORT).show()
                 }
             }
         } else {
