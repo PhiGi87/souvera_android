@@ -1690,6 +1690,8 @@
     <string name="event_deleted">Event deleted</string>
     <string name="event_no_calendar">No writable calendar available</string>
     <string name="event_untitled">(no title)</string>
+    <string name="event_link_channel">Create Link channel</string>
+    <string name="event_link_channel_failed">Link channel could not be created</string>
     <string name="drawer_item_contacts">Contacts</string>
     <string name="contact_no_email">No contact details</string>
     <string name="souvera_no_contacts">No contacts found</string>

@@ -1425,6 +1425,8 @@
     <string name="event_deleted">Termin gelöscht</string>
     <string name="event_no_calendar">Kein beschreibbarer Kalender verfügbar</string>
     <string name="event_untitled">(kein Titel)</string>
+    <string name="event_link_channel">Link-Kanal erstellen</string>
+    <string name="event_link_channel_failed">Link-Kanal konnte nicht erstellt werden</string>
     <string name="drawer_item_contacts">Kontakte</string>
     <string name="contact_no_email">Keine Kontaktdaten</string>
     <string name="souvera_no_contacts">Keine Kontakte gefunden</string>

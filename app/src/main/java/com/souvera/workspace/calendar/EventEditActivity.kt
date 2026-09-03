@@ -23,6 +23,8 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.textfield.TextInputEditText
 import com.owncloud.android.R
+import com.souvera.workspace.dav.SouveraSyncManager
+import com.souvera.workspace.link.net.OcsApi
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -39,12 +41,15 @@ class EventEditActivity : AppCompatActivity() {
     private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
     private var eventId: Long? = null
+    private var saving = false
     private val begin = Calendar.getInstance()
     private val end = Calendar.getInstance()
 
     private lateinit var titleInput: TextInputEditText
     private lateinit var locationInput: TextInputEditText
     private lateinit var allDaySwitch: MaterialSwitch
+    private lateinit var linkChannelRow: View
+    private lateinit var linkChannelSwitch: MaterialSwitch
     private lateinit var startDateButton: MaterialButton
     private lateinit var startTimeButton: MaterialButton
     private lateinit var endLabel: View
@@ -72,6 +77,8 @@ class EventEditActivity : AppCompatActivity() {
         titleInput = findViewById(R.id.event_title)
         locationInput = findViewById(R.id.event_location)
         allDaySwitch = findViewById(R.id.event_all_day)
+        linkChannelRow = findViewById(R.id.event_link_channel_row)
+        linkChannelSwitch = findViewById(R.id.event_link_channel)
         startDateButton = findViewById(R.id.event_start_date)
         startTimeButton = findViewById(R.id.event_start_time)
         endLabel = findViewById(R.id.event_end_label)
@@ -84,6 +91,8 @@ class EventEditActivity : AppCompatActivity() {
         val id = intent.getLongExtra(EXTRA_EVENT_ID, INVALID_ID)
         if (id >= 0) {
             eventId = id
+            // Link-Kanal ist nur bei der Neuanlage relevant.
+            linkChannelRow.visibility = View.GONE
             repository.loadEvent(id)?.let { draft ->
                 titleInput.setText(draft.title)
                 locationInput.setText(draft.location)
@@ -186,6 +195,7 @@ class EventEditActivity : AppCompatActivity() {
     }
 
     private fun onSave() {
+        if (saving) return
         val title = titleInput.text?.toString()?.trim().orEmpty()
         if (title.isEmpty()) {
             Toast.makeText(this, R.string.event_title_required, Toast.LENGTH_SHORT).show()
@@ -196,17 +206,45 @@ class EventEditActivity : AppCompatActivity() {
             return
         }
         val location = locationInput.text?.toString()?.trim().orEmpty()
+        val createLink = eventId == null && linkChannelSwitch.isChecked
         val draft = if (allDaySwitch.isChecked) {
             val dayStart = utcMidnight(begin)
-            EventDraft(eventId, title, location, dayStart, dayStart + DAY_MILLIS, allDay = true)
+            EventDraft(eventId, title, location, dayStart, dayStart + DAY_MILLIS, allDay = true, createLinkChannel = createLink)
         } else {
-            EventDraft(eventId, title, location, begin.timeInMillis, end.timeInMillis, allDay = false)
+            EventDraft(eventId, title, location, begin.timeInMillis, end.timeInMillis, allDay = false, createLinkChannel = createLink)
         }
+        saving = true
+        if (createLink) {
+            val dav = SouveraSyncManager(this).resolve(currentAccount)
+            if (dav == null) {
+                // Ohne auflösbare Anmeldedaten den Termin ohne Link speichern.
+                saveDraft(currentAccount, draft)
+                Toast.makeText(this, R.string.event_link_channel_failed, Toast.LENGTH_SHORT).show()
+                return
+            }
+            // OcsApi ist blockierendes HTTP — niemals auf dem Main-Thread.
+            Thread {
+                val token = runCatching { OcsApi(dav).createConversation(title, LINK_CHANNEL_ROOM_TYPE) }.getOrNull()
+                val linkDraft = token?.let { draft.copy(description = "${dav.baseUrl.trimEnd('/')}/call/$it") } ?: draft
+                runOnUiThread {
+                    saveDraft(currentAccount, linkDraft)
+                    if (token == null) {
+                        Toast.makeText(this, R.string.event_link_channel_failed, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }.start()
+        } else {
+            saveDraft(currentAccount, draft)
+        }
+    }
+
+    private fun saveDraft(currentAccount: Account, draft: EventDraft) {
         if (repository.save(currentAccount, draft)) {
             requestSync(currentAccount)
             Toast.makeText(this, R.string.event_saved, Toast.LENGTH_SHORT).show()
             finish()
         } else {
+            saving = false
             Toast.makeText(this, R.string.event_no_calendar, Toast.LENGTH_LONG).show()
         }
     }
@@ -250,5 +288,6 @@ class EventEditActivity : AppCompatActivity() {
         private const val DEFAULT_HOUR = 9
         private const val DAY_MILLIS = 24 * 60 * 60 * 1000L
         private const val DEFAULT_DURATION_MILLIS = 60 * 60 * 1000L
+        private const val LINK_CHANNEL_ROOM_TYPE = 2
     }
 }
