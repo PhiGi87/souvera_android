@@ -60,6 +60,10 @@ class MailboxRepository(context: Context) {
                                 id = "$accountName:$accName/${json.optString("name", entity.path)}",
                                 namespaceType = com.souvera.workspace.mail.db.entity.NamespaceType.SHARED,
                                 ownerIdentity = accName,
+                                // Session-Account-Schluessel persistieren, damit
+                                // Message-Sync/Body-Fetch den richtigen Account
+                                // verwenden, statt ueber Name-Matching zu raten.
+                                jmapAccountId = key,
                                 // Shared-Unterordner haben KEINE Server-Rollen —
                                 // Namensbasierte Systemordner-Zuordnung hier
                                 // deaktivieren, sonst entstehen "2 Posteingaenge".

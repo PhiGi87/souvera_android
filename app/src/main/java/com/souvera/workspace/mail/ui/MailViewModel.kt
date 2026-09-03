@@ -118,6 +118,7 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
     private var credentialResolved = false
     private var appliedMessageLimit = 0
     private var pendingDeepLink: Pair<String, String>? = null
+    private var bodyRequestSeq = 0
 
     fun start(account: Account) {
         if (credentialResolved) return
@@ -264,13 +265,18 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
         navigate(MailRoute.Detail(message))
         _body.value = MailUiState.Loading
         val path = message.mailboxPath()
+        val requestSeq = ++bodyRequestSeq
         viewModelScope.launch {
-            _body.value = when (val result = messageRepository.fetchMessageBody(path, message.emailId, current)) {
+            val result = messageRepository.fetchMessageBody(message.accountName, path, message.emailId, current)
+            // Stale-Response-Schutz: eine langsame Antwort fuer Mail A darf den
+            // Detail-View von Mail B nicht ueberschreiben.
+            if (requestSeq != bodyRequestSeq) return@launch
+            _body.value = when (result) {
                 is MailResult.Success -> MailUiState.Success(result.value)
                 is MailResult.Failure -> MailUiState.Error(result.message)
             }
             if (!message.isRead) {
-                messageRepository.setRead(account.name, path, message.emailId, true, current)
+                messageRepository.setRead(message.accountName, path, message.emailId, true, current)
             }
         }
     }
@@ -317,7 +323,7 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _isDeleting.value = true
             try {
-                val moveResult = messageRepository.spam(account.name, message.mailboxPath(), message.emailId, current)
+                val moveResult = messageRepository.spam(message.accountName, message.mailboxPath(), message.emailId, current)
                 val sender = Regex("[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+")
                     .find(message.fromAddress)?.value
                 var blocked = true
@@ -365,7 +371,7 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _isDeleting.value = true
             try {
-                val result = messageRepository.delete(account.name, message.mailboxPath(), message.emailId, current)
+                val result = messageRepository.delete(message.accountName, message.mailboxPath(), message.emailId, current)
                 if (result is MailResult.Success) {
                     back()
                 } else {
@@ -430,7 +436,7 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleFlagged(message: MessageEntity, flagged: Boolean) {
         val current = dav ?: return
         viewModelScope.launch {
-            messageRepository.setFlagged(account.name, message.mailboxPath(), message.emailId, flagged, current)
+            messageRepository.setFlagged(message.accountName, message.mailboxPath(), message.emailId, flagged, current)
         }
     }
 
@@ -439,7 +445,7 @@ class MailViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val app = getApplication<Application>()
             val result =
-                messageRepository.fetchAttachment(message.mailboxPath(), message.emailId, index, current)
+                messageRepository.fetchAttachment(message.accountName, message.mailboxPath(), message.emailId, index, current)
             when (result) {
                 is MailResult.Success -> {
                     val authority = app.getString(R.string.file_provider_authority)
