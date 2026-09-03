@@ -84,7 +84,14 @@ class CalendarRepository(context: Context) {
 
     @Suppress("MagicNumber")
     fun loadEvent(id: Long): EventDraft? {
-        val projection = arrayOf(Events.TITLE, Events.EVENT_LOCATION, Events.DTSTART, Events.DTEND, Events.ALL_DAY)
+        val projection = arrayOf(
+            Events.TITLE,
+            Events.EVENT_LOCATION,
+            Events.DTSTART,
+            Events.DTEND,
+            Events.ALL_DAY,
+            Events.DESCRIPTION
+        )
         resolver.query(ContentUris.withAppendedId(Events.CONTENT_URI, id), projection, null, null, null)
             ?.use { cursor ->
                 if (cursor.moveToFirst()) {
@@ -94,7 +101,8 @@ class CalendarRepository(context: Context) {
                         location = cursor.getString(1).orEmpty(),
                         begin = cursor.getLong(2),
                         end = cursor.getLong(3),
-                        allDay = cursor.getInt(4) == 1
+                        allDay = cursor.getInt(4) == 1,
+                        description = cursor.getString(5)
                     )
                 }
             }
@@ -109,6 +117,7 @@ class CalendarRepository(context: Context) {
             put(Events.DTEND, draft.end)
             put(Events.ALL_DAY, if (draft.allDay) 1 else 0)
             put(Events.EVENT_TIMEZONE, if (draft.allDay) TIMEZONE_UTC else TimeZone.getDefault().id)
+            draft.description?.let { put(Events.DESCRIPTION, it) }
         }
         return if (draft.id != null) {
             resolver.update(ContentUris.withAppendedId(Events.CONTENT_URI, draft.id), values, null, null) > 0

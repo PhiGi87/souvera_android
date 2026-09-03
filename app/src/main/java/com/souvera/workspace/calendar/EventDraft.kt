@@ -13,5 +13,7 @@ data class EventDraft(
     val location: String,
     val begin: Long,
     val end: Long,
-    val allDay: Boolean
+    val allDay: Boolean,
+    val description: String? = null,
+    val createLinkChannel: Boolean = false
 )
